@@ -87,6 +87,7 @@ export default function DashboardPage() {
       <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
         {/* Create Concert button */}
         <button
+          onClick={() => router.push('/concerts/new')}
           style={{
             width: '100%',
             padding: '1rem',
