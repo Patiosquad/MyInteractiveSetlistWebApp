@@ -121,6 +121,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={concert.id}
+                  onClick={() => router.push(`/concerts/${concert.id}`)}
                   style={{
                     position: 'relative',
                     padding: '1.25rem 1.5rem',
@@ -128,6 +129,7 @@ export default function DashboardPage() {
                     border: '1px solid #27272a',
                     background: '#18181b',
                     transition: 'border-color 0.15s',
+                    cursor: 'pointer',
                   }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLDivElement).style.borderColor = '#3f3f46';
