@@ -112,7 +112,7 @@ export default function DisplayPage() {
     const contribChannel = supabase
       .channel(`display-contributions-${concertId}`)
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'contributions', filter: `concert_id=eq.${concertId}` },
+        { event: '*', schema: 'public', table: 'contributions' },
         () => fetchLeaderboard()
       )
       .subscribe();
