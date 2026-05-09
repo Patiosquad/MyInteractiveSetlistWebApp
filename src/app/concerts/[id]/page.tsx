@@ -301,7 +301,7 @@ export default function ConcertPage() {
 
   const c = concert!;
   const badge = STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
-  const isBuilding = c.status === 'building';
+  const isBuilding = c.status === 'building' || c.status === 'closed';
 
   // ── Render ────────────────────────────────────────────────────────────────
 
