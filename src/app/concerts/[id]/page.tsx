@@ -86,6 +86,12 @@ export default function ConcertPage() {
   const [searching, setSearching] = useState(false);
   const [addedMessage, setAddedMessage] = useState('');
 
+  const [pendingTrack, setPendingTrack] = useState<SpotifyTrack | null>(null);
+  const [pendingName, setPendingName] = useState('');
+  const [pendingArtist, setPendingArtist] = useState('');
+  const [pendingAlbum, setPendingAlbum] = useState('');
+  const [pendingComments, setPendingComments] = useState('');
+
   const [manualName, setManualName] = useState('');
   const [manualArtist, setManualArtist] = useState('');
   const [manualAlbum, setManualAlbum] = useState('');
@@ -191,27 +197,41 @@ export default function ConcertPage() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, accessToken]);
 
-  async function handleAddSong(track: SpotifyTrack) {
+  function openAddModal(track: SpotifyTrack) {
+    setPendingTrack(track);
+    setPendingName(track.name);
+    setPendingArtist(track.artist);
+    setPendingAlbum(track.album);
+    setPendingComments('');
+  }
+
+  function closeAddModal() {
+    setPendingTrack(null);
+  }
+
+  async function handleAddSong() {
+    if (!pendingTrack) return;
     const { data, error } = await supabase.from('songs').insert({
       concert_id: concertId,
-      name: track.name,
-      artist: track.artist,
-      album: track.album,
-      album_art_url: track.album_art_url,
-      spotify_track_id: track.spotify_track_id,
-      decade: track.decade,
+      name: pendingName.trim(),
+      artist: pendingArtist.trim(),
+      album: pendingAlbum.trim() || null,
+      album_art_url: pendingTrack.album_art_url,
+      spotify_track_id: pendingTrack.spotify_track_id,
+      decade: pendingTrack.decade,
+      comments: pendingComments.trim() || null,
       status: 'active',
     }).select();
-    console.log('Insert result:', { data, error });
     if (error) {
       alert('Insert failed: ' + error.message);
       return;
     }
 
     if (data?.[0]) setSongs((prev) => [data[0], ...prev]);
+    closeAddModal();
     setQuery('');
     setSearchResults([]);
-    setAddedMessage(`Added "${track.name}"`);
+    setAddedMessage(`Added "${pendingName.trim()}"`);
     setTimeout(() => setAddedMessage(''), 2500);
   }
 
@@ -450,7 +470,7 @@ export default function ConcertPage() {
                     {searchResults.map((track, idx) => (
                       <button
                         key={track.spotify_track_id}
-                        onClick={() => handleAddSong(track)}
+                        onClick={() => openAddModal(track)}
                         style={{
                           width: '100%',
                           display: 'flex',
@@ -650,6 +670,124 @@ export default function ConcertPage() {
           </div>
         )}
       </main>
+
+      {pendingTrack && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid #3f3f46',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            maxWidth: '480px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+          }}>
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>
+              Add to Catalog
+            </h2>
+
+            {/* Album art preview */}
+            {pendingTrack.album_art_url && (
+              <img
+                src={pendingTrack.album_art_url}
+                alt={pendingAlbum}
+                width={80}
+                height={80}
+                style={{ borderRadius: '0.5rem', objectFit: 'cover', flexShrink: 0 }}
+              />
+            )}
+
+            {/* Editable fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>
+                  Song Name
+                </label>
+                <input
+                  type="text"
+                  value={pendingName}
+                  onChange={(e) => setPendingName(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>
+                  Artist
+                </label>
+                <input
+                  type="text"
+                  value={pendingArtist}
+                  onChange={(e) => setPendingArtist(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>
+                  Album
+                </label>
+                <input
+                  type="text"
+                  value={pendingAlbum}
+                  onChange={(e) => setPendingAlbum(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>
+                  Comments
+                </label>
+                <input
+                  type="text"
+                  value={pendingComments}
+                  onChange={(e) => setPendingComments(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={closeAddModal}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #3f3f46',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSong}
+                disabled={!pendingName.trim() || !pendingArtist.trim()}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  background: !pendingName.trim() || !pendingArtist.trim() ? '#3f3f46' : '#ffffff',
+                  color: !pendingName.trim() || !pendingArtist.trim() ? '#71717a' : '#09090b',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  cursor: !pendingName.trim() || !pendingArtist.trim() ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Add to Catalog
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

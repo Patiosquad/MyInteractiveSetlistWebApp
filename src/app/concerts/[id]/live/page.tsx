@@ -86,7 +86,7 @@ export default function LivePage() {
     );
 
     withTotals.sort((a, b) => b.total - a.total);
-    setSongs(withTotals);
+    setSongs(withTotals.filter((s) => s.total > 0));
   }, [concertId]);
 
   useEffect(() => {
