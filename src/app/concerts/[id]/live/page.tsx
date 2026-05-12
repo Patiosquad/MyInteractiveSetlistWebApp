@@ -61,6 +61,7 @@ export default function LivePage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState('');
   const [endingConcert, setEndingConcert] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const fetchLeaderboard = useCallback(async () => {
     const { data: songsData } = await supabase
@@ -196,8 +197,8 @@ export default function LivePage() {
     setProcessingId(null);
   }
 
-  async function handleEndConcert() {
-    if (!confirm('End concert? All remaining contributions will be released.')) return;
+  async function handleEndConcertConfirmed() {
+    setShowEndConfirm(false);
     setEndingConcert(true);
 
     const ok = await callEdgeFunction('cancel-payments', { mode: 'end_concert', concertId });
@@ -371,7 +372,7 @@ export default function LivePage() {
         {/* End Concert */}
         <div style={{ paddingBottom: '2rem', marginTop: '1rem' }}>
           <button
-            onClick={handleEndConcert}
+            onClick={() => setShowEndConfirm(true)}
             disabled={endingConcert}
             style={{
               width: '100%',
@@ -390,6 +391,66 @@ export default function LivePage() {
         </div>
 
       </main>
+
+      {showEndConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid #3f3f46',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            maxWidth: '420px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
+              End Concert?
+            </h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              This will end the concert and release all pending contributions for songs that were not played. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #3f3f46',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEndConcertConfirmed}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  background: '#991b1b',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                End Concert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
