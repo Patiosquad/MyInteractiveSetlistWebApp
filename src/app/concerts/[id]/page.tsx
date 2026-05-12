@@ -93,6 +93,7 @@ export default function ConcertPage() {
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
   const [goingLive, setGoingLive] = useState(false);
+  const [goLiveError, setGoLiveError] = useState('');
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -262,7 +263,22 @@ export default function ConcertPage() {
 
   async function handleGoLive() {
     if (!concert) return;
+    setGoLiveError('');
     setGoingLive(true);
+
+    const { data: liveCheck } = await supabase
+      .from('concerts')
+      .select('id')
+      .eq('performer_id', concert.performer_id)
+      .eq('status', 'live')
+      .neq('id', concertId)
+      .limit(1);
+
+    if (liveCheck && liveCheck.length > 0) {
+      setGoLiveError('You already have a concert in progress. Please end your current live concert before starting a new one.');
+      setGoingLive(false);
+      return;
+    }
 
     await supabase
       .from('songs')
@@ -609,7 +625,10 @@ export default function ConcertPage() {
 
         {/* Go Live button */}
         {isBuilding && songs.length > 0 && (
-          <div style={{ paddingBottom: '2rem' }}>
+          <div style={{ paddingBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {goLiveError && (
+              <p style={{ color: '#f87171', fontSize: '0.9375rem', margin: 0 }}>{goLiveError}</p>
+            )}
             <button
               onClick={handleGoLive}
               disabled={goingLive}
