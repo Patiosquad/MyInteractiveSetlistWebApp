@@ -11,6 +11,7 @@ type SongWithTotal = {
   album: string;
   album_art_url: string | null;
   total: number;
+  status: 'active' | 'played' | 'declined';
 };
 
 type Concert = {
@@ -54,11 +55,13 @@ export default function LivePage() {
 
   const [concert, setConcert] = useState<Concert | null>(null);
   const [songs, setSongs] = useState<SongWithTotal[]>([]);
+  const [catalog, setCatalog] = useState<SongWithTotal[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [notLive, setNotLive] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState('');
   const [endingConcert, setEndingConcert] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -68,7 +71,7 @@ export default function LivePage() {
       .from('songs')
       .select('*')
       .eq('concert_id', concertId)
-      .eq('status', 'active');
+      .order('created_at', { ascending: false });
 
     if (!songsData) return;
 
@@ -85,8 +88,10 @@ export default function LivePage() {
       })
     );
 
-    withTotals.sort((a, b) => b.total - a.total);
-    setSongs(withTotals.filter((s) => s.total > 0));
+    setCatalog([...withTotals]);
+    const activeSongs = withTotals.filter((s) => s.status === 'active');
+    activeSongs.sort((a, b) => b.total - a.total);
+    setSongs(activeSongs.filter((s) => s.total > 0));
   }, [concertId]);
 
   useEffect(() => {
@@ -178,6 +183,7 @@ export default function LivePage() {
     const ok = await callEdgeFunction('capture-payments', { songId: song.id, concertId });
     if (ok) {
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
+      setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'played' } : s));
       setActionMessage(`✓ "${song.name}" accepted!`);
       setTimeout(() => setActionMessage(''), 3000);
     }
@@ -191,10 +197,19 @@ export default function LivePage() {
     const ok = await callEdgeFunction('cancel-payments', { mode: 'decline', songId: song.id });
     if (ok) {
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
+      setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'declined' } : s));
       setActionMessage(`"${song.name}" declined.`);
       setTimeout(() => setActionMessage(''), 3000);
     }
     setProcessingId(null);
+  }
+
+  async function handleReactivate(song: SongWithTotal) {
+    setReactivatingId(song.id);
+    await supabase.from('contributions').delete().eq('song_id', song.id);
+    await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
+    await fetchLeaderboard();
+    setReactivatingId(null);
   }
 
   async function handleEndConcertConfirmed() {
@@ -203,6 +218,12 @@ export default function LivePage() {
 
     const ok = await callEdgeFunction('cancel-payments', { mode: 'end_concert', concertId });
     if (ok) {
+      await supabase
+        .from('contributions')
+        .delete()
+        .eq('concert_id', concertId)
+        .eq('status', 'released');
+
       router.push(`/concerts/${concertId}`);
     } else {
       setEndingConcert(false);
@@ -238,10 +259,11 @@ export default function LivePage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
       {/* Header */}
-      <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+      <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem', flexShrink: 0 }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{concert?.name}</h1>
             <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', background: '#14532d', color: '#86efac', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
@@ -262,135 +284,214 @@ export default function LivePage() {
         </div>
       </header>
 
-      <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Body */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          flex: 1, overflow: 'hidden',
+          maxWidth: '1400px', width: '100%', margin: '0 auto',
+          display: 'flex', flexDirection: 'column',
+          padding: '0 2rem', boxSizing: 'border-box',
+        }}>
 
-        {actionMessage && (
-          <p style={{ color: '#86efac', fontSize: '0.9375rem', fontWeight: 500 }}>{actionMessage}</p>
-        )}
-
-        {/* Leaderboard */}
-        <section>
-          <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '1rem' }}>
-            Leaderboard
-          </h2>
-
-          {songs.length === 0 ? (
-            <p style={{ color: '#52525b', textAlign: 'center', padding: '4rem 0' }}>
-              Waiting for fans to contribute...
+          {actionMessage && (
+            <p style={{ color: '#86efac', fontSize: '0.9375rem', fontWeight: 500, paddingTop: '1rem', flexShrink: 0, margin: 0 }}>
+              {actionMessage}
             </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {songs.map((song, idx) => {
-                const isProcessing = processingId === song.id;
-                const accent = rankAccent(idx);
-                return (
-                  <div
-                    key={song.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '1rem 1.25rem',
-                      borderRadius: '0.75rem',
-                      border: '1px solid #27272a',
-                      borderLeft: `4px solid ${accent}`,
-                      background: '#18181b',
-                    }}
-                  >
-                    {/* Rank */}
-                    <div style={{ width: '2.5rem', flexShrink: 0, textAlign: 'center' }}>
-                      <span style={{ fontSize: '1.125rem', fontWeight: 800, color: accent }}>
-                        {ordinal(idx + 1)}
-                      </span>
-                    </div>
-
-                    {/* Album art */}
-                    {song.album_art_url
-                      ? <img src={song.album_art_url} alt={song.album} width={60} height={60} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
-                      : <div style={{ width: 60, height: 60, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
-                    }
-
-                    {/* Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 700, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {song.name}
-                      </p>
-                      <p style={{ color: '#a1a1aa', fontSize: '0.8125rem', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {song.artist}
-                      </p>
-                    </div>
-
-                    {/* Total */}
-                    <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '4rem' }}>
-                      <span style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7' }}>
-                        ${song.total.toFixed(2)}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                      <button
-                        onClick={() => handleAccept(song)}
-                        disabled={isProcessing}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          borderRadius: '0.5rem',
-                          border: 'none',
-                          background: isProcessing ? '#27272a' : '#16a34a',
-                          color: isProcessing ? '#52525b' : '#ffffff',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: isProcessing ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        Accept
-                      </button>
-                      <button
-                        onClick={() => handleDecline(song)}
-                        disabled={isProcessing}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          borderRadius: '0.5rem',
-                          border: 'none',
-                          background: isProcessing ? '#27272a' : '#991b1b',
-                          color: isProcessing ? '#52525b' : '#ffffff',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: isProcessing ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           )}
-        </section>
 
-        {/* End Concert */}
-        <div style={{ paddingBottom: '2rem', marginTop: '1rem' }}>
-          <button
-            onClick={() => setShowEndConfirm(true)}
-            disabled={endingConcert}
-            style={{
-              width: '100%',
-              padding: '0.875rem',
-              borderRadius: '0.75rem',
-              border: '1px solid #7f1d1d',
-              background: 'transparent',
-              color: endingConcert ? '#52525b' : '#f87171',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: endingConcert ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {endingConcert ? 'Ending Concert…' : 'End Concert'}
-          </button>
+          {/* Two-column area */}
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', gap: '0', paddingTop: '1.5rem' }}>
+
+            {/* LEFT: Leaderboard (55%) */}
+            <div style={{ flex: 55, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingRight: '1.5rem' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '1rem', flexShrink: 0 }}>
+                Leaderboard
+              </h2>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {songs.length === 0 ? (
+                  <p style={{ color: '#52525b', textAlign: 'center', padding: '4rem 0', margin: 0 }}>
+                    Waiting for fans to contribute...
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1rem' }}>
+                    {songs.map((song, idx) => {
+                      const isProcessing = processingId === song.id;
+                      const accent = rankAccent(idx);
+                      return (
+                        <div
+                          key={song.id}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.75rem',
+                            padding: '0.875rem 1rem',
+                            borderRadius: '0.75rem',
+                            border: '1px solid #27272a',
+                            borderLeft: `4px solid ${accent}`,
+                            background: '#18181b',
+                          }}
+                        >
+                          <div style={{ width: '2.25rem', flexShrink: 0, textAlign: 'center' }}>
+                            <span style={{ fontSize: '1rem', fontWeight: 800, color: accent }}>{ordinal(idx + 1)}</span>
+                          </div>
+                          {song.album_art_url
+                            ? <img src={song.album_art_url} alt={song.album} width={48} height={48} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
+                            : <div style={{ width: 48, height: 48, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
+                          }
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: 700, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                              {song.name}
+                            </p>
+                            <p style={{ color: '#a1a1aa', fontSize: '0.8125rem', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
+                              {song.artist}
+                            </p>
+                          </div>
+                          <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '3.5rem' }}>
+                            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e4e4e7' }}>${song.total.toFixed(2)}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+                            <button
+                              onClick={() => handleAccept(song)}
+                              disabled={isProcessing}
+                              style={{
+                                padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: 'none',
+                                background: isProcessing ? '#27272a' : '#16a34a',
+                                color: isProcessing ? '#52525b' : '#ffffff',
+                                fontSize: '0.8125rem', fontWeight: 600,
+                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleDecline(song)}
+                              disabled={isProcessing}
+                              style={{
+                                padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: 'none',
+                                background: isProcessing ? '#27272a' : '#991b1b',
+                                color: isProcessing ? '#52525b' : '#ffffff',
+                                fontSize: '0.8125rem', fontWeight: 600,
+                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT: Catalog (45%) */}
+            <div style={{ flex: 45, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #27272a', paddingLeft: '1.5rem' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '1rem', flexShrink: 0 }}>
+                Catalog <span style={{ color: '#52525b', fontWeight: 400 }}>({catalog.length})</span>
+              </h2>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {catalog.length === 0 ? (
+                  <p style={{ color: '#52525b', textAlign: 'center', padding: '4rem 0', margin: 0 }}>
+                    No songs in the catalog.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem' }}>
+                    {catalog.map((song) => {
+                      const onLeaderboard = song.status === 'active' && song.total > 0;
+                      const isInactive = song.status === 'played' || song.status === 'declined';
+                      const isReactivating = reactivatingId === song.id;
+                      return (
+                        <div
+                          key={song.id}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.75rem',
+                            padding: '0.75rem',
+                            borderRadius: '0.75rem',
+                            border: '1px solid #27272a',
+                            borderLeft: onLeaderboard ? '4px solid #6366f1' : isInactive ? '4px solid #3f3f46' : '1px solid #27272a',
+                            background: '#18181b',
+                            opacity: isInactive ? 0.7 : 1,
+                          }}
+                        >
+                          {song.album_art_url
+                            ? <img src={song.album_art_url} alt={song.album} width={44} height={44} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
+                            : <div style={{ width: 44, height: 44, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
+                          }
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: 600, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                              {song.name}
+                            </p>
+                            <p style={{ color: '#a1a1aa', fontSize: '0.75rem', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
+                              {song.artist}
+                            </p>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                            {onLeaderboard && (
+                              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#818cf8' }}>
+                                ${song.total.toFixed(2)}
+                              </span>
+                            )}
+                            {song.status === 'played' && (
+                              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#86efac', background: '#14532d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                                Played
+                              </span>
+                            )}
+                            {song.status === 'declined' && (
+                              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#f87171', background: '#7f1d1d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                                Declined
+                              </span>
+                            )}
+                            {isInactive && (
+                              <button
+                                onClick={() => handleReactivate(song)}
+                                disabled={isReactivating}
+                                style={{
+                                  padding: '0.25rem 0.625rem',
+                                  borderRadius: '0.375rem',
+                                  border: '1px solid #3f3f46',
+                                  background: 'transparent',
+                                  color: isReactivating ? '#52525b' : '#a1a1aa',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 500,
+                                  cursor: isReactivating ? 'not-allowed' : 'pointer',
+                                }}
+                              >
+                                {isReactivating ? '…' : 'Reactivate'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* End Concert */}
+          <div style={{ paddingTop: '1rem', paddingBottom: '1.5rem', flexShrink: 0 }}>
+            <button
+              onClick={() => setShowEndConfirm(true)}
+              disabled={endingConcert}
+              style={{
+                width: '100%',
+                padding: '0.875rem',
+                borderRadius: '0.75rem',
+                border: '1px solid #7f1d1d',
+                background: 'transparent',
+                color: endingConcert ? '#52525b' : '#f87171',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: endingConcert ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {endingConcert ? 'Ending Concert…' : 'End Concert'}
+            </button>
+          </div>
+
         </div>
-
-      </main>
+      </div>
 
       {showEndConfirm && (
         <div style={{
