@@ -313,7 +313,10 @@ export default function ConcertPage() {
       .select('*')
       .single();
 
-    if (data) setConcert(data);
+    if (data) {
+      await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
+      setConcert(data);
+    }
     setGoingLive(false);
   }
 

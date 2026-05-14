@@ -183,6 +183,7 @@ export default function LivePage() {
 
     const ok = await callEdgeFunction('capture-payments', { songId: song.id, concertId });
     if (ok) {
+      await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
       setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'played' } : s));
       setActionMessage(`✓ "${song.name}" accepted!`);
@@ -206,6 +207,7 @@ export default function LivePage() {
       }
     ).catch(() => {});
     await supabase.from('songs').update({ status: 'declined' }).eq('id', song.id);
+    await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
     setSongs((prev) => prev.filter((s) => s.id !== song.id));
     setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'declined' } : s));
     setActionMessage(`"${song.name}" declined.`);
