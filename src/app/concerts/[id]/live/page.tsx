@@ -65,6 +65,7 @@ export default function LivePage() {
   const [actionMessage, setActionMessage] = useState('');
   const [endingConcert, setEndingConcert] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [pendingDecline, setPendingDecline] = useState<SongWithTotal | null>(null);
 
   const fetchLeaderboard = useCallback(async () => {
     const { data: songsData } = await supabase
@@ -190,17 +191,25 @@ export default function LivePage() {
     setProcessingId(null);
   }
 
-  async function handleDecline(song: SongWithTotal) {
-    if (!confirm(`Decline "${song.name}" and release all contributions?`)) return;
+  async function handleDeclineConfirmed() {
+    if (!pendingDecline) return;
+    const song = pendingDecline;
+    setPendingDecline(null);
     setProcessingId(song.id);
 
-    const ok = await callEdgeFunction('cancel-payments', { mode: 'decline', songId: song.id });
-    if (ok) {
-      setSongs((prev) => prev.filter((s) => s.id !== song.id));
-      setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'declined' } : s));
-      setActionMessage(`"${song.name}" declined.`);
-      setTimeout(() => setActionMessage(''), 3000);
-    }
+    await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'decline', songId: song.id }),
+      }
+    ).catch(() => {});
+    await supabase.from('songs').update({ status: 'declined' }).eq('id', song.id);
+    setSongs((prev) => prev.filter((s) => s.id !== song.id));
+    setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'declined' } : s));
+    setActionMessage(`"${song.name}" declined.`);
+    setTimeout(() => setActionMessage(''), 3000);
     setProcessingId(null);
   }
 
@@ -362,7 +371,7 @@ export default function LivePage() {
                               Accept
                             </button>
                             <button
-                              onClick={() => handleDecline(song)}
+                              onClick={() => setPendingDecline(song)}
                               disabled={isProcessing}
                               style={{
                                 padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: 'none',
@@ -492,6 +501,66 @@ export default function LivePage() {
 
         </div>
       </div>
+
+      {pendingDecline && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid #3f3f46',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            maxWidth: '420px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
+              Decline Song?
+            </h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              This will decline &ldquo;{pendingDecline.name}&rdquo; and release all contributions back to fans.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setPendingDecline(null)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #3f3f46',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeclineConfirmed}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  background: '#991b1b',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showEndConfirm && (
         <div style={{
