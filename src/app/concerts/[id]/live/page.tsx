@@ -232,8 +232,7 @@ export default function LivePage() {
       await supabase
         .from('contributions')
         .delete()
-        .eq('concert_id', concertId)
-        .eq('status', 'released');
+        .eq('concert_id', concertId);
 
       router.push(`/concerts/${concertId}`);
     } else {
