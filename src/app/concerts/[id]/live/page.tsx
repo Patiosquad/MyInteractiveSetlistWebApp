@@ -327,8 +327,8 @@ export default function LivePage() {
 
             {/* LEFT: Leaderboard (55%) */}
             <div style={{ flex: 55, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingRight: '1.5rem' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '1rem', flexShrink: 0 }}>
-                Leaderboard
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fbbf24', letterSpacing: '0.01em', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #3f3f46', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🎵 Song Leaderboard
               </h2>
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {songs.length === 0 ? (
