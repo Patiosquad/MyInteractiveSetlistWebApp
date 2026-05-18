@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [concerts, setConcerts] = useState<Concert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bandName, setBandName] = useState('');
 
   useEffect(() => {
     async function init() {
@@ -33,6 +34,13 @@ export default function DashboardPage() {
         router.replace('/login');
         return;
       }
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+      setBandName(userData?.username ?? '');
 
       const { data } = await supabase
         .from('concerts')
@@ -70,6 +78,7 @@ export default function DashboardPage() {
       <header style={{
         borderBottom: '1px solid #27272a',
         padding: '1rem 2rem',
+        position: 'relative',
       }}>
         <div style={{
           maxWidth: '1000px',
@@ -94,6 +103,11 @@ export default function DashboardPage() {
             Logout
           </button>
         </div>
+        {bandName && (
+          <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: '1rem', fontWeight: 600, color: '#ffffff', pointerEvents: 'none' }}>
+            {bandName}
+          </span>
+        )}
       </header>
 
       {/* Main content */}

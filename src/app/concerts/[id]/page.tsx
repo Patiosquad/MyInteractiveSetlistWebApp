@@ -100,6 +100,7 @@ export default function ConcertPage() {
 
   const [goingLive, setGoingLive] = useState(false);
   const [goLiveError, setGoLiveError] = useState('');
+  const [bandName, setBandName] = useState('');
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -112,6 +113,13 @@ export default function ConcertPage() {
 
       const { data: { session } } = await supabase.auth.getSession();
       setAccessToken(session?.access_token ?? null);
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+      setBandName(userData?.username ?? '');
 
       const { data: concertData } = await supabase
         .from('concerts')
@@ -363,6 +371,11 @@ export default function ConcertPage() {
                 }}>
                   {c.status}
                 </span>
+                {bandName && (
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
+                    {bandName}
+                  </span>
+                )}
               </div>
               <p style={{ color: '#71717a', fontSize: '0.875rem' }}>{concertSubtitle(c)}</p>
             </div>

@@ -66,6 +66,7 @@ export default function LivePage() {
   const [endingConcert, setEndingConcert] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [pendingDecline, setPendingDecline] = useState<SongWithTotal | null>(null);
+  const [bandName, setBandName] = useState('');
 
   const fetchLeaderboard = useCallback(async () => {
     const { data: songsData } = await supabase
@@ -102,6 +103,13 @@ export default function LivePage() {
 
       const { data: { session } } = await supabase.auth.getSession();
       setAccessToken(session?.access_token ?? null);
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+      setBandName(userData?.username ?? '');
 
       const { data: concertData } = await supabase
         .from('concerts')
@@ -279,6 +287,11 @@ export default function LivePage() {
             <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', background: '#14532d', color: '#86efac', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
               LIVE
             </span>
+            {bandName && (
+              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
+                {bandName}
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
             <button
