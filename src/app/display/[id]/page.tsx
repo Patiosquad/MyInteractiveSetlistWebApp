@@ -254,13 +254,13 @@ export default function DisplayPage() {
                   const isTopRight = i < 2; // ranks 2–3
                   const borderColor = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#2a2a2a';
                   const nameColor   = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#e4e4e7';
-                  const artistColor = i < 2 ? 'rgba(255,255,255,0.55)' : '#555';
+                  const artistColor = i < 2 ? 'rgba(255,255,255,1.0)' : 'rgba(255,255,255,0.85)';
                   const weight      = isTopRight ? 2 : 1;
 
                   const artSz  = isTopRight ? 'clamp(36px, 4.5vw, 68px)' : 'clamp(24px, 2.8vw, 46px)';
                   const rankSz = isTopRight ? 'clamp(1.5rem, 2.8vw, 3.2rem)' : 'clamp(0.85rem, 1.4vw, 1.8rem)';
                   const nameSz = isTopRight ? 'clamp(1.4rem, 2.5vw, 3rem)'   : 'clamp(0.9rem, 1.8vw, 2.2rem)';
-                  const artSz2 = isTopRight ? 'clamp(0.75rem, 1.2vw, 1.5rem)' : 'clamp(0.6rem, 0.9vw, 1.1rem)';
+                  const artSz2 = isTopRight ? 'clamp(0.85rem, 1.35vw, 1.7rem)' : 'clamp(0.67rem, 1.0vw, 1.25rem)';
                   const bg     = i % 2 === 0 ? 'rgba(255,255,255,0.018)' : 'transparent';
 
                   return (
@@ -431,7 +431,7 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
       {/* Artist */}
       <p style={{
         fontSize: centered ? 'clamp(1rem, 2vw, 2.5rem)' : 'clamp(1rem, 2.2vw, 2.75rem)',
-        color: 'rgba(255,215,0,0.65)',
+        color: 'rgba(255,215,0,1.0)',
         margin: 0,
         overflow: 'hidden',
         textOverflow: 'ellipsis',

@@ -494,10 +494,10 @@ export default function ConcertPage() {
                           : <div style={{ width: 60, height: 60, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
                         }
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontWeight: 600, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <p style={{ fontWeight: 600, fontSize: '1.0rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {track.name}
                           </p>
-                          <p style={{ color: '#a1a1aa', fontSize: '0.8125rem', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <p style={{ color: '#ffffff', fontSize: '0.8rem', opacity: 0.6, marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {track.artist} · {track.album}
                           </p>
                         </div>
@@ -596,14 +596,14 @@ export default function ConcertPage() {
                   }}
                 >
                   {song.album_art_url
-                    ? <img src={song.album_art_url} alt={song.album} width={60} height={60} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
-                    : <div style={{ width: 60, height: 60, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
+                    ? <img src={song.album_art_url} alt={song.album} width={68} height={68} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
+                    : <div style={{ width: 68, height: 68, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
                   }
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <p style={{ fontWeight: 700, fontSize: '1.5rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {song.name}
                     </p>
-                    <p style={{ color: '#a1a1aa', fontSize: '0.8125rem', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ color: '#ffffff', fontSize: '1.15rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {song.artist} · {song.album}
                     </p>
                   </div>
