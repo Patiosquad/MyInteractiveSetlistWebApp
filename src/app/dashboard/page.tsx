@@ -12,12 +12,13 @@ type Concert = {
   state: string;
   status: 'building' | 'live' | 'closed';
   created_at: string;
+  last_activity_at: string | null;
 };
 
 const STATUS_STYLES: Record<Concert['status'], { background: string; color: string }> = {
   live:     { background: '#14532d', color: '#86efac' },
   building: { background: '#1e3a5f', color: '#93c5fd' },
-  closed:   { background: '#27272a', color: '#a1a1aa' },
+  closed:   { background: '#3d0f0f', color: '#fca5a5', border: '1px solid #7f1d1d' },
 };
 
 export default function DashboardPage() {
@@ -35,11 +36,23 @@ export default function DashboardPage() {
 
       const { data } = await supabase
         .from('concerts')
-        .select('id, name, venue_name, city, state, status, created_at')
-        .eq('performer_id', user.id)
-        .order('created_at', { ascending: false });
+        .select('id, name, venue_name, city, state, status, created_at, last_activity_at')
+        .eq('performer_id', user.id);
 
-      setConcerts(data ?? []);
+      const STATUS_ORDER: Record<string, number> = { live: 0, building: 1, closed: 2 };
+      const sorted = (data ?? []).sort((a, b) => {
+        const aRank = STATUS_ORDER[a.status] ?? 2;
+        const bRank = STATUS_ORDER[b.status] ?? 2;
+        if (aRank !== bRank) return aRank - bRank;
+        if (a.status === 'closed') {
+          const aTime = a.last_activity_at ?? a.created_at;
+          const bTime = b.last_activity_at ?? b.created_at;
+          return bTime.localeCompare(aTime);
+        }
+        return b.created_at.localeCompare(a.created_at);
+      });
+
+      setConcerts(sorted);
       setLoading(false);
     }
 
@@ -141,7 +154,8 @@ export default function DashboardPage() {
                   {/* Status badge */}
                   <span style={{
                     position: 'absolute',
-                    top: '1.25rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     right: '1.5rem',
                     padding: '0.25rem 0.625rem',
                     borderRadius: '9999px',
