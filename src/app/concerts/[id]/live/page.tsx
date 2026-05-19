@@ -67,9 +67,12 @@ export default function LivePage() {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [pendingDecline, setPendingDecline] = useState<SongWithTotal | null>(null);
   const [bandName, setBandName] = useState('');
+  const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
+  const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
 
   const tileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const prevPositions = useRef<Map<string, number>>(new Map());
+  const layoutDropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchLeaderboard = useCallback(async () => {
     const { data: songsData } = await supabase
@@ -200,6 +203,16 @@ export default function LivePage() {
     prevPositions.current = newPositions;
   }, [songs]);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (layoutDropdownRef.current && !layoutDropdownRef.current.contains(e.target as Node)) {
+        setShowLayoutDropdown(false);
+      }
+    }
+    if (showLayoutDropdown) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLayoutDropdown]);
+
   async function callEdgeFunction(path: string, body: Record<string, unknown>): Promise<boolean> {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/${path}`,
@@ -329,12 +342,40 @@ export default function LivePage() {
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
-            <button
-              onClick={() => window.open(`/display/${concertId}`, '_blank')}
-              style={{ ...backBtnStyle, color: '#e4e4e7', borderColor: '#3f3f46' }}
-            >
-              Open Display
-            </button>
+            <div ref={layoutDropdownRef} style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', borderRadius: '0.5rem', border: '1px solid #3f3f46', overflow: 'hidden' }}>
+                <button
+                  onClick={() => window.open(`/display/${concertId}?layout=${selectedLayout}`, '_blank')}
+                  style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', border: 'none', borderRight: '1px solid #3f3f46' }}
+                >
+                  Open Display
+                </button>
+                <button
+                  onClick={() => setShowLayoutDropdown(prev => !prev)}
+                  style={{ padding: '0.5rem 0.625rem', background: 'transparent', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', border: 'none', lineHeight: 1 }}
+                >
+                  ▾
+                </button>
+              </div>
+              {showLayoutDropdown && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.5rem', minWidth: '220px', zIndex: 100, overflow: 'hidden' }}>
+                  {([
+                    { value: 'top10',   label: 'Top 10 Leaderboard' },
+                    { value: 'top5',    label: 'Top 5 Leaderboard' },
+                    { value: 'ambient', label: "Ambient — Tonight's Requests" },
+                  ] as const).map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => { setSelectedLayout(option.value); setShowLayoutDropdown(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.625rem 1rem', background: 'transparent', border: 'none', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      <span style={{ width: '1rem', color: '#86efac' }}>{selectedLayout === option.value ? '✓' : ''}</span>
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button onClick={() => router.push(`/concerts/${concertId}`)} style={backBtnStyle}>
               Back to Catalog
             </button>

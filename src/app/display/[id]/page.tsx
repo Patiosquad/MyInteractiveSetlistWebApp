@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 type SongWithTotal = {
@@ -31,6 +31,8 @@ function ordinal(n: number): string {
 
 export default function DisplayPage() {
   const { id: concertId } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const layout = searchParams.get('layout') ?? 'top10';
 
   const [concertName, setConcertName] = useState('');
   const [songs, setSongs] = useState<SongWithTotal[]>([]);
@@ -203,128 +205,236 @@ export default function DisplayPage() {
         </div>
 
         {/* ── Main area ───────────────────────────────────────────────────── */}
-        <div style={{ flex: 1, minHeight: 0, overflow: 'clip', display: 'flex' }}>
+        {layout === 'ambient' ? (
 
-          {songs.length === 0 ? (
-            /* ── Empty state ── */
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{
-                fontSize: 'clamp(1rem, 2.5vw, 2rem)',
-                color: '#3f3f46',
-                fontWeight: 600,
-                animation: 'shimmer 3s ease-in-out infinite',
-              }}>
-                Waiting for fans to contribute...
+          /* ── AMBIENT LAYOUT ── */
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'row', padding: '3vh 5vw', gap: '3vw', alignItems: 'stretch' }}>
+
+            {/* LEFT — QR Code (~30%) */}
+            <div style={{ flex: '0 0 28%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 150, height: 150, border: '2px dashed rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.875rem' }}>
+                QR Code
+              </div>
+            </div>
+
+            {/* RIGHT — Title + Song list (~70%) */}
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1.5vh', overflow: 'hidden' }}>
+              <p style={{ fontSize: 'clamp(1.5rem, 3vw, 3.5rem)', fontWeight: 300, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.05em', margin: 0, flexShrink: 0 }}>
+                Tonight&apos;s Requests By You
               </p>
-            </div>
-
-          ) : songs.length === 1 ? (
-            /* ── Single song — centered full width ── */
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2vh 6vw', gap: '2vh' }}>
-              <HeroSong song={top!} centered />
-            </div>
-
-          ) : (
-            /* ── Two-zone split layout ── */
-            <>
-              {/* LEFT ZONE — rank 1 hero (40%) */}
-              <div style={{
-                flex: '0 0 40%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '3vh 3vw 2vh',
-                overflow: 'visible',
-                borderRight: '1px solid #161616',
-                position: 'relative',
-              }}>
-                <HeroSong song={top!} centered={false} />
-              </div>
-
-              {/* RIGHT ZONE — ranks 2–9 (60%) */}
-              <div style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                padding: '1vh 0',
-              }}>
-                {rest.map((song, i) => {
-                  const isTopRight = i < 2; // ranks 2–3
-                  const borderColor = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#2a2a2a';
-                  const nameColor   = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#e4e4e7';
-                  const artistColor = i < 2 ? 'rgba(255,255,255,1.0)' : 'rgba(255,255,255,0.85)';
-                  const weight      = isTopRight ? 2 : 1;
-
-                  const artSz  = isTopRight ? 'clamp(36px, 4.5vw, 68px)' : 'clamp(24px, 2.8vw, 46px)';
-                  const rankSz = isTopRight ? 'clamp(1.5rem, 2.8vw, 3.2rem)' : 'clamp(0.85rem, 1.4vw, 1.8rem)';
-                  const nameSz = isTopRight ? 'clamp(1.4rem, 2.5vw, 3rem)'   : 'clamp(0.9rem, 1.8vw, 2.2rem)';
-                  const artSz2 = isTopRight ? 'clamp(0.85rem, 1.35vw, 1.7rem)' : 'clamp(0.67rem, 1.0vw, 1.25rem)';
-                  const bg     = i % 2 === 0 ? 'rgba(255,255,255,0.018)' : 'transparent';
-
-                  return (
-                    <div
-                      key={`${song.id}-right-${i}`}
-                      style={{
-                        flex: weight,
-                        minHeight: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'clamp(0.6rem, 1.2vw, 1.5rem)',
-                        padding: `0 2vw`,
-                        borderLeft: `4px solid ${borderColor}`,
-                        background: bg,
-                        overflow: 'hidden',
-                        animation: 'fade-in 0.35s ease both',
-                      }}
-                    >
-                      {/* Rank number */}
-                      <div style={{ flexShrink: 0, minWidth: isTopRight ? 'clamp(3.2rem, 5.5vw, 7rem)' : 'clamp(2rem, 3.2vw, 4.5rem)', textAlign: 'center' }}>
-                        <span style={{ fontSize: rankSz, fontWeight: 900, color: borderColor, lineHeight: 1 }}>
-                          {ordinal(i + 2)}
-                        </span>
-                      </div>
-
-                      {/* Album art */}
-                      {song.album_art_url
-                        ? <img src={song.album_art_url} alt="" style={{ width: artSz, height: artSz, borderRadius: 6, flexShrink: 0, objectFit: 'cover' }} />
-                        : <div style={{ width: artSz, height: artSz, borderRadius: 6, background: '#1e1e1e', flexShrink: 0 }} />
-                      }
-
-                      {/* Text */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                          fontSize: nameSz,
-                          fontWeight: isTopRight ? 800 : 600,
-                          color: nameColor,
-                          margin: 0,
-                          lineHeight: 1.1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          letterSpacing: isTopRight ? '-0.01em' : 0,
-                        }}>
-                          {song.name}
-                        </p>
-                        <p style={{
-                          fontSize: artSz2,
-                          color: artistColor,
-                          margin: '0.15em 0 0',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {song.artist}
-                        </p>
-                      </div>
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', overflow: 'hidden' }}>
+                {songs.slice(0, 10).map((song) => (
+                  <div key={song.id} style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, gap: '1rem', overflow: 'hidden' }}>
+                    {song.album_art_url
+                      ? <img src={song.album_art_url} alt="" style={{ width: 48, height: 48, borderRadius: 6, flexShrink: 0, objectFit: 'cover' }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: 6, background: '#1e1e1e', flexShrink: 0 }} />
+                    }
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 'clamp(1rem, 2vw, 2.25rem)', fontWeight: 400, color: '#f4f4f5', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {song.name}
+                      </p>
+                      <p style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1.5rem)', color: '#71717a', margin: '0.25em 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {song.artist}
+                      </p>
                     </div>
-                  );
-                })}
+                    <span style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1.25rem)', color: '#a78bfa', fontWeight: 500, flexShrink: 0 }}>
+                      ${song.total.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+
+          </div>
+
+        ) : layout === 'top5' ? (
+
+          /* ── TOP 5 LAYOUT ── */
+          <div style={{ flex: 1, minHeight: 0, overflow: 'clip', display: 'flex' }}>
+            {songs.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontSize: 'clamp(1rem, 2.5vw, 2rem)', color: '#3f3f46', fontWeight: 600, animation: 'shimmer 3s ease-in-out infinite' }}>
+                  Waiting for fans to contribute...
+                </p>
+              </div>
+            ) : songs.length === 1 ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2vh 6vw', gap: '2vh' }}>
+                <HeroSong song={top!} centered />
+              </div>
+            ) : (
+              <>
+                {/* LEFT ZONE — rank 1 hero */}
+                <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3vh 3vw 2vh', overflow: 'visible', borderRight: '1px solid #161616', position: 'relative' }}>
+                  <HeroSong song={top!} centered={false} />
+                </div>
+                {/* RIGHT ZONE — ranks 2–5 */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1vh 0' }}>
+                  {rest.slice(0, 4).map((song, i) => {
+                    const isTopRight = i < 2;
+                    const borderColor = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#2a2a2a';
+                    const nameColor   = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#e4e4e7';
+                    const artistColor = i < 2 ? 'rgba(255,255,255,1.0)' : 'rgba(255,255,255,0.85)';
+                    const weight      = isTopRight ? 2 : 1;
+                    const artSz  = isTopRight ? 'clamp(42px, 5.2vw, 78px)'    : 'clamp(28px, 3.2vw, 53px)';
+                    const rankSz = isTopRight ? 'clamp(1.75rem, 3.2vw, 3.7rem)' : 'clamp(1.0rem, 1.6vw, 2.1rem)';
+                    const nameSz = isTopRight ? 'clamp(1.6rem, 2.9vw, 3.5rem)'  : 'clamp(1.0rem, 2.1vw, 2.5rem)';
+                    const artSz2 = isTopRight ? 'clamp(1.0rem, 1.55vw, 1.95rem)' : 'clamp(0.77rem, 1.15vw, 1.44rem)';
+                    const bg     = i % 2 === 0 ? 'rgba(255,255,255,0.018)' : 'transparent';
+                    return (
+                      <div
+                        key={`${song.id}-top5-${i}`}
+                        style={{ flex: weight, minHeight: 0, display: 'flex', alignItems: 'center', gap: 'clamp(0.6rem, 1.2vw, 1.5rem)', padding: '0 2vw', borderLeft: `4px solid ${borderColor}`, background: bg, overflow: 'hidden', animation: 'fade-in 0.35s ease both' }}
+                      >
+                        <div style={{ flexShrink: 0, minWidth: isTopRight ? 'clamp(3.2rem, 5.5vw, 7rem)' : 'clamp(2rem, 3.2vw, 4.5rem)', textAlign: 'center' }}>
+                          <span style={{ fontSize: rankSz, fontWeight: 900, color: borderColor, lineHeight: 1 }}>{ordinal(i + 2)}</span>
+                        </div>
+                        {song.album_art_url
+                          ? <img src={song.album_art_url} alt="" style={{ width: artSz, height: artSz, borderRadius: 6, flexShrink: 0, objectFit: 'cover' }} />
+                          : <div style={{ width: artSz, height: artSz, borderRadius: 6, background: '#1e1e1e', flexShrink: 0 }} />
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: nameSz, fontWeight: isTopRight ? 800 : 600, color: nameColor, margin: 0, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: isTopRight ? '-0.01em' : 0 }}>
+                            {song.name}
+                          </p>
+                          <p style={{ fontSize: artSz2, color: artistColor, margin: '0.15em 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {song.artist}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+        ) : (
+
+          /* ── TOP 10 LAYOUT (default) — unchanged ── */
+          <div style={{ flex: 1, minHeight: 0, overflow: 'clip', display: 'flex' }}>
+
+            {songs.length === 0 ? (
+              /* ── Empty state ── */
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{
+                  fontSize: 'clamp(1rem, 2.5vw, 2rem)',
+                  color: '#3f3f46',
+                  fontWeight: 600,
+                  animation: 'shimmer 3s ease-in-out infinite',
+                }}>
+                  Waiting for fans to contribute...
+                </p>
+              </div>
+
+            ) : songs.length === 1 ? (
+              /* ── Single song — centered full width ── */
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2vh 6vw', gap: '2vh' }}>
+                <HeroSong song={top!} centered />
+              </div>
+
+            ) : (
+              /* ── Two-zone split layout ── */
+              <>
+                {/* LEFT ZONE — rank 1 hero (40%) */}
+                <div style={{
+                  flex: '0 0 40%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '3vh 3vw 2vh',
+                  overflow: 'visible',
+                  borderRight: '1px solid #161616',
+                  position: 'relative',
+                }}>
+                  <HeroSong song={top!} centered={false} />
+                </div>
+
+                {/* RIGHT ZONE — ranks 2–9 (60%) */}
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  padding: '1vh 0',
+                }}>
+                  {rest.map((song, i) => {
+                    const isTopRight = i < 2; // ranks 2–3
+                    const borderColor = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#2a2a2a';
+                    const nameColor   = i === 0 ? '#FFD700' : i === 1 ? '#CD7F32' : '#e4e4e7';
+                    const artistColor = i < 2 ? 'rgba(255,255,255,1.0)' : 'rgba(255,255,255,0.85)';
+                    const weight      = isTopRight ? 2 : 1;
+
+                    const artSz  = isTopRight ? 'clamp(36px, 4.5vw, 68px)' : 'clamp(24px, 2.8vw, 46px)';
+                    const rankSz = isTopRight ? 'clamp(1.5rem, 2.8vw, 3.2rem)' : 'clamp(0.85rem, 1.4vw, 1.8rem)';
+                    const nameSz = isTopRight ? 'clamp(1.4rem, 2.5vw, 3rem)'   : 'clamp(0.9rem, 1.8vw, 2.2rem)';
+                    const artSz2 = isTopRight ? 'clamp(0.85rem, 1.35vw, 1.7rem)' : 'clamp(0.67rem, 1.0vw, 1.25rem)';
+                    const bg     = i % 2 === 0 ? 'rgba(255,255,255,0.018)' : 'transparent';
+
+                    return (
+                      <div
+                        key={`${song.id}-right-${i}`}
+                        style={{
+                          flex: weight,
+                          minHeight: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 'clamp(0.6rem, 1.2vw, 1.5rem)',
+                          padding: `0 2vw`,
+                          borderLeft: `4px solid ${borderColor}`,
+                          background: bg,
+                          overflow: 'hidden',
+                          animation: 'fade-in 0.35s ease both',
+                        }}
+                      >
+                        {/* Rank number */}
+                        <div style={{ flexShrink: 0, minWidth: isTopRight ? 'clamp(3.2rem, 5.5vw, 7rem)' : 'clamp(2rem, 3.2vw, 4.5rem)', textAlign: 'center' }}>
+                          <span style={{ fontSize: rankSz, fontWeight: 900, color: borderColor, lineHeight: 1 }}>
+                            {ordinal(i + 2)}
+                          </span>
+                        </div>
+
+                        {/* Album art */}
+                        {song.album_art_url
+                          ? <img src={song.album_art_url} alt="" style={{ width: artSz, height: artSz, borderRadius: 6, flexShrink: 0, objectFit: 'cover' }} />
+                          : <div style={{ width: artSz, height: artSz, borderRadius: 6, background: '#1e1e1e', flexShrink: 0 }} />
+                        }
+
+                        {/* Text */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{
+                            fontSize: nameSz,
+                            fontWeight: isTopRight ? 800 : 600,
+                            color: nameColor,
+                            margin: 0,
+                            lineHeight: 1.1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            letterSpacing: isTopRight ? '-0.01em' : 0,
+                          }}>
+                            {song.name}
+                          </p>
+                          <p style={{
+                            fontSize: artSz2,
+                            color: artistColor,
+                            margin: '0.15em 0 0',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {song.artist}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+        )}
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <div style={{
