@@ -98,6 +98,8 @@ export default function ConcertPage() {
   const [manualError, setManualError] = useState('');
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
+  const [catalogSearch, setCatalogSearch] = useState('');
+
   const [goingLive, setGoingLive] = useState(false);
   const [goLiveError, setGoLiveError] = useState('');
   const [bandName, setBandName] = useState('');
@@ -585,17 +587,38 @@ export default function ConcertPage() {
 
         {/* Song list */}
         <section>
-          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: '#e4e4e7' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem', color: '#e4e4e7' }}>
             {isBuilding ? 'Catalog' : 'Songs'} {songs.length > 0 && <span style={{ color: '#52525b', fontWeight: 400 }}>({songs.length})</span>}
           </h2>
 
-          {songs.length === 0 ? (
-            <p style={{ color: '#52525b', textAlign: 'center', padding: '3rem 0' }}>
-              No songs in the catalog yet.{isBuilding ? ' Search above to add your first song.' : ''}
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {songs.map((song) => (
+          {songs.length > 0 && (() => {
+            const filteredSongs = songs.filter(s =>
+              s.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+              s.artist.toLowerCase().includes(catalogSearch.toLowerCase())
+            );
+            return (
+              <>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <input
+                    type="text"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    placeholder="Search songs and/or artists..."
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, color: '#ffffff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                  {catalogSearch && (
+                    <p style={{ fontSize: '0.8rem', color: '#52525b', marginTop: '0.375rem', marginBottom: 0 }}>
+                      Showing {filteredSongs.length} of {songs.length}
+                    </p>
+                  )}
+                </div>
+                {filteredSongs.length === 0 ? (
+                  <p style={{ color: '#52525b', textAlign: 'center', padding: '3rem 0' }}>
+                    No songs match &ldquo;{catalogSearch}&rdquo;.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {filteredSongs.map((song) => (
                 <div
                   key={song.id}
                   style={{
@@ -654,8 +677,17 @@ export default function ConcertPage() {
                     </span>
                   )}
                 </div>
-              ))}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+          {songs.length === 0 && (
+            <p style={{ color: '#52525b', textAlign: 'center', padding: '3rem 0' }}>
+              No songs in the catalog yet.{isBuilding ? ' Search above to add your first song.' : ''}
+            </p>
           )}
         </section>
 

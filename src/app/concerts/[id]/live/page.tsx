@@ -69,6 +69,7 @@ export default function LivePage() {
   const [bandName, setBandName] = useState('');
   const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
 
   const layoutDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -288,6 +289,11 @@ export default function LivePage() {
     );
   }
 
+  const filteredCatalogSongs = catalog.filter(s =>
+    s.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+    s.artist.toLowerCase().includes(catalogSearch.toLowerCase())
+  );
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -450,9 +456,21 @@ export default function LivePage() {
 
             {/* RIGHT: Catalog (45%) */}
             <div style={{ flex: 45, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #27272a', paddingLeft: '1.5rem' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '1rem', flexShrink: 0 }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '0.5rem', flexShrink: 0 }}>
                 Catalog <span style={{ color: '#52525b', fontWeight: 400 }}>({catalog.length})</span>
               </h2>
+              <input
+                type="text"
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                placeholder="Search songs and/or artists..."
+                style={{ width: '100%', padding: '0.4rem 0.6rem', backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 6, color: '#ffffff', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box', marginBottom: 8, flexShrink: 0 }}
+              />
+              {catalogSearch && (
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', margin: '0 0 8px', flexShrink: 0 }}>
+                  Showing {filteredCatalogSongs.length} of {catalog.length}
+                </p>
+              )}
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {catalog.length === 0 ? (
                   <p style={{ color: '#52525b', textAlign: 'center', padding: '4rem 0', margin: 0 }}>
@@ -460,7 +478,7 @@ export default function LivePage() {
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem' }}>
-                    {catalog.map((song) => {
+                    {filteredCatalogSongs.map((song) => {
                       const onLeaderboard = song.status === 'active' && song.total > 0;
                       const isInactive = song.status === 'played' || song.status === 'declined';
                       const isReactivating = reactivatingId === song.id;
