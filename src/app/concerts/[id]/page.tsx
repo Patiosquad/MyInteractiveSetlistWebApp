@@ -705,9 +705,14 @@ export default function ConcertPage() {
             flexDirection: 'column',
             gap: '1.25rem',
           }}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>
-              Add to Catalog
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>
+                Add to Catalog
+              </h2>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', fontStyle: 'italic', maxWidth: '200px', lineHeight: 1.4, margin: 0, textAlign: 'right', flexShrink: 0 }}>
+                💡 Tip: Feel free to edit the fields above to remove unwanted tags like &lsquo;Live&rsquo;, &lsquo;Anniversary Edition&rsquo;, &lsquo;Collection&rsquo;, etc. before adding to your catalog.
+              </p>
+            </div>
 
             {/* Album art preview */}
             {pendingTrack.album_art_url && (
