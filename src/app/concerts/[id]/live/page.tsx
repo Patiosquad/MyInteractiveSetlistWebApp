@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -70,8 +70,6 @@ export default function LivePage() {
   const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
 
-  const tileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const prevPositions = useRef<Map<string, number>>(new Map());
   const layoutDropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchLeaderboard = useCallback(async () => {
@@ -170,38 +168,6 @@ export default function LivePage() {
       supabase.removeChannel(contribChannel);
     };
   }, [concertId, fetchLeaderboard]);
-
-  useLayoutEffect(() => {
-    const prev = prevPositions.current;
-    const tiles = tileRefs.current;
-
-    // Read all new positions before applying any transforms
-    const newPositions = new Map<string, number>();
-    tiles.forEach((el, id) => {
-      newPositions.set(id, el.getBoundingClientRect().top);
-    });
-
-    // Apply FLIP for tiles whose position changed
-    tiles.forEach((el, id) => {
-      const prevTop = prev.get(id);
-      const newTop = newPositions.get(id);
-      if (prevTop === undefined || newTop === undefined) return;
-      const delta = prevTop - newTop;
-      if (Math.abs(delta) < 1) return;
-
-      el.style.transition = 'none';
-      el.style.transform = `translateY(${delta}px)`;
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          el.style.transition = 'transform 400ms ease-in-out';
-          el.style.transform = 'translateY(0)';
-        });
-      });
-    });
-
-    prevPositions.current = newPositions;
-  }, [songs]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -419,10 +385,6 @@ export default function LivePage() {
                       return (
                         <div
                           key={song.id}
-                          ref={(el) => {
-                            if (el) tileRefs.current.set(song.id, el);
-                            else tileRefs.current.delete(song.id);
-                          }}
                           style={{
                             display: 'flex', alignItems: 'center', gap: '0.75rem',
                             padding: '0.875rem 1rem',

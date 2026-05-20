@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -37,6 +37,9 @@ export default function DisplayPage() {
   const [concertName, setConcertName] = useState('');
   const [songs, setSongs] = useState<SongWithTotal[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const tileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const prevPositions = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     function onFullscreenChange() {
@@ -124,6 +127,52 @@ export default function DisplayPage() {
       supabase.removeChannel(contribChannel);
     };
   }, [concertId, fetchLeaderboard]);
+
+  useLayoutEffect(() => {
+    const prev = prevPositions.current;
+    const tiles = tileRefs.current;
+    const newPositions = new Map<string, number>();
+    tiles.forEach((el, id) => { newPositions.set(id, el.getBoundingClientRect().top); });
+    tiles.forEach((el, id) => {
+      const prevTop = prev.get(id);
+      const newTop = newPositions.get(id);
+      if (prevTop === undefined || newTop === undefined) return;
+      const delta = prevTop - newTop;
+      if (Math.abs(delta) < 1) return;
+      const movingUp = delta > 0;
+      el.style.transition = 'none';
+      el.style.transform = `translateY(${delta}px)`;
+      if (movingUp) {
+        el.style.position = 'relative';
+        el.style.zIndex = '10';
+        el.style.boxShadow = '0 0 24px rgba(251,191,36,0.35)';
+        el.style.backgroundColor = 'rgba(251,191,36,0.15)';
+      } else {
+        el.style.opacity = '0.5';
+      }
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transition = movingUp
+            ? 'transform 650ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 650ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+            : 'transform 650ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 650ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          el.style.transform = 'translateY(0)';
+          if (movingUp) {
+            el.style.backgroundColor = 'rgba(251,191,36,0)';
+            setTimeout(() => {
+              el.style.position = '';
+              el.style.zIndex = '';
+              el.style.boxShadow = '';
+              el.style.backgroundColor = '';
+            }, 700);
+          } else {
+            el.style.opacity = '1';
+            setTimeout(() => { el.style.opacity = ''; }, 700);
+          }
+        });
+      });
+    });
+    prevPositions.current = newPositions;
+  }, [songs]);
 
   const top = songs[0] ?? null;
   const rest = songs.slice(1); // ranks 2–9
@@ -283,6 +332,7 @@ export default function DisplayPage() {
                     return (
                       <div
                         key={`${song.id}-top5-${i}`}
+                        ref={(el) => { if (el) tileRefs.current.set(song.id, el); else tileRefs.current.delete(song.id); }}
                         style={{ flex: weight, minHeight: 0, display: 'flex', alignItems: 'center', gap: 'clamp(0.6rem, 1.2vw, 1.5rem)', padding: '0 2vw', borderLeft: `4px solid ${borderColor}`, background: bg, overflow: 'hidden', animation: 'fade-in 0.35s ease both' }}
                       >
                         <div style={{ flexShrink: 0, minWidth: isTopRight ? 'clamp(3.2rem, 5.5vw, 7rem)' : 'clamp(2rem, 3.2vw, 4.5rem)', textAlign: 'center' }}>
@@ -374,6 +424,7 @@ export default function DisplayPage() {
                     return (
                       <div
                         key={`${song.id}-right-${i}`}
+                        ref={(el) => { if (el) tileRefs.current.set(song.id, el); else tileRefs.current.delete(song.id); }}
                         style={{
                           flex: weight,
                           minHeight: 0,
