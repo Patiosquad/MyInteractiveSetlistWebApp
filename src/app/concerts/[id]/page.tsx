@@ -43,9 +43,11 @@ const STATUS_BADGE: Record<Concert['status'], { background: string; color: strin
 };
 
 const SONG_STATUS_COLOR: Record<Song['status'], string> = {
-  active:   '#a1a1aa',
-  played:   '#86efac',
-  declined: '#f87171',
+  active:      '#a1a1aa',
+  played:      '#86efac',
+  accepted:    '#86efac',
+  declined:    '#f87171',
+  deactivated: '#52525b',
 };
 
 function concertSubtitle(c: Concert): string {
@@ -101,6 +103,7 @@ export default function ConcertPage() {
   const [catalogSearch, setCatalogSearch] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
+  const [showEmergencyAddModal, setShowEmergencyAddModal] = useState(false);
 
   const [goingLive, setGoingLive] = useState(false);
   const [goLiveError, setGoLiveError] = useState('');
@@ -221,6 +224,13 @@ export default function ConcertPage() {
     setPendingTrack(null);
   }
 
+  function closeEmergencyModal() {
+    setShowEmergencyAddModal(false);
+    setQuery('');
+    setSearchResults([]);
+    setAddMode('spotify');
+  }
+
   async function handleAddSong() {
     if (!pendingTrack) return;
     const { data, error } = await supabase.from('songs').insert({
@@ -241,6 +251,7 @@ export default function ConcertPage() {
 
     if (data?.[0]) setSongs((prev) => [data[0], ...prev]);
     closeAddModal();
+    setShowEmergencyAddModal(false);
     setQuery('');
     setSearchResults([]);
     setAddedMessage(`Added "${pendingName.trim()}"`);
@@ -289,6 +300,7 @@ export default function ConcertPage() {
     setManualName('');
     setManualArtist('');
     setManualAlbum('');
+    setShowEmergencyAddModal(false);
     setAddedMessage(`Added "${manualName.trim()}"`);
     setTimeout(() => setAddedMessage(''), 2500);
   }
@@ -610,9 +622,19 @@ export default function ConcertPage() {
 
         {/* Song list */}
         <section>
-          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem', color: '#e4e4e7' }}>
-            {isBuilding ? 'Catalog' : 'Songs'} {songs.length > 0 && <span style={{ color: '#52525b', fontWeight: 400 }}>({songs.length})</span>}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', margin: 0 }}>
+              {isBuilding ? 'Catalog' : 'Songs'} {songs.length > 0 && <span style={{ color: '#52525b', fontWeight: 400 }}>({songs.length})</span>}
+            </h2>
+            {c.status === 'live' && (
+              <button
+                onClick={() => setShowEmergencyAddModal(true)}
+                style={{ backgroundColor: '#14532d', color: '#86efac', fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+              >
+                + Add Song
+              </button>
+            )}
+          </div>
 
           {songs.length > 0 && (() => {
             const filteredSongs = songs.filter(s =>
@@ -767,6 +789,64 @@ export default function ConcertPage() {
           </div>
         )}
       </main>
+
+      {showEmergencyAddModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '520px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Add a Song</h2>
+              <button onClick={closeEmergencyModal} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+            </div>
+            {addedMessage && (
+              <p style={{ fontSize: '0.875rem', color: '#86efac', margin: 0, flexShrink: 0 }}>✓ {addedMessage}</p>
+            )}
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+              <button onClick={() => { setAddMode('spotify'); setManualError(''); }} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: addMode === 'spotify' ? '#ffffff' : '#333333', color: addMode === 'spotify' ? '#000000' : '#aaaaaa', fontWeight: 600 }}>Search Spotify</button>
+              <button onClick={() => { setAddMode('manual'); setManualError(''); }} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: addMode === 'manual' ? '#ffffff' : '#333333', color: addMode === 'manual' ? '#000000' : '#aaaaaa', fontWeight: 600 }}>Add Manually</button>
+            </div>
+            {addMode === 'spotify' && (
+              <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Spotify — song title, artist…" style={inputStyle} />
+                {searching && <p style={{ fontSize: '0.875rem', color: '#71717a', margin: 0 }}>Searching…</p>}
+                {searchResults.length > 0 && (
+                  <div style={{ borderRadius: '0.75rem', border: '1px solid #27272a', overflowY: 'auto', flex: 1 }}>
+                    {searchResults.map((track, idx) => (
+                      <button key={track.spotify_track_id} onClick={() => openAddModal(track)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.75rem 1rem', borderTop: idx === 0 ? 'none' : '1px solid #27272a', background: 'transparent', color: '#ffffff', cursor: 'pointer', textAlign: 'left' }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#27272a'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
+                        {track.album_art_url ? <img src={track.album_art_url} alt={track.album} width={48} height={48} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} /> : <div style={{ width: 48, height: 48, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{track.name}</p>
+                          <p style={{ color: '#ffffff', fontSize: '0.8125rem', opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '2px 0 0' }}>{track.artist} · {track.album}</p>
+                        </div>
+                        <span style={{ fontSize: '0.8125rem', color: '#3f3f46', flexShrink: 0 }}>+ Add</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {addMode === 'manual' && (
+              <form onSubmit={handleManualAdd} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Song Name <span style={{ color: '#f87171' }}>*</span></label>
+                  <input type="text" value={manualName} onChange={(e) => setManualName(e.target.value)} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Artist <span style={{ color: '#f87171' }}>*</span></label>
+                  <input type="text" value={manualArtist} onChange={(e) => setManualArtist(e.target.value)} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
+                  <input type="text" value={manualAlbum} onChange={(e) => setManualAlbum(e.target.value)} style={inputStyle} />
+                </div>
+                {manualError && <p style={{ fontSize: '0.875rem', color: '#f87171', margin: 0 }}>{manualError}</p>}
+                <button type="submit" disabled={manualSubmitting} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: manualSubmitting ? '#3f3f46' : '#ffffff', color: manualSubmitting ? '#a1a1aa' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: manualSubmitting ? 'not-allowed' : 'pointer', alignSelf: 'flex-start' }}>
+                  {manualSubmitting ? 'Adding…' : 'Add Song'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {pendingTrack && (
         <div style={{

@@ -14,6 +14,15 @@ type SongWithTotal = {
   status: 'active' | 'played' | 'accepted' | 'declined' | 'deactivated';
 };
 
+type SpotifyTrack = {
+  spotify_track_id: string;
+  name: string;
+  artist: string;
+  album: string;
+  album_art_url: string;
+  decade: string | null;
+};
+
 type Concert = {
   id: string;
   name: string;
@@ -49,6 +58,18 @@ const backBtnStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
+const eaInputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '0.625rem 0.875rem',
+  borderRadius: '0.5rem',
+  border: '1px solid #27272a',
+  background: '#18181b',
+  color: '#ffffff',
+  fontSize: '1rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+
 export default function LivePage() {
   const router = useRouter();
   const { id: concertId } = useParams<{ id: string }>();
@@ -70,8 +91,23 @@ export default function LivePage() {
   const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [showEmergencyAddModal, setShowEmergencyAddModal] = useState(false);
+  const [emergencyAddMode, setEmergencyAddMode] = useState<'spotify' | 'manual'>('spotify');
+  const [emergencyQuery, setEmergencyQuery] = useState('');
+  const [emergencyResults, setEmergencyResults] = useState<SpotifyTrack[]>([]);
+  const [emergencySearching, setEmergencySearching] = useState(false);
+  const [emergencyPendingTrack, setEmergencyPendingTrack] = useState<SpotifyTrack | null>(null);
+  const [emergencyPendingName, setEmergencyPendingName] = useState('');
+  const [emergencyPendingArtist, setEmergencyPendingArtist] = useState('');
+  const [emergencyPendingAlbum, setEmergencyPendingAlbum] = useState('');
+  const [emergencyManualName, setEmergencyManualName] = useState('');
+  const [emergencyManualArtist, setEmergencyManualArtist] = useState('');
+  const [emergencyManualAlbum, setEmergencyManualAlbum] = useState('');
+  const [emergencyManualError, setEmergencyManualError] = useState('');
+  const [emergencyManualSubmitting, setEmergencyManualSubmitting] = useState(false);
 
   const layoutDropdownRef = useRef<HTMLDivElement>(null);
+  const emergencyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchLeaderboard = useCallback(async () => {
     const { data: songsData } = await supabase
@@ -180,6 +216,25 @@ export default function LivePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showLayoutDropdown]);
 
+  useEffect(() => {
+    if (!emergencyQuery.trim()) { setEmergencyResults([]); return; }
+    if (emergencyDebounceRef.current) clearTimeout(emergencyDebounceRef.current);
+    emergencyDebounceRef.current = setTimeout(async () => {
+      if (!accessToken) return;
+      setEmergencySearching(true);
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/spotify-search`,
+          { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: emergencyQuery.trim() }) }
+        );
+        if (res.ok) setEmergencyResults(await res.json());
+      } finally {
+        setEmergencySearching(false);
+      }
+    }, 300);
+    return () => { if (emergencyDebounceRef.current) clearTimeout(emergencyDebounceRef.current); };
+  }, [emergencyQuery, accessToken]);
+
   async function callEdgeFunction(path: string, body: Record<string, unknown>): Promise<boolean> {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/${path}`,
@@ -260,6 +315,70 @@ export default function LivePage() {
     await supabase.from('songs').update({ status: 'deactivated' }).eq('id', song.id);
     setCatalog(prev => prev.map(s => s.id === song.id ? { ...s, status: 'deactivated' as const } : s));
     setProcessingId(null);
+  }
+
+  function closeEmergencyModal() {
+    setShowEmergencyAddModal(false);
+    setEmergencyQuery('');
+    setEmergencyResults([]);
+    setEmergencyPendingTrack(null);
+    setEmergencyAddMode('spotify');
+  }
+
+  function openEmergencyTrack(track: SpotifyTrack) {
+    setEmergencyPendingTrack(track);
+    setEmergencyPendingName(track.name);
+    setEmergencyPendingArtist(track.artist);
+    setEmergencyPendingAlbum(track.album);
+  }
+
+  async function handleEmergencyAddSong() {
+    if (!emergencyPendingTrack) return;
+    const nameTrimmed = emergencyPendingName.trim();
+    const { error } = await supabase.from('songs').insert({
+      concert_id: concertId,
+      name: nameTrimmed,
+      artist: emergencyPendingArtist.trim(),
+      album: emergencyPendingAlbum.trim() || null,
+      album_art_url: emergencyPendingTrack.album_art_url,
+      spotify_track_id: emergencyPendingTrack.spotify_track_id,
+      decade: emergencyPendingTrack.decade,
+      status: 'active',
+    });
+    if (error) { alert('Insert failed: ' + error.message); return; }
+    await fetchLeaderboard();
+    closeEmergencyModal();
+    setActionMessage(`✓ Added "${nameTrimmed}"`);
+    setTimeout(() => setActionMessage(''), 3000);
+  }
+
+  async function handleEmergencyManualAdd(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!emergencyManualName.trim() || !emergencyManualArtist.trim()) {
+      setEmergencyManualError('Song Name and Artist are required.');
+      return;
+    }
+    setEmergencyManualError('');
+    setEmergencyManualSubmitting(true);
+    const nameTrimmed = emergencyManualName.trim();
+    const { error } = await supabase.from('songs').insert({
+      concert_id: concertId,
+      name: nameTrimmed,
+      artist: emergencyManualArtist.trim(),
+      album: emergencyManualAlbum.trim() || null,
+      album_art_url: null,
+      spotify_track_id: null,
+      status: 'active',
+    });
+    setEmergencyManualSubmitting(false);
+    if (error) { setEmergencyManualError('Failed to add song: ' + error.message); return; }
+    await fetchLeaderboard();
+    setEmergencyManualName('');
+    setEmergencyManualArtist('');
+    setEmergencyManualAlbum('');
+    closeEmergencyModal();
+    setActionMessage(`✓ Added "${nameTrimmed}"`);
+    setTimeout(() => setActionMessage(''), 3000);
   }
 
   async function handleEndConcertConfirmed() {
@@ -472,9 +591,17 @@ export default function LivePage() {
 
             {/* RIGHT: Catalog (45%) */}
             <div style={{ flex: 45, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #27272a', paddingLeft: '1.5rem' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '0.5rem', flexShrink: 0 }}>
-                Catalog <span style={{ color: '#52525b', fontWeight: 400 }}>({catalog.length})</span>
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexShrink: 0 }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', margin: 0 }}>
+                  Catalog <span style={{ color: '#52525b', fontWeight: 400 }}>({catalog.length})</span>
+                </h2>
+                <button
+                  onClick={() => setShowEmergencyAddModal(true)}
+                  style={{ backgroundColor: '#14532d', color: '#86efac', fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+                >
+                  + Add Song
+                </button>
+              </div>
               <input
                 type="text"
                 value={catalogSearch}
@@ -621,6 +748,96 @@ export default function LivePage() {
 
         </div>
       </div>
+
+      {showEmergencyAddModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '520px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+            {emergencyPendingTrack ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button onClick={() => setEmergencyPendingTrack(null)} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1rem', cursor: 'pointer', padding: '0.25rem' }}>←</button>
+                    <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Add to Catalog</h2>
+                  </div>
+                  <button onClick={closeEmergencyModal} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+                </div>
+                {emergencyPendingTrack.album_art_url && (
+                  <img src={emergencyPendingTrack.album_art_url} alt={emergencyPendingAlbum} width={80} height={80} style={{ borderRadius: '0.5rem', objectFit: 'cover', flexShrink: 0 }} />
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', overflowY: 'auto', flex: 1 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Song Name</label>
+                    <input type="text" value={emergencyPendingName} onChange={(e) => setEmergencyPendingName(e.target.value)} style={eaInputStyle} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Artist</label>
+                    <input type="text" value={emergencyPendingArtist} onChange={(e) => setEmergencyPendingArtist(e.target.value)} style={eaInputStyle} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
+                    <input type="text" value={emergencyPendingAlbum} onChange={(e) => setEmergencyPendingAlbum(e.target.value)} style={eaInputStyle} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexShrink: 0 }}>
+                  <button onClick={() => setEmergencyPendingTrack(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleEmergencyAddSong} disabled={!emergencyPendingName.trim() || !emergencyPendingArtist.trim()} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: !emergencyPendingName.trim() || !emergencyPendingArtist.trim() ? '#3f3f46' : '#ffffff', color: !emergencyPendingName.trim() || !emergencyPendingArtist.trim() ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: !emergencyPendingName.trim() || !emergencyPendingArtist.trim() ? 'not-allowed' : 'pointer' }}>Add to Catalog</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Add a Song</h2>
+                  <button onClick={closeEmergencyModal} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button onClick={() => { setEmergencyAddMode('spotify'); setEmergencyManualError(''); }} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: emergencyAddMode === 'spotify' ? '#ffffff' : '#333333', color: emergencyAddMode === 'spotify' ? '#000000' : '#aaaaaa', fontWeight: 600 }}>Search Spotify</button>
+                  <button onClick={() => { setEmergencyAddMode('manual'); setEmergencyManualError(''); }} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: emergencyAddMode === 'manual' ? '#ffffff' : '#333333', color: emergencyAddMode === 'manual' ? '#000000' : '#aaaaaa', fontWeight: 600 }}>Add Manually</button>
+                </div>
+                {emergencyAddMode === 'spotify' && (
+                  <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <input type="text" value={emergencyQuery} onChange={(e) => setEmergencyQuery(e.target.value)} placeholder="Search Spotify — song title, artist…" style={eaInputStyle} />
+                    {emergencySearching && <p style={{ fontSize: '0.875rem', color: '#71717a', margin: 0 }}>Searching…</p>}
+                    {emergencyResults.length > 0 && (
+                      <div style={{ borderRadius: '0.75rem', border: '1px solid #27272a', overflowY: 'auto', flex: 1 }}>
+                        {emergencyResults.map((track, idx) => (
+                          <button key={track.spotify_track_id} onClick={() => openEmergencyTrack(track)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.75rem 1rem', borderTop: idx === 0 ? 'none' : '1px solid #27272a', background: 'transparent', color: '#ffffff', cursor: 'pointer', textAlign: 'left' }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#27272a'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
+                            {track.album_art_url ? <img src={track.album_art_url} alt={track.album} width={48} height={48} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} /> : <div style={{ width: 48, height: 48, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{track.name}</p>
+                              <p style={{ color: '#ffffff', fontSize: '0.8125rem', opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '2px 0 0' }}>{track.artist} · {track.album}</p>
+                            </div>
+                            <span style={{ fontSize: '0.8125rem', color: '#3f3f46', flexShrink: 0 }}>+ Add</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {emergencyAddMode === 'manual' && (
+                  <form onSubmit={handleEmergencyManualAdd} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Song Name <span style={{ color: '#f87171' }}>*</span></label>
+                      <input type="text" value={emergencyManualName} onChange={(e) => setEmergencyManualName(e.target.value)} style={eaInputStyle} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Artist <span style={{ color: '#f87171' }}>*</span></label>
+                      <input type="text" value={emergencyManualArtist} onChange={(e) => setEmergencyManualArtist(e.target.value)} style={eaInputStyle} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
+                      <input type="text" value={emergencyManualAlbum} onChange={(e) => setEmergencyManualAlbum(e.target.value)} style={eaInputStyle} />
+                    </div>
+                    {emergencyManualError && <p style={{ fontSize: '0.875rem', color: '#f87171', margin: 0 }}>{emergencyManualError}</p>}
+                    <button type="submit" disabled={emergencyManualSubmitting} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: emergencyManualSubmitting ? '#3f3f46' : '#ffffff', color: emergencyManualSubmitting ? '#a1a1aa' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: emergencyManualSubmitting ? 'not-allowed' : 'pointer', alignSelf: 'flex-start' }}>
+                      {emergencyManualSubmitting ? 'Adding…' : 'Add Song'}
+                    </button>
+                  </form>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {pendingDecline && (
         <div style={{
