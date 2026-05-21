@@ -1,8 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+
+type VenueSuggestion = {
+  placePrediction: {
+    placeId: string;
+    structuredFormat: {
+      mainText: { text: string };
+      secondaryText: { text: string };
+    };
+  };
+};
 
 const COUNTRIES = [
   'United States', 'Canada', 'United Kingdom', 'Australia', 'Mexico',
@@ -88,7 +98,97 @@ export default function NewConcertPage() {
   const [lengthHours, setLengthHours] = useState('1');
   const [comments, setComments] = useState('');
 
+  const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
+  const [showVenueSuggestions, setShowVenueSuggestions] = useState(false);
+
+  const venueWrapperRef = useRef<HTMLDivElement>(null);
+  const venueDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const venueJustSelectedRef = useRef(false);
+
   const isUS = country === 'United States';
+
+  // Debounced venue autocomplete
+  useEffect(() => {
+    if (venueJustSelectedRef.current) {
+      venueJustSelectedRef.current = false;
+      return;
+    }
+    if (venueName.trim().length < 2) {
+      setVenueSuggestions([]);
+      setShowVenueSuggestions(false);
+      return;
+    }
+    if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current);
+    venueDebounceRef.current = setTimeout(async () => {
+      console.log('[venue autocomplete] debounce fired, venueName:', venueName.trim());
+      try {
+        const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(venueName.trim())}`);
+        const data = await res.json();
+        console.log('[venue autocomplete] response:', data);
+        const suggestions: VenueSuggestion[] = data.suggestions ?? [];
+        setVenueSuggestions(suggestions);
+        setShowVenueSuggestions(suggestions.length > 0);
+      } catch (err) {
+        console.log('[venue autocomplete] fetch error:', err);
+        setVenueSuggestions([]);
+        setShowVenueSuggestions(false);
+      }
+    }, 300);
+    return () => { if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current); };
+  }, [venueName]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (venueWrapperRef.current && !venueWrapperRef.current.contains(e.target as Node)) {
+        setShowVenueSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  async function handleSelectVenue(suggestion: VenueSuggestion) {
+    const pred = suggestion.placePrediction;
+    const mainText = pred.structuredFormat.mainText.text;
+
+    venueJustSelectedRef.current = true;
+    setVenueName(mainText);
+    setShowVenueSuggestions(false);
+    setVenueSuggestions([]);
+
+    try {
+      const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(pred.placeId)}`);
+      const data = await res.json();
+
+      // New Places API: top-level displayName and addressComponents
+      const components: Array<{ types: string[]; longText: string; shortText: string }> = data.addressComponents ?? [];
+      const placeName: string | undefined = data.displayName?.text;
+
+      if (placeName && placeName !== mainText) {
+        venueJustSelectedRef.current = true;
+        setVenueName(placeName);
+      }
+
+      const get = (type: string, key: 'longText' | 'shortText' = 'longText') =>
+        components.find((c) => c.types.includes(type))?.[key] ?? '';
+
+      const cityValue = get('locality') || get('postal_town') || get('sublocality_level_1');
+      if (cityValue) setCity(cityValue);
+
+      const countryLong = get('country', 'longText');
+      if (countryLong) {
+        setCountry(COUNTRIES.find((c) => c === countryLong) ?? 'Other');
+      }
+
+      const stateLong = get('administrative_area_level_1', 'longText');
+      if (stateLong && countryLong === 'United States') {
+        setState(US_STATES.find((s) => s === stateLong) ?? 'Alabama');
+      }
+    } catch (err) {
+      console.log('[venue details] fetch error:', err);
+    }
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -184,12 +284,33 @@ export default function NewConcertPage() {
           </Field>
 
           <Field label="Venue Name" required>
-            <input
-              type="text"
-              value={venueName}
-              onChange={(e) => setVenueName(e.target.value)}
-              style={inputStyle}
-            />
+            <div ref={venueWrapperRef} style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={venueName}
+                onChange={(e) => setVenueName(e.target.value)}
+                onFocus={() => { if (venueSuggestions.length > 0) setShowVenueSuggestions(true); }}
+                style={inputStyle}
+                autoComplete="off"
+              />
+              {showVenueSuggestions && venueSuggestions.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, zIndex: 50, overflow: 'hidden' }}>
+                  {venueSuggestions.map((suggestion, idx) => (
+                    <button
+                      key={suggestion.placePrediction.placeId}
+                      type="button"
+                      onClick={() => handleSelectVenue(suggestion)}
+                      style={{ display: 'block', width: '100%', padding: '0.75rem 1rem', cursor: 'pointer', background: 'transparent', border: 'none', borderTop: idx === 0 ? 'none' : '1px solid #3f3f46', color: '#ffffff', textAlign: 'left' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#27272a'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
+                    >
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.mainText.text}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#a1a1aa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.secondaryText.text}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </Field>
 
           <Field label="Country" required>
