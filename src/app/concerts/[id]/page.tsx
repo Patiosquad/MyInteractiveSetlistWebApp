@@ -23,7 +23,7 @@ type Song = {
   artist: string;
   album: string;
   album_art_url: string | null;
-  status: 'active' | 'declined' | 'played';
+  status: 'active' | 'declined' | 'played' | 'accepted' | 'deactivated';
   created_at: string;
 };
 
@@ -99,6 +99,8 @@ export default function ConcertPage() {
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null);
 
   const [goingLive, setGoingLive] = useState(false);
   const [goLiveError, setGoLiveError] = useState('');
@@ -289,6 +291,27 @@ export default function ConcertPage() {
     setManualAlbum('');
     setAddedMessage(`Added "${manualName.trim()}"`);
     setTimeout(() => setAddedMessage(''), 2500);
+  }
+
+  async function handlePlay(song: Song) {
+    setProcessingId(song.id);
+    await supabase.from('songs').update({ status: 'played' }).eq('id', song.id);
+    setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: 'played' as const } : s));
+    setProcessingId(null);
+  }
+
+  async function handleDeactivate(song: Song) {
+    setProcessingId(song.id);
+    await supabase.from('songs').update({ status: 'deactivated' }).eq('id', song.id);
+    setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: 'deactivated' as const } : s));
+    setProcessingId(null);
+  }
+
+  async function handleReactivate(song: Song) {
+    setReactivatingId(song.id);
+    await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
+    setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: 'active' as const } : s));
+    setReactivatingId(null);
   }
 
   async function handleGoLive() {
@@ -665,17 +688,43 @@ export default function ConcertPage() {
                     >
                       ×
                     </button>
-                  ) : (
-                    <span style={{
-                      flexShrink: 0,
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      textTransform: 'capitalize',
-                      color: SONG_STATUS_COLOR[song.status] ?? '#a1a1aa',
-                    }}>
-                      {song.status}
-                    </span>
-                  )}
+                  ) : (() => {
+                    const isProcessing = processingId === song.id;
+                    const isReactivating = reactivatingId === song.id;
+                    const isInactive = ['played', 'accepted', 'declined', 'deactivated'].includes(song.status);
+                    if (song.status === 'active') {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0 }}>
+                          <button
+                            onClick={() => handlePlay(song)}
+                            disabled={isProcessing}
+                            style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: 'none', background: isProcessing ? '#27272a' : '#16a34a', color: isProcessing ? '#52525b' : '#ffffff', fontSize: '0.75rem', fontWeight: 600, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+                          >
+                            Play
+                          </button>
+                          <button
+                            onClick={() => handleDeactivate(song)}
+                            disabled={isProcessing}
+                            style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isProcessing ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+                          >
+                            Deactivate
+                          </button>
+                        </div>
+                      );
+                    }
+                    if (isInactive) {
+                      return (
+                        <button
+                          onClick={() => handleReactivate(song)}
+                          disabled={isReactivating}
+                          style={{ flexShrink: 0, padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isReactivating ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isReactivating ? 'not-allowed' : 'pointer' }}
+                        >
+                          {isReactivating ? '…' : 'Reactivate'}
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
                     ))}
                   </div>

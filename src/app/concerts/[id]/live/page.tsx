@@ -11,7 +11,7 @@ type SongWithTotal = {
   album: string;
   album_art_url: string | null;
   total: number;
-  status: 'active' | 'played' | 'declined';
+  status: 'active' | 'played' | 'accepted' | 'declined' | 'deactivated';
 };
 
 type Concert = {
@@ -244,6 +244,22 @@ export default function LivePage() {
     await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
     await fetchLeaderboard();
     setReactivatingId(null);
+  }
+
+  async function handlePlay(song: SongWithTotal) {
+    setProcessingId(song.id);
+    await supabase.from('songs').update({ status: 'played' }).eq('id', song.id);
+    await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
+    setSongs(prev => prev.filter(s => s.id !== song.id));
+    setCatalog(prev => prev.map(s => s.id === song.id ? { ...s, status: 'played' as const } : s));
+    setProcessingId(null);
+  }
+
+  async function handleDeactivate(song: SongWithTotal) {
+    setProcessingId(song.id);
+    await supabase.from('songs').update({ status: 'deactivated' }).eq('id', song.id);
+    setCatalog(prev => prev.map(s => s.id === song.id ? { ...s, status: 'deactivated' as const } : s));
+    setProcessingId(null);
   }
 
   async function handleEndConcertConfirmed() {
@@ -480,8 +496,10 @@ export default function LivePage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem' }}>
                     {filteredCatalogSongs.map((song) => {
                       const onLeaderboard = song.status === 'active' && song.total > 0;
-                      const isInactive = song.status === 'played' || song.status === 'declined';
+                      const activeNoContrib = song.status === 'active' && song.total === 0;
+                      const isInactive = ['played', 'accepted', 'declined', 'deactivated'].includes(song.status);
                       const isReactivating = reactivatingId === song.id;
+                      const isProcessing = processingId === song.id;
                       return (
                         <div
                           key={song.id}
@@ -513,14 +531,42 @@ export default function LivePage() {
                                 ${song.total.toFixed(2)}
                               </span>
                             )}
+                            {activeNoContrib && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0 }}>
+                                <button
+                                  onClick={() => handlePlay(song)}
+                                  disabled={isProcessing}
+                                  style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: 'none', background: isProcessing ? '#27272a' : '#16a34a', color: isProcessing ? '#52525b' : '#ffffff', fontSize: '0.75rem', fontWeight: 600, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+                                >
+                                  Play
+                                </button>
+                                <button
+                                  onClick={() => handleDeactivate(song)}
+                                  disabled={isProcessing}
+                                  style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isProcessing ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+                                >
+                                  Deactivate
+                                </button>
+                              </div>
+                            )}
                             {song.status === 'played' && (
                               <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#86efac', background: '#14532d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
                                 Played
                               </span>
                             )}
+                            {song.status === 'accepted' && (
+                              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#86efac', background: '#14532d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                                Accepted
+                              </span>
+                            )}
                             {song.status === 'declined' && (
                               <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#f87171', background: '#7f1d1d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
                                 Declined
+                              </span>
+                            )}
+                            {song.status === 'deactivated' && (
+                              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#a1a1aa', background: '#27272a', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                                Deactivated
                               </span>
                             )}
                             {isInactive && (
