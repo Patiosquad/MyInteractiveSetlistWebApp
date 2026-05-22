@@ -213,20 +213,36 @@ export default function DashboardPage() {
             justifyContent: 'space-between',
           }}>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>My Concerts</h1>
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #27272a',
-                background: 'transparent',
-                color: '#a1a1aa',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-              }}
-            >
-              Logout
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => router.push('/profile')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #27272a',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Profile
+              </button>
+              <button
+                onClick={handleLogout}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #27272a',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Logout
+              </button>
+            </div>
           </div>
           {bandName && (
             <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: '1rem', fontWeight: 600, color: '#ffffff', pointerEvents: 'none' }}>

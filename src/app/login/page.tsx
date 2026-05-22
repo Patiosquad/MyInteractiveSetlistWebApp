@@ -20,7 +20,7 @@ export default function LoginPage() {
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        router.replace('/concerts');
+        router.replace('/dashboard');
         return;
       }
       setChecking(false);
@@ -51,7 +51,7 @@ export default function LoginPage() {
       setError('Invalid email or password. Please try again.');
       return;
     }
-    router.replace('/concerts');
+    router.replace('/dashboard');
   }
 
   async function handleSignUp() {
@@ -86,7 +86,7 @@ export default function LoginPage() {
         setError('Account creation failed. Please try again.');
         return;
       }
-      router.replace('/concerts');
+      router.replace('/dashboard');
     } catch {
       setLoading(false);
       setError('Account creation failed. Please try again.');
