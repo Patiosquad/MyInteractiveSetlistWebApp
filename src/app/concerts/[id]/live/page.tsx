@@ -392,6 +392,11 @@ export default function LivePage() {
         .delete()
         .eq('concert_id', concertId);
 
+      await supabase
+        .from('concerts')
+        .update({ status: 'closed', ended_at: new Date().toISOString() })
+        .eq('id', concertId);
+
       router.push(`/concerts/${concertId}`);
     } else {
       setEndingConcert(false);
