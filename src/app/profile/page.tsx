@@ -249,6 +249,21 @@ export default function ProfilePage() {
 
       <div style={{ maxWidth: '500px', margin: '0 auto' }}>
 
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <span style={{
+            display: 'inline-block',
+            backgroundColor: '#2255ff22',
+            border: '1px solid #2255ff',
+            borderRadius: '20px',
+            padding: '4px 12px',
+            fontSize: '12px',
+            fontWeight: '600',
+            color: '#2255ff',
+          }}>
+            Performer Account
+          </span>
+        </div>
+
         {/* Account Info */}
         <section>
           <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '16px' }}>
