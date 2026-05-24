@@ -353,7 +353,7 @@ export default function ConcertPage() {
 
     const { data } = await supabase
       .from('concerts')
-      .update({ status: 'live' })
+      .update({ status: 'live', started_at: new Date().toISOString() })
       .eq('id', concertId)
       .select('*')
       .single();
