@@ -11,7 +11,9 @@
       "Bash(xargs grep -l \"useSearchParams\")",
       "Bash(find /c/Users/chapl -name \"cleanName*\" 2>/dev/null | head -20)",
       "Read(//c/Users/chapl/**)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(node -e \"require\\('qrcode'\\)\")",
+      "Bash(npm install *)"
     ]
   }
 }

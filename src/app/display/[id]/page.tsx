@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import QRCode from 'qrcode';
 
 type SongWithTotal = {
   id: string;
@@ -35,8 +36,10 @@ export default function DisplayPage() {
   const layout = searchParams.get('layout') ?? 'top10';
 
   const [concertName, setConcertName] = useState('');
+  const [concert, setConcert] = useState<{ performer_id: string } | null>(null);
   const [songs, setSongs] = useState<SongWithTotal[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   const tileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const prevPositions = useRef<Map<string, number>>(new Map());
@@ -91,11 +94,14 @@ export default function DisplayPage() {
     async function init() {
       const { data: concertData } = await supabase
         .from('concerts')
-        .select('name')
+        .select('name, performer_id')
         .eq('id', concertId)
         .single();
 
-      if (concertData) setConcertName(concertData.name);
+      if (concertData) {
+        setConcertName(concertData.name);
+        setConcert(concertData);
+      }
       await fetchLeaderboard();
     }
 
@@ -173,6 +179,15 @@ export default function DisplayPage() {
     });
     prevPositions.current = newPositions;
   }, [songs]);
+
+  useEffect(() => {
+    if (!concert?.performer_id) return;
+    QRCode.toDataURL(concert.performer_id, {
+      width: 300,
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' },
+    }).then((url: string) => setQrDataUrl(url));
+  }, [concert?.performer_id]);
 
   const top = songs[0] ?? null;
   const rest = songs.slice(1); // ranks 2–9
@@ -313,8 +328,47 @@ export default function DisplayPage() {
             ) : (
               <>
                 {/* LEFT ZONE — rank 1 hero */}
-                <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3vh 3vw 2vh', overflow: 'visible', borderRight: '1px solid #161616', position: 'relative' }}>
+                <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2vh', padding: '3vh 3vw 2vh', overflow: 'visible', borderRight: '1px solid #161616', position: 'relative' }}>
                   <HeroSong song={top!} centered={false} />
+                  {qrDataUrl && (
+                    <div style={{
+                      background: 'rgba(20,20,20,0.95)',
+                      border: '1px solid #2255ff44',
+                      boxShadow: '0 0 20px rgba(34,85,255,0.15)',
+                      borderRadius: '14px',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: '14px',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      flexShrink: 0,
+                    }}>
+                      <img
+                        src={qrDataUrl}
+                        alt="QR Code"
+                        style={{
+                          width: 'clamp(70px, 8vw, 110px)',
+                          height: 'clamp(70px, 8vw, 110px)',
+                          background: 'white',
+                          borderRadius: '8px',
+                          padding: '4px',
+                          display: 'block',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                          <span style={{ fontSize: 'clamp(0.8rem, 1.1vw, 1.2rem)' }}>🎵</span>
+                          <p style={{ color: '#ffffff', fontSize: 'clamp(0.85rem, 1.2vw, 1.4rem)', fontWeight: 700, margin: 0 }}>SetList</p>
+                        </div>
+                        <p style={{ color: '#aaaaaa', fontSize: 'clamp(0.7rem, 0.95vw, 1.1rem)', lineHeight: 1.5, margin: 0 }}>
+                          Is there a song you want to hear? Browse the full catalog and contribute to move it up the rankings! Scan to join the show.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {/* RIGHT ZONE — ranks 2–5 */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1vh 0' }}>
@@ -392,12 +446,52 @@ export default function DisplayPage() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  gap: '2vh',
                   padding: '3vh 3vw 2vh',
                   overflow: 'visible',
                   borderRight: '1px solid #161616',
                   position: 'relative',
                 }}>
                   <HeroSong song={top!} centered={false} />
+                  {qrDataUrl && (
+                    <div style={{
+                      background: 'rgba(20,20,20,0.95)',
+                      border: '1px solid #2255ff44',
+                      boxShadow: '0 0 20px rgba(34,85,255,0.15)',
+                      borderRadius: '14px',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: '14px',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      flexShrink: 0,
+                    }}>
+                      <img
+                        src={qrDataUrl}
+                        alt="QR Code"
+                        style={{
+                          width: 'clamp(70px, 8vw, 110px)',
+                          height: 'clamp(70px, 8vw, 110px)',
+                          background: 'white',
+                          borderRadius: '8px',
+                          padding: '4px',
+                          display: 'block',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                          <span style={{ fontSize: 'clamp(0.8rem, 1.1vw, 1.2rem)' }}>🎵</span>
+                          <p style={{ color: '#ffffff', fontSize: 'clamp(0.85rem, 1.2vw, 1.4rem)', fontWeight: 700, margin: 0 }}>SetList</p>
+                        </div>
+                        <p style={{ color: '#aaaaaa', fontSize: 'clamp(0.7rem, 0.95vw, 1.1rem)', lineHeight: 1.5, margin: 0 }}>
+                          Is there a song you want to hear? Browse the full catalog and contribute to move it up the rankings! Scan to join the show.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* RIGHT ZONE — ranks 2–9 (60%) */}
@@ -487,33 +581,6 @@ export default function DisplayPage() {
 
         )}
 
-        {/* ── Footer ──────────────────────────────────────────────────────── */}
-        <div style={{
-          flexShrink: 0,
-          padding: '1.2vh 4vw',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderTop: '1px solid #111',
-        }}>
-          <p style={{ color: '#2e2e2e', fontSize: 'clamp(0.55rem, 1vh, 0.9rem)', margin: 0 }}>
-            Open SetList on your phone to contribute and influence the setlist!
-          </p>
-          <div style={{
-            width: 'clamp(44px, 6vh, 64px)',
-            height: 'clamp(44px, 6vh, 64px)',
-            borderRadius: '0.4rem',
-            border: '1px solid #1e1e1e',
-            background: '#111',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <span style={{ fontSize: 'clamp(0.4rem, 0.65vh, 0.6rem)', color: '#3f3f46', textAlign: 'center', lineHeight: 1.3 }}>Scan<br />to join</span>
-          </div>
-        </div>
 
       </div>
     </>
@@ -602,25 +669,6 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
         {song.artist}
       </p>
 
-      {/* Call to action */}
-      <div style={{
-        padding: 'clamp(0.4rem, 0.8vh, 0.75rem) clamp(0.75rem, 1.5vw, 1.5rem)',
-        borderRadius: '9999px',
-        background: 'rgba(255,255,255,0.07)',
-        backdropFilter: 'blur(4px)',
-        maxWidth: '92%',
-        textAlign: 'center',
-      }}>
-        <p style={{
-          fontSize: 'clamp(0.7rem, 1.2vw, 1.3rem)',
-          color: '#ffffff',
-          margin: 0,
-          lineHeight: 1.4,
-          fontWeight: 500,
-        }}>
-          🎵 Open <strong style={{ color: '#FFD700' }}>SetList</strong> on your phone — request your song or contribute to an existing one to move it up the rankings!
-        </p>
-      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import QRCode from 'qrcode';
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
@@ -64,6 +65,18 @@ export default function ProfilePage() {
 
   const [connectLoading, setConnectLoading] = useState(false);
   const [connectError, setConnectError] = useState('');
+
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [showQRModal, setShowQRModal] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    QRCode.toDataURL(userId, {
+      width: 300,
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' },
+    }).then((url: string) => setQrDataUrl(url));
+  }, [userId]);
 
   useEffect(() => {
     async function init() {
@@ -391,6 +404,46 @@ export default function ProfilePage() {
           </button>
         </section>
 
+        {/* QR Code */}
+        <div style={{ height: '1px', background: '#1a1a1a', margin: '24px 0' }} />
+
+        <section>
+          <p style={{ fontSize: '10px', color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '12px', textAlign: 'center' }}>
+            Your QR Code
+          </p>
+
+          {qrDataUrl && (
+            <>
+              <img
+                src={qrDataUrl}
+                width={100}
+                height={100}
+                alt="QR Code"
+                style={{ borderRadius: '8px', display: 'block', margin: '0 auto 12px', background: 'white', padding: '6px' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                <button
+                  onClick={() => setShowQRModal(true)}
+                  style={{ background: '#141414', border: '1px solid #333', borderRadius: '8px', padding: '8px 16px', color: '#888', fontSize: '13px', cursor: 'pointer' }}
+                >
+                  ⛶ View Full Screen
+                </button>
+                <button
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.download = 'setlist-qr-code.png';
+                    link.href = qrDataUrl;
+                    link.click();
+                  }}
+                  style={{ background: '#141414', border: '1px solid #2255ff44', borderRadius: '8px', padding: '8px 16px', color: '#2255ff', fontSize: '13px', cursor: 'pointer' }}
+                >
+                  ↓ Download PNG
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+
         <div style={dividerStyle} />
 
         {/* Payouts */}
@@ -499,6 +552,56 @@ export default function ProfilePage() {
         </button>
 
       </div>
+
+      {/* QR Full Screen Modal */}
+      {showQRModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.95)',
+          zIndex: 50,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <button
+            onClick={() => setShowQRModal(false)}
+            style={{ position: 'absolute', top: '24px', right: '24px', background: 'transparent', border: 'none', color: '#555', fontSize: '28px', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+
+          <p style={{ color: '#ffffff', fontSize: '36px', fontWeight: '700', letterSpacing: '-0.5px', marginBottom: '6px' }}>
+            SetList
+          </p>
+          <div style={{ width: '8px', height: '8px', background: '#2255ff', borderRadius: '4px', margin: '0 auto 24px' }} />
+
+          <img
+            src={qrDataUrl}
+            width={280}
+            height={280}
+            alt="QR Code"
+            style={{ background: 'white', padding: '16px', borderRadius: '12px' }}
+          />
+
+          <p style={{ color: '#666', fontSize: '16px', marginTop: '24px' }}>
+            Scan to join the show
+          </p>
+
+          <button
+            onClick={() => {
+              const link = document.createElement('a');
+              link.download = 'setlist-qr-code.png';
+              link.href = qrDataUrl;
+              link.click();
+            }}
+            style={{ background: '#2255ff', color: 'white', border: 'none', borderRadius: '8px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '16px' }}
+          >
+            ↓ Download PNG
+          </button>
+        </div>
+      )}
     </div>
   );
 }
