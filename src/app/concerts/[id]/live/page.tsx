@@ -200,11 +200,24 @@ export default function LivePage() {
       )
       .subscribe();
 
+    const concertChannel = supabase
+      .channel(`live-concert-${concertId}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'concerts', filter: `id=eq.${concertId}` },
+        (payload) => {
+          if ((payload.new as { status: string }).status === 'closed') {
+            router.push('/dashboard');
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(songsChannel);
       supabase.removeChannel(contribChannel);
+      supabase.removeChannel(concertChannel);
     };
-  }, [concertId, fetchLeaderboard]);
+  }, [concertId, fetchLeaderboard, router]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

@@ -176,8 +176,24 @@ export default function ConcertPage() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [concertId]);
+    const concertStatusChannel = supabase
+      .channel(`concert-status-${concertId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'concerts', filter: `id=eq.${concertId}` },
+        (payload) => {
+          if ((payload.new as { status: string }).status === 'closed') {
+            router.push('/dashboard');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(concertStatusChannel);
+    };
+  }, [concertId, router]);
 
   // Debounced Spotify search
   useEffect(() => {
