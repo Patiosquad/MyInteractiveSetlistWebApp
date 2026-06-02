@@ -109,6 +109,21 @@ export default function DashboardPage() {
     init();
   }, [router]);
 
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`dashboard-concerts-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'concerts', filter: `performer_id=eq.${userId}` },
+        () => fetchConcerts(userId)
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push('/login');

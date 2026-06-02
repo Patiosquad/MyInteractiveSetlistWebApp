@@ -294,7 +294,7 @@ export default function LivePage() {
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'decline', songId: song.id }),
+        body: JSON.stringify({ mode: 'decline', songId: song.id, concertId }),
       }
     ).catch(() => {});
     await supabase.from('songs').update({ status: 'declined' }).eq('id', song.id);
@@ -400,11 +400,6 @@ export default function LivePage() {
 
     const ok = await callEdgeFunction('cancel-payments', { mode: 'end_concert', concertId });
     if (ok) {
-      await supabase
-        .from('contributions')
-        .delete()
-        .eq('concert_id', concertId);
-
       await supabase
         .from('concerts')
         .update({ status: 'closed', ended_at: new Date().toISOString() })
