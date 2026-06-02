@@ -308,6 +308,8 @@ export default function LivePage() {
 
   async function handleReactivate(song: SongWithTotal) {
     setReactivatingId(song.id);
+    const ok = await callEdgeFunction('cancel-payments', { mode: 'decline', songId: song.id, concertId });
+    if (!ok) { setReactivatingId(null); return; }
     await supabase.from('contributions').delete().eq('song_id', song.id);
     await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
     await fetchLeaderboard();
