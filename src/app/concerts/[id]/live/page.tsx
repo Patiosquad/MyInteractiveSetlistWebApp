@@ -124,7 +124,7 @@ export default function LivePage() {
           .from('contributions')
           .select('amount')
           .eq('song_id', song.id)
-          .in('status', ['pending', 'captured']);
+          .eq('status', 'pending');
 
         const total = (contribData ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
         return { ...song, total } as SongWithTotal;

@@ -362,10 +362,16 @@ export default function ConcertPage() {
     }
 
     await supabase
+      .from('contributions')
+      .delete()
+      .eq('concert_id', concertId)
+      .eq('status', 'pending');
+
+    await supabase
       .from('songs')
       .update({ status: 'active' })
       .eq('concert_id', concertId)
-      .in('status', ['declined', 'played']);
+      .in('status', ['declined', 'played', 'accepted', 'deactivated']);
 
     const { data } = await supabase
       .from('concerts')
