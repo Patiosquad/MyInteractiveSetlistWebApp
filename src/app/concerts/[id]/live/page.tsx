@@ -269,7 +269,7 @@ export default function LivePage() {
   }
 
   async function handleAccept(song: SongWithTotal) {
-    if (!confirm(`Accept "${song.name}" and charge all contributors?`)) return;
+    if (!confirm(`Accept "${song.name}" by ${song.artist} and charge all contributors?`)) return;
     setProcessingId(song.id);
 
     const ok = await callEdgeFunction('capture-payments', { songId: song.id, concertId });
@@ -876,7 +876,7 @@ export default function LivePage() {
               Decline Song?
             </h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-              This will decline &ldquo;{pendingDecline.name}&rdquo; and release all contributions back to fans.
+              This will decline &ldquo;{pendingDecline.name}&rdquo; by {pendingDecline.artist} and release all contributions back to fans.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <button
