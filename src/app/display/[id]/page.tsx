@@ -302,7 +302,7 @@ export default function DisplayPage() {
                       </p>
                     </div>
                     <span style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1.25rem)', color: '#a78bfa', fontWeight: 500, flexShrink: 0 }}>
-                      ${song.total.toFixed(2)}
+                      ${Math.round(song.total)}
                     </span>
                   </div>
                 ))}

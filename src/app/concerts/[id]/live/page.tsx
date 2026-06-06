@@ -566,7 +566,7 @@ export default function LivePage() {
                             </p>
                           </div>
                           <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '3.5rem' }}>
-                            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e4e4e7' }}>${song.total.toFixed(2)}</span>
+                            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e4e4e7' }}>${Math.round(song.total)}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
                             <button
@@ -670,7 +670,7 @@ export default function LivePage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                             {onLeaderboard && (
                               <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#818cf8' }}>
-                                ${song.total.toFixed(2)}
+                                ${Math.round(song.total)}
                               </span>
                             )}
                             {activeNoContrib && (
