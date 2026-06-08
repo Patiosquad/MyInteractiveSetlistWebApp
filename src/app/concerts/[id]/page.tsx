@@ -108,6 +108,7 @@ export default function ConcertPage() {
   const [goingLive, setGoingLive] = useState(false);
   const [goLiveError, setGoLiveError] = useState('');
   const [bandName, setBandName] = useState('');
+  const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -275,7 +276,14 @@ export default function ConcertPage() {
   }
 
   async function handleRemoveSong(songId: string, songName: string) {
-    if (!confirm(`Remove "${songName}" from the catalog?`)) return;
+    setPendingRemoveSong({ id: songId, name: songName });
+    return;
+  }
+
+  async function handleRemoveSongConfirmed() {
+    if (!pendingRemoveSong) return;
+    const { id: songId, name: songName } = pendingRemoveSong;
+    setPendingRemoveSong(null);
     const { data, error } = await supabase.from('songs').delete().eq('id', songId).select();
     console.log('Delete result:', { data, error });
     if (error) {
@@ -987,6 +995,66 @@ export default function ConcertPage() {
                 }}
               >
                 Add to Catalog
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingRemoveSong && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid #3f3f46',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            maxWidth: '420px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
+              Remove Song?
+            </h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              Remove &ldquo;{pendingRemoveSong.name}&rdquo; from the catalog? This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setPendingRemoveSong(null)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #3f3f46',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveSongConfirmed}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  background: '#991b1b',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Remove
               </button>
             </div>
           </div>

@@ -87,6 +87,7 @@ export default function LivePage() {
   const [endingConcert, setEndingConcert] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [pendingDecline, setPendingDecline] = useState<SongWithTotal | null>(null);
+  const [pendingAccept, setPendingAccept] = useState<SongWithTotal | null>(null);
   const [bandName, setBandName] = useState('');
   const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
@@ -269,7 +270,14 @@ export default function LivePage() {
   }
 
   async function handleAccept(song: SongWithTotal) {
-    if (!confirm(`Accept "${song.name}" by ${song.artist} and charge all contributors?`)) return;
+    setPendingAccept(song);
+    return;
+  }
+
+  async function handleAcceptConfirmed() {
+    if (!pendingAccept) return;
+    const song = pendingAccept;
+    setPendingAccept(null);
     setProcessingId(song.id);
 
     const ok = await callEdgeFunction('capture-payments', { songId: song.id, concertId });
@@ -908,6 +916,66 @@ export default function LivePage() {
                 }}
               >
                 Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingAccept && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid #3f3f46',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            maxWidth: '420px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
+              Accept Song?
+            </h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              Accept &ldquo;{pendingAccept.name}&rdquo; by {pendingAccept.artist} and charge all contributors?
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setPendingAccept(null)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #3f3f46',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAcceptConfirmed}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  background: '#15803d',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Accept
               </button>
             </div>
           </div>
