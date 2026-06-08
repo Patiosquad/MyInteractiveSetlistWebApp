@@ -10,7 +10,7 @@ type Concert = {
   venue_name: string;
   city: string;
   state: string;
-  status: 'building' | 'live' | 'closed';
+  status: 'new' | 'live' | 'closed';
   created_at: string;
   last_activity_at: string | null;
 };
@@ -29,7 +29,7 @@ type FullConcert = {
 
 const STATUS_STYLES: Record<Concert['status'], { background: string; color: string; border?: string }> = {
   live:     { background: '#14532d', color: '#86efac' },
-  building: { background: '#1e3a5f', color: '#93c5fd' },
+  new: { background: '#1e3a5f', color: '#93c5fd' },
   closed:   { background: '#3d0f0f', color: '#fca5a5', border: '1px solid #7f1d1d' },
 };
 
@@ -71,7 +71,7 @@ export default function DashboardPage() {
       .select('id, name, venue_name, city, state, status, created_at, last_activity_at')
       .eq('performer_id', uid);
 
-    const STATUS_ORDER: Record<string, number> = { live: 0, building: 1, closed: 2 };
+    const STATUS_ORDER: Record<string, number> = { live: 0, new: 1, closed: 2 };
     const sorted = (data ?? []).sort((a, b) => {
       const aRank = STATUS_ORDER[a.status] ?? 2;
       const bRank = STATUS_ORDER[b.status] ?? 2;
@@ -172,7 +172,7 @@ export default function DashboardPage() {
         country: duplicateFormData.country,
         estimated_start: duplicateFormData.estimated_start,
         estimated_length: duplicateFormData.estimated_length,
-        status: 'building',
+        status: 'new',
         performer_id: userId,
       })
       .select()

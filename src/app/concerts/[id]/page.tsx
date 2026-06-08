@@ -13,7 +13,7 @@ type Concert = {
   country: string;
   estimated_start: string | null;
   estimated_length: string | null;
-  status: 'building' | 'live' | 'closed';
+  status: 'new' | 'live' | 'closed';
   performer_id: string;
 };
 
@@ -38,7 +38,7 @@ type SpotifyTrack = {
 
 const STATUS_BADGE: Record<Concert['status'], { background: string; color: string }> = {
   live:     { background: '#14532d', color: '#86efac' },
-  building: { background: '#1e3a5f', color: '#93c5fd' },
+  new: { background: '#1e3a5f', color: '#93c5fd' },
   closed:   { background: '#27272a', color: '#a1a1aa' },
 };
 
@@ -407,7 +407,7 @@ export default function ConcertPage() {
 
   const c = concert!;
   const badge = STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
-  const isBuilding = c.status === 'building' || c.status === 'closed';
+  const isBuilding = c.status === 'new' || c.status === 'closed';
 
   // ── Render ────────────────────────────────────────────────────────────────
 

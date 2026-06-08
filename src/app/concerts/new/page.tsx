@@ -226,7 +226,7 @@ export default function NewConcertPage() {
         estimated_start: estimatedStart,
         estimated_length: estimatedLength,
         comments: comments.trim() || null,
-        status: 'building',
+        status: 'new',
       })
       .select('id')
       .single();
