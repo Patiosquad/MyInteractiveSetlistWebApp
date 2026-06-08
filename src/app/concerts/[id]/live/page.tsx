@@ -563,7 +563,9 @@ export default function LivePage() {
                           </div>
                           {song.album_art_url
                             ? <img src={song.album_art_url} alt={song.album} width={56} height={56} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
-                            : <div style={{ width: 56, height: 56, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
+                            : <div style={{ width: 56, height: 56, borderRadius: '0.375rem', background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: '1.25rem', color: '#71717a' }}>♫</span>
+                              </div>
                           }
                           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <p style={{ fontWeight: 700, fontSize: '1.5rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
@@ -665,7 +667,9 @@ export default function LivePage() {
                         >
                           {song.album_art_url
                             ? <img src={song.album_art_url} alt={song.album} width={52} height={52} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
-                            : <div style={{ width: 52, height: 52, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />
+                            : <div style={{ width: 52, height: 52, borderRadius: '0.375rem', background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: '1.25rem', color: '#71717a' }}>♫</span>
+                              </div>
                           }
                           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <p style={{ fontWeight: 700, fontSize: '1.35rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
@@ -824,7 +828,7 @@ export default function LivePage() {
                       <div style={{ borderRadius: '0.75rem', border: '1px solid #27272a', overflowY: 'auto', flex: 1 }}>
                         {emergencyResults.map((track, idx) => (
                           <button key={track.spotify_track_id} onClick={() => openEmergencyTrack(track)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.75rem 1rem', borderTop: idx === 0 ? 'none' : '1px solid #27272a', background: 'transparent', color: '#ffffff', cursor: 'pointer', textAlign: 'left' }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#27272a'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
-                            {track.album_art_url ? <img src={track.album_art_url} alt={track.album} width={48} height={48} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} /> : <div style={{ width: 48, height: 48, borderRadius: '0.375rem', background: '#27272a', flexShrink: 0 }} />}
+                            {track.album_art_url ? <img src={track.album_art_url} alt={track.album} width={48} height={48} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} /> : <div style={{ width: 48, height: 48, borderRadius: '0.375rem', background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: '1rem', color: '#71717a' }}>♫</span></div>}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{track.name}</p>
                               <p style={{ color: '#ffffff', fontSize: '0.8125rem', opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '2px 0 0' }}>{track.artist} · {track.album}</p>

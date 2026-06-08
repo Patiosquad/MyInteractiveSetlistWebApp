@@ -291,7 +291,9 @@ export default function DisplayPage() {
                   <div key={song.id} style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, gap: '1rem', overflow: 'hidden' }}>
                     {song.album_art_url
                       ? <img src={song.album_art_url} alt="" style={{ width: 48, height: 48, borderRadius: 6, flexShrink: 0, objectFit: 'cover' }} />
-                      : <div style={{ width: 48, height: 48, borderRadius: 6, background: '#1e1e1e', flexShrink: 0 }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: 6, background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '1rem', color: '#71717a' }}>♫</span>
+                        </div>
                     }
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 'clamp(1rem, 2vw, 2.25rem)', fontWeight: 400, color: '#f4f4f5', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -394,7 +396,9 @@ export default function DisplayPage() {
                         </div>
                         {song.album_art_url
                           ? <img src={song.album_art_url} alt="" style={{ width: artSz, height: artSz, borderRadius: 6, flexShrink: 0, objectFit: 'cover' }} />
-                          : <div style={{ width: artSz, height: artSz, borderRadius: 6, background: '#1e1e1e', flexShrink: 0 }} />
+                          : <div style={{ width: artSz, height: artSz, borderRadius: 6, background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '1rem', color: '#71717a' }}>♫</span>
+                            </div>
                         }
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: nameSz, fontWeight: isTopRight ? 800 : 600, color: nameColor, margin: 0, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: isTopRight ? '-0.01em' : 0 }}>
@@ -542,7 +546,9 @@ export default function DisplayPage() {
                         {/* Album art */}
                         {song.album_art_url
                           ? <img src={song.album_art_url} alt="" style={{ width: artSz, height: artSz, borderRadius: 6, flexShrink: 0, objectFit: 'cover' }} />
-                          : <div style={{ width: artSz, height: artSz, borderRadius: 6, background: '#1e1e1e', flexShrink: 0 }} />
+                          : <div style={{ width: artSz, height: artSz, borderRadius: 6, background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '1rem', color: '#71717a' }}>♫</span>
+                            </div>
                         }
 
                         {/* Text */}
@@ -635,7 +641,9 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
               position: 'relative',
               boxShadow: '0 8px 40px rgba(255,215,0,0.3)',
             }} />
-          : <div style={{ width: artSize, height: artSize, borderRadius: 14, background: '#1a1a1a', position: 'relative' }} />
+          : <div style={{ width: artSize, height: artSize, borderRadius: 14, background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '2rem', color: '#71717a' }}>♫</span>
+            </div>
         }
       </div>
 
