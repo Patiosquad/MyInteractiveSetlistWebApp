@@ -483,7 +483,34 @@ export default function ConcertPage() {
         </div>
       </header>
 
-      <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+        {/* Go Live button */}
+        {isBuilding && songs.length > 0 && (
+          <div style={{ paddingBottom: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {goLiveError && (
+              <p style={{ color: '#f87171', fontSize: '0.9375rem', margin: 0 }}>{goLiveError}</p>
+            )}
+            <button
+              onClick={handleGoLive}
+              disabled={goingLive}
+              style={{
+                width: '100%',
+                padding: '0.875rem',
+                borderRadius: '0.75rem',
+                border: 'none',
+                background: goingLive ? '#14532d80' : '#16a34a',
+                color: '#ffffff',
+                fontSize: '1rem',
+                fontWeight: 700,
+                cursor: goingLive ? 'not-allowed' : 'pointer',
+                letterSpacing: '0.01em',
+              }}
+            >
+              {goingLive ? 'Going Live…' : '🎤 Go Live'}
+            </button>
+          </div>
+        )}
 
         {/* Add Song panel — building only */}
         {isBuilding && (
@@ -796,32 +823,6 @@ export default function ConcertPage() {
           )}
         </section>
 
-        {/* Go Live button */}
-        {isBuilding && songs.length > 0 && (
-          <div style={{ paddingBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {goLiveError && (
-              <p style={{ color: '#f87171', fontSize: '0.9375rem', margin: 0 }}>{goLiveError}</p>
-            )}
-            <button
-              onClick={handleGoLive}
-              disabled={goingLive}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                borderRadius: '0.75rem',
-                border: 'none',
-                background: goingLive ? '#14532d80' : '#16a34a',
-                color: '#ffffff',
-                fontSize: '1rem',
-                fontWeight: 700,
-                cursor: goingLive ? 'not-allowed' : 'pointer',
-                letterSpacing: '0.01em',
-              }}
-            >
-              {goingLive ? 'Going Live…' : '🎤 Go Live'}
-            </button>
-          </div>
-        )}
       </main>
 
       {showEmergencyAddModal && (
