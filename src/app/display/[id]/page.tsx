@@ -621,7 +621,7 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
         userSelect: 'none',
         paddingBottom: '0.5vh',
       }}>
-        1st
+        Up Next?!?!
       </span>
 
       {/* Album art with gold glow */}
