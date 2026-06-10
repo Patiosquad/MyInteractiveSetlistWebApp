@@ -12,6 +12,7 @@ type SongWithTotal = {
   album_art_url: string | null;
   total: number;
   earliest: string | null;
+  comments: string | null;
   status: 'active' | 'played' | 'accepted' | 'declined' | 'deactivated';
 };
 
@@ -584,6 +585,9 @@ export default function LivePage() {
                             <p style={{ color: '#ffffff', fontSize: '1.15rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
                               {song.artist}
                             </p>
+                            {song.comments && (
+                              <span style={{ fontSize: '0.875rem' }}>📝</span>
+                            )}
                           </div>
                           <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '3.5rem' }}>
                             <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e4e4e7' }}>${Math.round(song.total)}</span>
@@ -688,6 +692,9 @@ export default function LivePage() {
                             <p style={{ color: '#ffffff', fontSize: '1.1rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
                               {song.artist}
                             </p>
+                            {song.comments && (
+                              <span style={{ fontSize: '0.875rem' }}>📝</span>
+                            )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                             {onLeaderboard && (
@@ -960,6 +967,12 @@ export default function LivePage() {
             <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
               Accept &ldquo;{pendingAccept.name}&rdquo; by {pendingAccept.artist} and charge all contributors?
             </p>
+            {pendingAccept.comments && (
+              <div style={{ background: '#27272a', borderRadius: '0.5rem', padding: '0.75rem 1rem', borderLeft: '3px solid #a78bfa' }}>
+                <p style={{ fontSize: '0.75rem', color: '#a78bfa', fontWeight: 600, margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Performer Notes</p>
+                <p style={{ fontSize: '0.9375rem', color: '#e4e4e7', margin: 0, lineHeight: 1.5 }}>{pendingAccept.comments}</p>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <button
                 onClick={() => setPendingAccept(null)}

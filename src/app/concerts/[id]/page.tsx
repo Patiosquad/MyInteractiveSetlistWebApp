@@ -23,6 +23,7 @@ type Song = {
   artist: string;
   album: string;
   album_art_url: string | null;
+  comments: string | null;
   status: 'active' | 'declined' | 'played' | 'accepted' | 'deactivated';
   created_at: string;
 };
@@ -97,6 +98,7 @@ export default function ConcertPage() {
   const [manualName, setManualName] = useState('');
   const [manualArtist, setManualArtist] = useState('');
   const [manualAlbum, setManualAlbum] = useState('');
+  const [manualComments, setManualComments] = useState('');
   const [manualError, setManualError] = useState('');
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
@@ -110,6 +112,7 @@ export default function ConcertPage() {
   const [bandName, setBandName] = useState('');
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
   const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
+  const [editingComments, setEditingComments] = useState<{ id: string, name: string, comments: string } | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -315,6 +318,17 @@ export default function ConcertPage() {
     }
   }
 
+  async function handleSaveComments() {
+    if (!editingComments) return;
+    const { error } = await supabase
+      .from('songs')
+      .update({ comments: editingComments.comments.trim() || null })
+      .eq('id', editingComments.id);
+    if (error) { alert('Failed to save note: ' + error.message); return; }
+    setSongs(prev => prev.map(s => s.id === editingComments.id ? { ...s, comments: editingComments.comments.trim() || null } : s));
+    setEditingComments(null);
+  }
+
   async function handleManualAdd(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!manualName.trim() || !manualArtist.trim()) {
@@ -329,6 +343,7 @@ export default function ConcertPage() {
       name: manualName.trim(),
       artist: manualArtist.trim(),
       album: manualAlbum.trim() || null,
+      comments: manualComments.trim() || null,
       album_art_url: null,
       spotify_track_id: null,
       status: 'active',
@@ -345,6 +360,7 @@ export default function ConcertPage() {
     setManualName('');
     setManualArtist('');
     setManualAlbum('');
+    setManualComments('');
     setShowEmergencyAddModal(false);
     setAddedMessage(`Added "${manualName.trim()}"`);
     setTimeout(() => setAddedMessage(''), 2500);
@@ -691,6 +707,10 @@ export default function ConcertPage() {
                     style={inputStyle}
                   />
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Performer Notes</label>
+                  <input type="text" value={manualComments} onChange={(e) => setManualComments(e.target.value)} placeholder="e.g. Play in drop D, slow tempo" style={inputStyle} />
+                </div>
                 {manualError && (
                   <p style={{ fontSize: '0.875rem', color: '#f87171', margin: 0 }}>{manualError}</p>
                 )}
@@ -787,27 +807,38 @@ export default function ConcertPage() {
                     </p>
                   </div>
                   {isBuilding ? (
-                    <button
-                      onClick={() => handleRemoveSong(song.id, song.name)}
-                      title="Remove song"
-                      style={{
-                        flexShrink: 0,
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        border: '1px solid #3f3f46',
-                        background: 'transparent',
-                        color: '#71717a',
-                        fontSize: '1rem',
-                        lineHeight: 1,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      ×
-                    </button>
+                    <>
+                      {song.comments && (
+                        <button
+                          onClick={() => setEditingComments({ id: song.id, name: song.name, comments: song.comments ?? '' })}
+                          title="Edit performer notes"
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#a78bfa', fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}
+                        >
+                          📝
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemoveSong(song.id, song.name)}
+                        title="Remove song"
+                        style={{
+                          flexShrink: 0,
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          border: '1px solid #3f3f46',
+                          background: 'transparent',
+                          color: '#71717a',
+                          fontSize: '1rem',
+                          lineHeight: 1,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        ×
+                      </button>
+                    </>
                   ) : (() => {
                     const isProcessing = processingId === song.id;
                     const isReactivating = reactivatingId === song.id;
@@ -910,6 +941,10 @@ export default function ConcertPage() {
                   <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
                   <input type="text" value={manualAlbum} onChange={(e) => setManualAlbum(e.target.value)} style={inputStyle} />
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Performer Notes</label>
+                  <input type="text" value={manualComments} onChange={(e) => setManualComments(e.target.value)} placeholder="e.g. Play in drop D, slow tempo" style={inputStyle} />
+                </div>
                 {manualError && <p style={{ fontSize: '0.875rem', color: '#f87171', margin: 0 }}>{manualError}</p>}
                 <button type="submit" disabled={manualSubmitting} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: manualSubmitting ? '#3f3f46' : '#ffffff', color: manualSubmitting ? '#a1a1aa' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: manualSubmitting ? 'not-allowed' : 'pointer', alignSelf: 'flex-start' }}>
                   {manualSubmitting ? 'Adding…' : 'Add Song'}
@@ -995,12 +1030,13 @@ export default function ConcertPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>
-                  Comments
+                  Performer Notes
                 </label>
                 <input
                   type="text"
                   value={pendingComments}
                   onChange={(e) => setPendingComments(e.target.value)}
+                  placeholder="e.g. Play in drop D, slow tempo"
                   style={inputStyle}
                 />
               </div>
@@ -1158,6 +1194,26 @@ export default function ConcertPage() {
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingComments && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Performer Notes</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.875rem', margin: 0 }}>{editingComments.name}</p>
+            <input
+              type="text"
+              value={editingComments.comments}
+              onChange={(e) => setEditingComments(prev => prev ? { ...prev, comments: e.target.value } : null)}
+              placeholder="e.g. Play in drop D, slow tempo"
+              style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingComments(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveComments} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>Save</button>
             </div>
           </div>
         </div>
