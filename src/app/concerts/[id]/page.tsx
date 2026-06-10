@@ -109,6 +109,7 @@ export default function ConcertPage() {
   const [goLiveError, setGoLiveError] = useState('');
   const [bandName, setBandName] = useState('');
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
+  const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -294,6 +295,26 @@ export default function ConcertPage() {
     setSongs((prev) => prev.filter((s) => s.id !== songId));
   }
 
+  async function handleDeleteConcertConfirmed() {
+    try {
+      if (concert?.status === 'live') {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: 'end_concert', concertId }),
+          }
+        ).catch(() => {});
+      }
+      await supabase.from('songs').delete().eq('concert_id', concertId);
+      await supabase.from('concerts').delete().eq('id', concertId);
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Delete concert failed:', err);
+    }
+  }
+
   async function handleManualAdd(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!manualName.trim() || !manualArtist.trim()) {
@@ -462,6 +483,22 @@ export default function ConcertPage() {
                   }}
                 >
                   Go to Live View
+                </button>
+              )}
+              {(c.status === 'new' || c.status === 'closed') && (
+                <button
+                  onClick={() => setShowDeleteConcertModal(true)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #7f1d1d',
+                    background: 'transparent',
+                    color: '#f87171',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Delete Concert
                 </button>
               )}
               <button
@@ -1060,6 +1097,66 @@ export default function ConcertPage() {
                 }}
               >
                 Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConcertModal && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid #3f3f46',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            maxWidth: '420px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
+              Delete Concert?
+            </h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              Permanently delete this concert and all its songs? Any pending contributions will be released. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setShowDeleteConcertModal(false)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #3f3f46',
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConcertConfirmed}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  background: '#991b1b',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>
