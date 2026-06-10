@@ -11,6 +11,7 @@ type SongWithTotal = {
   artist: string;
   album_art_url: string | null;
   total: number;
+  earliest: string | null;
 };
 
 const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
@@ -73,18 +74,27 @@ export default function DisplayPage() {
       songsData.map(async (song) => {
         const { data: contribData } = await supabase
           .from('contributions')
-          .select('amount')
+          .select('amount, created_at')
           .eq('song_id', song.id)
-          .in('status', ['pending', 'captured']);
+          .eq('status', 'pending');
 
         const total = (contribData ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
-        return { ...song, total } as SongWithTotal;
+        const earliest = (contribData ?? []).reduce((min, c) => {
+          if (!min) return c.created_at;
+          return c.created_at < min ? c.created_at : min;
+        }, null as string | null);
+        return { ...song, total, earliest } as SongWithTotal;
       })
     );
 
     const ranked = withTotals
       .filter((s) => s.total > 0)
-      .sort((a, b) => b.total - a.total)
+      .sort((a, b) => {
+        if (b.total !== a.total) return b.total - a.total;
+        const aTime = a.earliest ? new Date(a.earliest).getTime() : Infinity;
+        const bTime = b.earliest ? new Date(b.earliest).getTime() : Infinity;
+        return aTime - bTime;
+      })
       .slice(0, 10);
 
     setSongs(ranked);

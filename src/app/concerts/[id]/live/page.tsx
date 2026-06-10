@@ -11,6 +11,7 @@ type SongWithTotal = {
   album: string;
   album_art_url: string | null;
   total: number;
+  earliest: string | null;
   status: 'active' | 'played' | 'accepted' | 'declined' | 'deactivated';
 };
 
@@ -123,18 +124,27 @@ export default function LivePage() {
       songsData.map(async (song) => {
         const { data: contribData } = await supabase
           .from('contributions')
-          .select('amount')
+          .select('amount, created_at')
           .eq('song_id', song.id)
           .eq('status', 'pending');
 
         const total = (contribData ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
-        return { ...song, total } as SongWithTotal;
+        const earliest = (contribData ?? []).reduce((min, c) => {
+          if (!min) return c.created_at;
+          return c.created_at < min ? c.created_at : min;
+        }, null as string | null);
+        return { ...song, total, earliest } as SongWithTotal;
       })
     );
 
     setCatalog([...withTotals]);
     const activeSongs = withTotals.filter((s) => s.status === 'active');
-    activeSongs.sort((a, b) => b.total - a.total);
+    activeSongs.sort((a, b) => {
+      if (b.total !== a.total) return b.total - a.total;
+      const aTime = a.earliest ? new Date(a.earliest).getTime() : Infinity;
+      const bTime = b.earliest ? new Date(b.earliest).getTime() : Infinity;
+      return aTime - bTime;
+    });
     setSongs(activeSongs.filter((s) => s.total > 0));
   }, [concertId]);
 
