@@ -94,6 +94,7 @@ export default function LivePage() {
   const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogSortMode, setCatalogSortMode] = useState<'default' | 'song' | 'artist'>('default');
   const [showEmergencyAddModal, setShowEmergencyAddModal] = useState(false);
   const [emergencyAddMode, setEmergencyAddMode] = useState<'spotify' | 'manual'>('spotify');
   const [emergencyQuery, setEmergencyQuery] = useState('');
@@ -463,6 +464,12 @@ export default function LivePage() {
     s.artist.toLowerCase().includes(catalogSearch.toLowerCase())
   );
 
+  const sortedCatalogSongs = [...filteredCatalogSongs].sort((a, b) => {
+    if (catalogSortMode === 'song') return a.name.localeCompare(b.name);
+    if (catalogSortMode === 'artist') return a.artist.localeCompare(b.artist);
+    return 0;
+  });
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -641,6 +648,26 @@ export default function LivePage() {
                   + Add Song
                 </button>
               </div>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexShrink: 0 }}>
+                {(['default', 'song', 'artist'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setCatalogSortMode(mode)}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: catalogSortMode === mode ? '#ffffff' : '#27272a',
+                      color: catalogSortMode === mode ? '#000000' : '#a1a1aa',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {mode === 'default' ? 'Default' : mode === 'song' ? 'Song A-Z' : 'Artist A-Z'}
+                  </button>
+                ))}
+              </div>
               <input
                 type="text"
                 value={catalogSearch}
@@ -660,7 +687,7 @@ export default function LivePage() {
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem' }}>
-                    {filteredCatalogSongs.map((song) => {
+                    {sortedCatalogSongs.map((song) => {
                       const onLeaderboard = song.status === 'active' && song.total > 0;
                       const activeNoContrib = song.status === 'active' && song.total === 0;
                       const isInactive = ['played', 'accepted', 'declined', 'deactivated'].includes(song.status);

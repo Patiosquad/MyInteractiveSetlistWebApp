@@ -103,6 +103,7 @@ export default function ConcertPage() {
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [sortMode, setSortMode] = useState<'default' | 'song' | 'artist'>('default');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [showEmergencyAddModal, setShowEmergencyAddModal] = useState(false);
@@ -757,8 +758,33 @@ export default function ConcertPage() {
               s.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
               s.artist.toLowerCase().includes(catalogSearch.toLowerCase())
             );
+            const sortedSongs = [...filteredSongs].sort((a, b) => {
+              if (sortMode === 'song') return a.name.localeCompare(b.name);
+              if (sortMode === 'artist') return a.artist.localeCompare(b.artist);
+              return 0;
+            });
             return (
               <>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '0.75rem' }}>
+                  {(['default', 'song', 'artist'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setSortMode(mode)}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: sortMode === mode ? '#ffffff' : '#27272a',
+                        color: sortMode === mode ? '#000000' : '#a1a1aa',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {mode === 'default' ? 'Default' : mode === 'song' ? 'Song A-Z' : 'Artist A-Z'}
+                    </button>
+                  ))}
+                </div>
                 <div style={{ marginBottom: '0.75rem' }}>
                   <input
                     type="text"
@@ -779,7 +805,7 @@ export default function ConcertPage() {
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {filteredSongs.map((song) => (
+                    {sortedSongs.map((song) => (
                 <div
                   key={song.id}
                   style={{
