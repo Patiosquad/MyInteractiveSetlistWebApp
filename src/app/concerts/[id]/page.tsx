@@ -114,6 +114,8 @@ export default function ConcertPage() {
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
   const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
   const [editingComments, setEditingComments] = useState<{ id: string, name: string, comments: string } | null>(null);
+  const [editingSong, setEditingSong] = useState<{ id: string, name: string, artist: string, album: string, comments: string } | null>(null);
+  const [savingSong, setSavingSong] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -328,6 +330,30 @@ export default function ConcertPage() {
     if (error) { alert('Failed to save note: ' + error.message); return; }
     setSongs(prev => prev.map(s => s.id === editingComments.id ? { ...s, comments: editingComments.comments.trim() || null } : s));
     setEditingComments(null);
+  }
+
+  async function handleSaveSong() {
+    if (!editingSong) return;
+    setSavingSong(true);
+    const { error } = await supabase
+      .from('songs')
+      .update({
+        name: editingSong.name.trim(),
+        artist: editingSong.artist.trim(),
+        album: editingSong.album.trim() || null,
+        comments: editingSong.comments.trim() || null,
+      })
+      .eq('id', editingSong.id);
+    setSavingSong(false);
+    if (error) { alert('Failed to save: ' + error.message); return; }
+    setSongs(prev => prev.map(s => s.id === editingSong.id ? {
+      ...s,
+      name: editingSong.name.trim(),
+      artist: editingSong.artist.trim(),
+      album: editingSong.album.trim() || null,
+      comments: editingSong.comments.trim() || null,
+    } : s));
+    setEditingSong(null);
   }
 
   async function handleManualAdd(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -834,15 +860,13 @@ export default function ConcertPage() {
                   </div>
                   {isBuilding ? (
                     <>
-                      {song.comments && (
-                        <button
-                          onClick={() => setEditingComments({ id: song.id, name: song.name, comments: song.comments ?? '' })}
-                          title="Edit performer notes"
-                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#a78bfa', fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}
-                        >
-                          📝
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setEditingSong({ id: song.id, name: song.name, artist: song.artist, album: song.album ?? '', comments: song.comments ?? '' })}
+                        title="Edit song"
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#a78bfa', fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}
+                      >
+                        ✏️
+                      </button>
                       <button
                         onClick={() => handleRemoveSong(song.id, song.name)}
                         title="Remove song"
@@ -1220,6 +1244,39 @@ export default function ConcertPage() {
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingSong && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '480px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Edit Song</h2>
+              <button onClick={() => setEditingSong(null)} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Song Name</label>
+                <input type="text" value={editingSong.name} onChange={(e) => setEditingSong(prev => prev ? { ...prev, name: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Artist</label>
+                <input type="text" value={editingSong.artist} onChange={(e) => setEditingSong(prev => prev ? { ...prev, artist: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
+                <input type="text" value={editingSong.album} onChange={(e) => setEditingSong(prev => prev ? { ...prev, album: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Performer Notes</label>
+                <input type="text" value={editingSong.comments} onChange={(e) => setEditingSong(prev => prev ? { ...prev, comments: e.target.value } : null)} placeholder="e.g. Play in drop D, slow tempo" style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingSong(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveSong} disabled={savingSong} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: savingSong ? '#3f3f46' : '#ffffff', color: savingSong ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: savingSong ? 'not-allowed' : 'pointer' }}>{savingSong ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
