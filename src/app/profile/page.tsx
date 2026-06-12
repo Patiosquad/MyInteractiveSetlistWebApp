@@ -69,6 +69,11 @@ export default function ProfilePage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [showQRModal, setShowQRModal] = useState(false);
 
+  const [earningsHistory, setEarningsHistory] = useState<any[]>([]);
+  const [earningsExpanded, setEarningsExpanded] = useState(false);
+  const [expandedEarningsMonths, setExpandedEarningsMonths] = useState<Set<string>>(new Set());
+  const [selectedEarningsConcert, setSelectedEarningsConcert] = useState<any | null>(null);
+
   useEffect(() => {
     if (!userId) return;
     QRCode.toDataURL(userId, {
@@ -110,6 +115,7 @@ export default function ProfilePage() {
         }
       }
 
+      await loadEarningsHistory();
       setLoading(false);
     }
     init();
@@ -218,6 +224,64 @@ export default function ProfilePage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     router.replace('/login');
+  }
+
+  async function loadEarningsHistory() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: concerts } = await supabase
+      .from('concerts')
+      .select('id, name, venue_name, city, ended_at, created_at')
+      .eq('performer_id', user.id)
+      .eq('status', 'closed')
+      .gt('ended_at', oneYearAgo)
+      .order('ended_at', { ascending: false });
+    if (!concerts || concerts.length === 0) { setEarningsHistory([]); return; }
+    const concertIds = concerts.map((c: any) => c.id);
+    const { data: contributions } = await supabase
+      .from('contributions')
+      .select('amount, status, song_id, concert_id')
+      .in('concert_id', concertIds)
+      .in('status', ['captured', 'released']);
+    const { data: songs } = await supabase
+      .from('songs')
+      .select('id, name, artist')
+      .in('concert_id', concertIds);
+    const songMap: Record<string, any> = {};
+    if (songs) songs.forEach((s: any) => { songMap[s.id] = s; });
+    const history = concerts.map((concert: any) => {
+      const concertContribs = (contributions ?? []).filter((c: any) => c.concert_id === concert.id);
+      const captured = concertContribs.filter((c: any) => c.status === 'captured');
+      const released = concertContribs.filter((c: any) => c.status === 'released');
+      const totalEarned = captured.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+      const totalReleased = released.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+      const acceptedSongs = [...new Map(captured.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.amount), status: 'captured' }])).values()];
+      const declinedSongs = [...new Map(released.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.amount), status: 'released' }])).values()];
+      return {
+        concertId: concert.id,
+        concertName: concert.name,
+        venue: concert.venue_name ?? '',
+        city: concert.city ?? '',
+        endedAt: concert.ended_at,
+        createdAt: concert.created_at,
+        totalEarned,
+        totalReleased,
+        capturedCount: captured.length,
+        releasedCount: released.length,
+        acceptedSongs,
+        declinedSongs,
+      };
+    });
+    setEarningsHistory(history);
+  }
+
+  function toggleEarningsMonth(monthKey: string) {
+    setExpandedEarningsMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(monthKey)) { next.delete(monthKey); } else { next.add(monthKey); }
+      return next;
+    });
   }
 
   if (loading) {
@@ -531,6 +595,87 @@ export default function ProfilePage() {
           )}
         </section>
 
+        <div style={{ height: '1px', background: '#1a1a1a', margin: '24px 0' }} />
+        <section>
+          <div
+            onClick={() => {
+              setEarningsExpanded(prev => {
+                if (prev) setExpandedEarningsMonths(new Set());
+                return !prev;
+              });
+            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: '8px' }}
+          >
+            <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', margin: 0 }}>Concert & Earnings History</p>
+            <span style={{ color: '#555', fontSize: '14px' }}>{earningsExpanded ? '▾' : '▸'}</span>
+          </div>
+          {earningsExpanded && (
+            earningsHistory.length === 0 ? (
+              <p style={{ color: '#555', fontSize: '13px' }}>No recent concert history.</p>
+            ) : (() => {
+              const grouped = earningsHistory.reduce((acc: Record<string, any[]>, concert: any) => {
+                const date = new Date(concert.endedAt ?? concert.createdAt ?? 0);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const monthLabel = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                if (!acc[monthKey]) acc[monthKey] = [];
+                acc[monthKey].push({ ...concert, monthLabel });
+                return acc;
+              }, {});
+              const monthKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {monthKeys.map((monthKey) => {
+                    const monthConcerts = grouped[monthKey];
+                    const monthLabel = monthConcerts[0].monthLabel;
+                    const monthTotalEarned = monthConcerts.reduce((sum: number, c: any) => sum + c.totalEarned, 0);
+                    const isMonthExpanded = expandedEarningsMonths.has(monthKey);
+                    return (
+                      <div key={monthKey}>
+                        <div
+                          onClick={() => toggleEarningsMonth(monthKey)}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                        >
+                          <div>
+                            <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '700', margin: 0 }}>{monthLabel}</p>
+                            <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
+                              {monthConcerts.length} {monthConcerts.length === 1 ? 'concert' : 'concerts'}{monthTotalEarned > 0 ? ` · $${Math.round(monthTotalEarned)} earned` : ''}
+                            </p>
+                          </div>
+                          <span style={{ color: '#555', fontSize: '14px' }}>{isMonthExpanded ? '▾' : '▸'}</span>
+                        </div>
+                        {isMonthExpanded && (
+                          <div style={{ paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {monthConcerts.map((concert: any, cIdx: number) => {
+                              const dateLabel = new Date(concert.endedAt ?? concert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+                              const venueLabel = [concert.venue, concert.city].filter(Boolean).join(' — ');
+                              return (
+                                <div key={concert.concertId} style={{ paddingBottom: cIdx < monthConcerts.length - 1 ? '16px' : 0, borderBottom: cIdx < monthConcerts.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
+                                  <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '700', margin: '0 0 2px' }}>{concert.concertName}</p>
+                                  <p style={{ color: '#555', fontSize: '11px', margin: '0 0 2px' }}>{dateLabel}</p>
+                                  <p style={{ color: '#555', fontSize: '11px', margin: '0 0 8px' }}>{venueLabel}</p>
+                                  <p style={{ color: '#4caf50', fontSize: '13px', fontWeight: '600', margin: '0 0 2px' }}>Earned: ${Math.round(concert.totalEarned)}</p>
+                                  <p style={{ color: '#555', fontSize: '13px', margin: '0 0 2px' }}>Released: ${Math.round(concert.totalReleased)}</p>
+                                  <p style={{ color: '#555', fontSize: '11px', margin: '0 0 10px' }}>{concert.capturedCount} contribution{concert.capturedCount !== 1 ? 's' : ''} accepted · {concert.releasedCount} released</p>
+                                  <button
+                                    onClick={() => setSelectedEarningsConcert(concert)}
+                                    style={{ padding: '6px 16px', borderRadius: '20px', border: '1px solid #333', background: 'transparent', color: '#ffffff', fontSize: '12px', cursor: 'pointer' }}
+                                  >
+                                    View Details
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          )}
+        </section>
+
         <div style={dividerStyle} />
 
         {/* Log Out */}
@@ -600,6 +745,57 @@ export default function ProfilePage() {
           >
             ↓ Download PNG
           </button>
+        </div>
+      )}
+
+      {selectedEarningsConcert && (
+        <div style={{ position: 'fixed', inset: 0, background: '#0a0a0a', zIndex: 60, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
+            <p style={{ color: '#ffffff', fontSize: '18px', fontWeight: '700', margin: 0 }}>{selectedEarningsConcert.concertName}</p>
+            <button onClick={() => setSelectedEarningsConcert(null)} style={{ background: 'transparent', border: 'none', color: '#555', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            <p style={{ color: '#888', fontSize: '13px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
+            <p style={{ color: '#555', fontSize: '11px', margin: '0 0 20px' }}>{new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+              <div style={{ flex: 1, background: '#111', borderRadius: '10px', padding: '16px' }}>
+                <p style={{ color: '#4caf50', fontSize: '22px', fontWeight: '700', margin: '0 0 4px' }}>${Math.round(selectedEarningsConcert.totalEarned)}</p>
+                <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>Total Earned</p>
+              </div>
+              <div style={{ flex: 1, background: '#111', borderRadius: '10px', padding: '16px' }}>
+                <p style={{ color: '#888', fontSize: '22px', fontWeight: '700', margin: '0 0 4px' }}>${Math.round(selectedEarningsConcert.totalReleased)}</p>
+                <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>Total Released</p>
+              </div>
+            </div>
+            {selectedEarningsConcert.acceptedSongs.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ color: '#ffffff', fontSize: '15px', fontWeight: '700', margin: '0 0 12px' }}>✓ Accepted Songs</p>
+                {selectedEarningsConcert.acceptedSongs.map((song: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid #1a1a1a' }}>
+                    <div>
+                      <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{song.songName}</p>
+                      <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>{song.artist}</p>
+                    </div>
+                    <p style={{ color: '#4caf50', fontSize: '14px', fontWeight: '600', margin: 0 }}>${Math.round(song.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {selectedEarningsConcert.declinedSongs.length > 0 && (
+              <div>
+                <p style={{ color: '#ffffff', fontSize: '15px', fontWeight: '700', margin: '0 0 12px' }}>✕ Declined Songs</p>
+                {selectedEarningsConcert.declinedSongs.map((song: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid #1a1a1a' }}>
+                    <div>
+                      <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{song.songName}</p>
+                      <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>{song.artist}</p>
+                    </div>
+                    <p style={{ color: '#888', fontSize: '14px', margin: 0 }}>${Math.round(song.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
