@@ -13,6 +13,7 @@ type Concert = {
   country: string;
   estimated_start: string | null;
   estimated_length: string | null;
+  show_date: string | null;
   status: 'new' | 'preview' | 'live' | 'closed';
   performer_id: string;
 };
@@ -56,6 +57,7 @@ function concertSubtitle(c: Concert): string {
   const parts: string[] = [c.venue_name];
   const location = [c.city, c.state].filter(Boolean).join(', ');
   if (location) parts.push(location);
+  if (c.show_date) parts.push(new Date(c.show_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }));
   if (c.estimated_start) parts.push(c.estimated_start);
   if (c.estimated_length) parts.push(c.estimated_length);
   return parts.join(' · ');
@@ -119,6 +121,17 @@ export default function ConcertPage() {
   const [bandName, setBandName] = useState('');
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
   const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
+  const [showEditConcertModal, setShowEditConcertModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editVenue, setEditVenue] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editCountry, setEditCountry] = useState('');
+  const [editShowDate, setEditShowDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editLength, setEditLength] = useState('');
+  const [savingConcert, setSavingConcert] = useState(false);
+  const [saveConcertError, setSaveConcertError] = useState('');
   const [editingComments, setEditingComments] = useState<{ id: string, name: string, comments: string } | null>(null);
   const [editingSong, setEditingSong] = useState<{ id: string, name: string, artist: string, album: string, comments: string } | null>(null);
   const [savingSong, setSavingSong] = useState(false);
@@ -327,6 +340,51 @@ export default function ConcertPage() {
     }
   }
 
+  function openEditConcertModal() {
+    if (!concert) return;
+    setEditName(concert.name);
+    setEditVenue(concert.venue_name);
+    setEditCity(concert.city);
+    setEditState(concert.state ?? '');
+    setEditCountry(concert.country);
+    setEditShowDate(concert.show_date ?? '');
+    setEditStartTime(concert.estimated_start ?? '');
+    setEditLength(concert.estimated_length ?? '');
+    setSaveConcertError('');
+    setShowEditConcertModal(true);
+  }
+
+  async function handleSaveConcert() {
+    if (!editName.trim() || !editVenue.trim() || !editCity.trim()) {
+      setSaveConcertError('Concert name, venue, and city are required.');
+      return;
+    }
+    setSavingConcert(true);
+    setSaveConcertError('');
+    const { data, error } = await supabase
+      .from('concerts')
+      .update({
+        name: editName.trim(),
+        venue_name: editVenue.trim(),
+        city: editCity.trim(),
+        state: editState.trim() || null,
+        country: editCountry.trim(),
+        show_date: editShowDate || null,
+        estimated_start: editStartTime.trim() || null,
+        estimated_length: editLength.trim() || null,
+      })
+      .eq('id', concertId)
+      .select('*')
+      .single();
+    setSavingConcert(false);
+    if (error) {
+      setSaveConcertError('Failed to save. Please try again.');
+      return;
+    }
+    if (data) setConcert(data);
+    setShowEditConcertModal(false);
+  }
+
   async function handleSaveComments() {
     if (!editingComments) return;
     const { error } = await supabase
@@ -483,8 +541,8 @@ export default function ConcertPage() {
       setGoingToPreview(false);
       return;
     }
-    if (concert.estimated_start) {
-      const showDate = new Date(concert.estimated_start);
+    if (concert.show_date) {
+      const showDate = new Date(concert.show_date);
       const now = new Date();
       const daysUntilShow = (showDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
       if (daysUntilShow > 7) {
@@ -586,6 +644,22 @@ export default function ConcertPage() {
                   }}
                 >
                   Go to Live View
+                </button>
+              )}
+              {c.status !== 'live' && (
+                <button
+                  onClick={openEditConcertModal}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #27272a',
+                    background: 'transparent',
+                    color: '#a1a1aa',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Edit Concert
                 </button>
               )}
               {(c.status === 'new' || c.status === 'closed') && (
@@ -1262,6 +1336,61 @@ export default function ConcertPage() {
               >
                 Remove
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditConcertModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '520px', width: '90%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Edit Concert</h2>
+              <button onClick={() => setShowEditConcertModal(false)} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Concert Name *</label>
+                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Venue Name *</label>
+                <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>City *</label>
+                <input type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>State</label>
+                <input type="text" value={editState} onChange={(e) => setEditState(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Country</label>
+                <input type="text" value={editCountry} onChange={(e) => setEditCountry(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Show Date</label>
+                <input type="date" value={editShowDate} onChange={(e) => {
+                  const selected = e.target.value;
+                  const today = new Date().toISOString().split('T')[0];
+                  if (selected && selected < today) return;
+                  setEditShowDate(selected);
+                }} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Estimated Start Time</label>
+                <input type="text" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} placeholder="e.g. 8:00 PM" style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Estimated Length</label>
+                <input type="text" value={editLength} onChange={(e) => setEditLength(e.target.value)} placeholder="e.g. 2 hours" style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            {saveConcertError && <p style={{ color: '#f87171', fontSize: '0.875rem', margin: 0 }}>{saveConcertError}</p>}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowEditConcertModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveConcert} disabled={savingConcert} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: savingConcert ? '#3f3f46' : '#ffffff', color: savingConcert ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: savingConcert ? 'not-allowed' : 'pointer' }}>{savingConcert ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>

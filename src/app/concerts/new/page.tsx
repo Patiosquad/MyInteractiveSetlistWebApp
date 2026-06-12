@@ -97,6 +97,7 @@ export default function NewConcertPage() {
   const [startAmPm, setStartAmPm] = useState('PM');
   const [lengthHours, setLengthHours] = useState('1');
   const [comments, setComments] = useState('');
+  const [showDate, setShowDate] = useState('');
 
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [showVenueSuggestions, setShowVenueSuggestions] = useState(false);
@@ -224,6 +225,7 @@ export default function NewConcertPage() {
         state: isUS ? state : null,
         country: country.trim(),
         estimated_start: estimatedStart,
+        show_date: showDate || null,
         estimated_length: estimatedLength,
         comments: comments.trim() || null,
         status: 'new',
@@ -347,6 +349,17 @@ export default function NewConcertPage() {
                 </select>
               </Field>
             )}
+          </div>
+
+          <div>
+            <label style={labelStyle}>Show Date</label>
+            <input
+              type="date"
+              value={showDate}
+              onChange={(e) => setShowDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              style={{ ...inputStyle, colorScheme: 'dark' }}
+            />
           </div>
 
           {/* Estimated Start Time */}

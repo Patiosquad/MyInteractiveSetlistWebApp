@@ -13,6 +13,7 @@ type Concert = {
   status: 'new' | 'preview' | 'live' | 'closed';
   created_at: string;
   last_activity_at: string | null;
+  show_date: string | null;
 };
 
 type FullConcert = {
@@ -24,6 +25,7 @@ type FullConcert = {
   country: string | null;
   estimated_start: string | null;
   estimated_length: string | null;
+  show_date: string | null;
   performer_id: string;
 };
 
@@ -69,7 +71,7 @@ export default function DashboardPage() {
   async function fetchConcerts(uid: string) {
     const { data } = await supabase
       .from('concerts')
-      .select('id, name, venue_name, city, state, status, created_at, last_activity_at')
+      .select('id, name, venue_name, city, state, status, created_at, last_activity_at, show_date')
       .eq('performer_id', uid);
 
     const STATUS_ORDER: Record<string, number> = { live: 0, preview: 1, new: 2, closed: 3 };
@@ -406,6 +408,7 @@ export default function DashboardPage() {
                     <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>
                       {concert.venue_name}
                       {concert.city || concert.state ? ` · ${[concert.city, concert.state].filter(Boolean).join(', ')}` : ''}
+                      {concert.show_date ? ` · ${new Date(concert.show_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                     </p>
                   </div>
                 );
