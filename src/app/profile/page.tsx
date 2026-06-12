@@ -48,6 +48,10 @@ export default function ProfilePage() {
 
   // Concert Code
   const [concertCode, setConcertCode] = useState('');
+  const [previewCode, setPreviewCode] = useState('');
+  const [previewCodeError, setPreviewCodeError] = useState('');
+  const [previewCodeSuccess, setPreviewCodeSuccess] = useState('');
+  const [previewCodeSaving, setPreviewCodeSaving] = useState(false);
 
   // Payouts
   const [payoutsState, setPayoutsState] = useState<PayoutsState>('not_connected');
@@ -95,7 +99,7 @@ export default function ProfilePage() {
 
       const { data } = await supabase
         .from('users')
-        .select('first_name, last_name, email, username, concert_code, stripe_connect_account_id, has_payment_method')
+        .select('first_name, last_name, email, username, concert_code, preview_code, stripe_connect_account_id, has_payment_method')
         .eq('id', session.user.id)
         .single();
 
@@ -105,6 +109,7 @@ export default function ProfilePage() {
         setEmail(data.email ?? '');
         setBandName(data.username ?? '');
         setConcertCode(data.concert_code ?? '');
+        setPreviewCode(data.preview_code ?? '');
 
         if (data.stripe_connect_account_id && data.has_payment_method) {
           setPayoutsState('active');
@@ -191,6 +196,51 @@ export default function ProfilePage() {
     } else {
       setCodeSuccess('Concert code saved.');
       setTimeout(() => setCodeSuccess(''), 3000);
+    }
+  }
+
+  async function handleSavePreviewCode() {
+    if (!userId) return;
+    setPreviewCodeError('');
+    setPreviewCodeSuccess('');
+    if (!previewCode) {
+      setPreviewCodeError('Taking Requests code cannot be empty.');
+      return;
+    }
+    if (previewCode.length > 15) {
+      setPreviewCodeError('Taking Requests code must be 15 characters or fewer.');
+      return;
+    }
+    if (/\s/.test(previewCode)) {
+      setPreviewCodeError('Taking Requests code cannot contain spaces.');
+      return;
+    }
+    if (previewCode === concertCode) {
+      setPreviewCodeError('Taking Requests code must be different from your Concert Code.');
+      return;
+    }
+    setPreviewCodeSaving(true);
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('preview_code', previewCode)
+      .neq('id', userId)
+      .maybeSingle();
+    if (existing) {
+      setPreviewCodeError('This code is already in use. Please choose a different one.');
+      setPreviewCodeSaving(false);
+      return;
+    }
+    const { error } = await supabase
+      .from('users')
+      .update({ preview_code: previewCode })
+      .eq('id', userId);
+    setPreviewCodeSaving(false);
+    if (error) {
+      setPreviewCodeError('Failed to save code. Please try again.');
+    } else {
+      setPreviewCodeSuccess('Taking Requests code saved.');
+      setTimeout(() => setPreviewCodeSuccess(''), 3000);
     }
   }
 
@@ -468,12 +518,62 @@ export default function ProfilePage() {
           </button>
         </section>
 
+        <div style={{ height: '1px', background: '#1a1a1a', margin: '24px 0' }} />
+        <section>
+          <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '16px' }}>
+            Taking Requests Code
+          </p>
+          <label style={labelStyle}>Taking Requests Code</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <input
+              type="text"
+              value={previewCode}
+              onChange={(e) => setPreviewCode(e.target.value.slice(0, 15))}
+              placeholder="e.g. BandNameFriday"
+              maxLength={15}
+              style={inputStyle}
+            />
+            <span style={{ flexShrink: 0, fontSize: '12px', color: '#555', minWidth: '34px', textAlign: 'right' }}>
+              {previewCode.length}/15
+            </span>
+          </div>
+          <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6, marginBottom: '20px' }}>
+            Share this code so Fans can find your Taking Requests concerts. No spaces. Max 15 characters. Case sensitive. Must be different from your Concert Code.
+          </p>
+          {previewCodeError && (
+            <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{previewCodeError}</p>
+          )}
+          {previewCodeSuccess && (
+            <p style={{ color: '#4caf50', fontSize: '13px', marginBottom: '12px' }}>{previewCodeSuccess}</p>
+          )}
+          <button
+            onClick={handleSavePreviewCode}
+            disabled={previewCodeSaving}
+            style={{
+              width: '100%',
+              padding: '13px 0',
+              backgroundColor: previewCodeSaving ? '#1a3acc' : '#2255ff',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: previewCodeSaving ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {previewCodeSaving ? 'Saving...' : 'Save Taking Requests Code'}
+          </button>
+        </section>
+
         {/* QR Code */}
         <div style={{ height: '1px', background: '#1a1a1a', margin: '24px 0' }} />
 
         <section>
           <p style={{ fontSize: '10px', color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '12px', textAlign: 'center' }}>
             Your QR Code
+          </p>
+          <p style={{ fontSize: '12px', color: '#555', textAlign: 'center', margin: '0 0 12px', lineHeight: 1.5 }}>
+            This QR code is linked to your Concert Code only. It does not work for Taking Requests concerts.
           </p>
 
           {qrDataUrl && (
