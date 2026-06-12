@@ -13,7 +13,7 @@ type Concert = {
   country: string;
   estimated_start: string | null;
   estimated_length: string | null;
-  status: 'new' | 'live' | 'closed';
+  status: 'new' | 'preview' | 'live' | 'closed';
   performer_id: string;
 };
 
@@ -37,10 +37,11 @@ type SpotifyTrack = {
   decade: string | null;
 };
 
-const STATUS_BADGE: Record<Concert['status'], { background: string; color: string }> = {
-  live:     { background: '#14532d', color: '#86efac' },
-  new: { background: '#1e3a5f', color: '#93c5fd' },
-  closed:   { background: '#27272a', color: '#a1a1aa' },
+const STATUS_BADGE: Record<Concert['status'], { background: string; color: string; border?: string }> = {
+  live:     { background: '#7f1d1d', color: '#fca5a5' },
+  preview:  { background: '#14532d', color: '#86efac' },
+  new:      { background: '#1e3a5f', color: '#93c5fd' },
+  closed:   { background: '#27272a', color: '#a1a1aa', border: '1px solid #3f3f46' },
 };
 
 const SONG_STATUS_COLOR: Record<Song['status'], string> = {
@@ -110,6 +111,11 @@ export default function ConcertPage() {
 
   const [goingLive, setGoingLive] = useState(false);
   const [goLiveError, setGoLiveError] = useState('');
+  const [goingToPreview, setGoingToPreview] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const [showEndPreviewModal, setShowEndPreviewModal] = useState(false);
+  const [endingPreview, setEndingPreview] = useState(false);
+  const [showPreviewToLiveModal, setShowPreviewToLiveModal] = useState(false);
   const [bandName, setBandName] = useState('');
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
   const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
@@ -433,11 +439,13 @@ export default function ConcertPage() {
       return;
     }
 
-    await supabase
-      .from('contributions')
-      .delete()
-      .eq('concert_id', concertId)
-      .eq('status', 'pending');
+    if (concert.status !== 'preview') {
+      await supabase
+        .from('contributions')
+        .delete()
+        .eq('concert_id', concertId)
+        .eq('status', 'pending');
+    }
 
     await supabase
       .from('songs')
@@ -457,6 +465,58 @@ export default function ConcertPage() {
       setConcert(data);
     }
     setGoingLive(false);
+  }
+
+  async function handleGoToPreview() {
+    if (!concert) return;
+    setPreviewError('');
+    setGoingToPreview(true);
+    const { data: previewCheck } = await supabase
+      .from('concerts')
+      .select('id')
+      .eq('performer_id', concert.performer_id)
+      .eq('status', 'preview')
+      .neq('id', concertId)
+      .limit(3);
+    if (previewCheck && previewCheck.length >= 3) {
+      setPreviewError('You already have 3 concerts in Taking Requests. Please end one before starting another.');
+      setGoingToPreview(false);
+      return;
+    }
+    if (concert.estimated_start) {
+      const showDate = new Date(concert.estimated_start);
+      const now = new Date();
+      const daysUntilShow = (showDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysUntilShow > 7) {
+        setPreviewError('Taking Requests can only be enabled within 7 days of the show date.');
+        setGoingToPreview(false);
+        return;
+      }
+    }
+    const { data } = await supabase
+      .from('concerts')
+      .update({ status: 'preview' })
+      .eq('id', concertId)
+      .select('*')
+      .single();
+    if (data) setConcert(data);
+    setGoingToPreview(false);
+  }
+
+  async function handleEndPreview() {
+    setEndingPreview(true);
+    await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'end_concert', concertId }),
+      }
+    ).catch(() => {});
+    await supabase.from('concerts').update({ status: 'closed' }).eq('id', concertId);
+    setEndingPreview(false);
+    setShowEndPreviewModal(false);
+    router.push('/dashboard');
   }
 
   // ── Loading / error states ────────────────────────────────────────────────
@@ -479,7 +539,7 @@ export default function ConcertPage() {
 
   const c = concert!;
   const badge = STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
-  const isBuilding = c.status === 'new' || c.status === 'closed';
+  const isBuilding = c.status === 'new' || c.status === 'preview' || c.status === 'closed';
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -500,7 +560,7 @@ export default function ConcertPage() {
                   textTransform: 'capitalize',
                   ...badge,
                 }}>
-                  {c.status}
+                  {c.status === 'preview' ? 'Taking Requests!' : c.status.toUpperCase()}
                 </span>
                 {bandName && (
                   <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
@@ -566,29 +626,47 @@ export default function ConcertPage() {
       <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
         {/* Go Live button */}
-        {isBuilding && songs.length > 0 && (
+        {(c.status === 'new' || c.status === 'closed') && songs.length > 0 && (
           <div style={{ paddingBottom: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {goLiveError && (
-              <p style={{ color: '#f87171', fontSize: '0.9375rem', margin: 0 }}>{goLiveError}</p>
-            )}
-            <button
-              onClick={handleGoLive}
-              disabled={goingLive}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                borderRadius: '0.75rem',
-                border: 'none',
-                background: goingLive ? '#14532d80' : '#16a34a',
-                color: '#ffffff',
-                fontSize: '1rem',
-                fontWeight: 700,
-                cursor: goingLive ? 'not-allowed' : 'pointer',
-                letterSpacing: '0.01em',
-              }}
-            >
-              {goingLive ? 'Going Live…' : '🎤 Go Live'}
-            </button>
+            {previewError && <p style={{ color: '#f87171', fontSize: '0.9375rem', margin: 0 }}>{previewError}</p>}
+            {goLiveError && <p style={{ color: '#f87171', fontSize: '0.9375rem', margin: 0 }}>{goLiveError}</p>}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowPreviewToLiveModal(true)}
+                disabled={goingLive}
+                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: 'none', background: goingLive ? '#14532d80' : '#16a34a', color: '#ffffff', fontSize: '1rem', fontWeight: 700, cursor: goingLive ? 'not-allowed' : 'pointer' }}
+              >
+                {goingLive ? 'Going Live…' : '🎤 Go Live'}
+              </button>
+              <button
+                onClick={handleGoToPreview}
+                disabled={goingToPreview}
+                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: 'none', background: goingToPreview ? '#78350f80' : '#92400e', color: '#fcd34d', fontSize: '1rem', fontWeight: 700, cursor: goingToPreview ? 'not-allowed' : 'pointer' }}
+              >
+                {goingToPreview ? 'Starting…' : '🎟️ Take Requests'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {c.status === 'preview' && songs.length > 0 && (
+          <div style={{ paddingBottom: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {goLiveError && <p style={{ color: '#f87171', fontSize: '0.9375rem', margin: 0 }}>{goLiveError}</p>}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowPreviewToLiveModal(true)}
+                disabled={goingLive}
+                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: 'none', background: goingLive ? '#14532d80' : '#16a34a', color: '#ffffff', fontSize: '1rem', fontWeight: 700, cursor: goingLive ? 'not-allowed' : 'pointer' }}
+              >
+                {goingLive ? 'Going Live…' : '🎤 Go Live'}
+              </button>
+              <button
+                onClick={() => setShowEndPreviewModal(true)}
+                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: '1px solid #7f1d1d', background: 'transparent', color: '#f87171', fontSize: '1rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                End Taking Requests
+              </button>
+            </div>
           </div>
         )}
 
@@ -1277,6 +1355,39 @@ export default function ConcertPage() {
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingSong(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSaveSong} disabled={savingSong} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: savingSong ? '#3f3f46' : '#ffffff', color: savingSong ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: savingSong ? 'not-allowed' : 'pointer' }}>{savingSong ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEndPreviewModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>End Taking Requests?</h2>
+            <p style={{ color: '#f87171', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>⚠️ All fan contributions will be released and the concert will be closed. This cannot be undone.</p>
+            <p style={{ color: '#a1a1aa', fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>Only do this if the show has been canceled or you no longer want to accept early requests.</p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowEndPreviewModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleEndPreview} disabled={endingPreview} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: endingPreview ? 'not-allowed' : 'pointer' }}>
+                {endingPreview ? 'Releasing…' : 'End & Release All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPreviewToLiveModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Go Live?</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              {concert?.status === 'preview'
+                ? 'The concert will go live and all existing fan contributions will carry over to the leaderboard.'
+                : 'The concert will go live and fans will be able to contribute to songs on the leaderboard.'}
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowPreviewToLiveModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { setShowPreviewToLiveModal(false); handleGoLive(); }} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#16a34a', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>Go Live</button>
             </div>
           </div>
         </div>

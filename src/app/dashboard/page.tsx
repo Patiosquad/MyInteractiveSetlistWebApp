@@ -10,7 +10,7 @@ type Concert = {
   venue_name: string;
   city: string;
   state: string;
-  status: 'new' | 'live' | 'closed';
+  status: 'new' | 'preview' | 'live' | 'closed';
   created_at: string;
   last_activity_at: string | null;
 };
@@ -28,9 +28,10 @@ type FullConcert = {
 };
 
 const STATUS_STYLES: Record<Concert['status'], { background: string; color: string; border?: string }> = {
-  live:     { background: '#14532d', color: '#86efac' },
-  new: { background: '#1e3a5f', color: '#93c5fd' },
-  closed:   { background: '#3d0f0f', color: '#fca5a5', border: '1px solid #7f1d1d' },
+  live:     { background: '#7f1d1d', color: '#fca5a5' },
+  preview:  { background: '#14532d', color: '#86efac' },
+  new:      { background: '#1e3a5f', color: '#93c5fd' },
+  closed:   { background: '#27272a', color: '#a1a1aa', border: '1px solid #3f3f46' },
 };
 
 const inputStyle: React.CSSProperties = {
@@ -71,7 +72,7 @@ export default function DashboardPage() {
       .select('id, name, venue_name, city, state, status, created_at, last_activity_at')
       .eq('performer_id', uid);
 
-    const STATUS_ORDER: Record<string, number> = { live: 0, new: 1, closed: 2 };
+    const STATUS_ORDER: Record<string, number> = { live: 0, preview: 1, new: 2, closed: 3 };
     const sorted = (data ?? []).sort((a, b) => {
       const aRank = STATUS_ORDER[a.status] ?? 2;
       const bRank = STATUS_ORDER[b.status] ?? 2;
@@ -397,7 +398,7 @@ export default function DashboardPage() {
                       textTransform: 'capitalize',
                       ...badge,
                     }}>
-                      {concert.status}
+                      {concert.status === 'preview' ? 'Taking Requests!' : concert.status.toUpperCase()}
                     </span>
                     <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.375rem', paddingRight: '6rem' }}>
                       {concert.name}
