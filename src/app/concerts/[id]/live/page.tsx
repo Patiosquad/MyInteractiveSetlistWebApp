@@ -180,7 +180,7 @@ export default function LivePage() {
 
       setConcert(concertData as Concert);
 
-      if (concertData.status !== 'live') {
+      if (concertData.status !== 'live' && concertData.status !== 'preview') {
         setNotLive(true);
         setLoading(false);
         return;
@@ -472,6 +472,8 @@ export default function LivePage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  const isPreview = concert?.status === 'preview';
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
@@ -480,9 +482,15 @@ export default function LivePage() {
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{concert?.name}</h1>
-            <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', background: '#14532d', color: '#86efac', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
-              LIVE
-            </span>
+            {isPreview ? (
+              <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: '#14532d', color: '#86efac' }}>
+                Taking Requests!
+              </span>
+            ) : (
+              <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: '#7f1d1d', color: '#fca5a5' }}>
+                LIVE
+              </span>
+            )}
             {bandName && (
               <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
                 {bandName}
@@ -554,6 +562,11 @@ export default function LivePage() {
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fbbf24', letterSpacing: '0.01em', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #3f3f46', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 🎵 Song Leaderboard
               </h2>
+              {isPreview && (
+                <p style={{ color: '#86efac', fontSize: '0.8125rem', fontStyle: 'italic', textAlign: 'center', margin: '0 0 0.75rem', padding: '0.5rem', background: '#14532d22', borderRadius: '0.5rem', border: '1px solid #14532d' }}>
+                  Songs cannot be accepted until the show goes live
+                </p>
+              )}
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {songs.length === 0 ? (
                   <p style={{ color: '#52525b', textAlign: 'center', padding: '4rem 0', margin: 0 }}>
@@ -599,6 +612,7 @@ export default function LivePage() {
                           <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '3.5rem' }}>
                             <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e4e4e7' }}>${Math.round(song.total)}</span>
                           </div>
+                          {!isPreview && (
                           <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
                             <button
                               onClick={() => handleAccept(song)}
@@ -627,6 +641,7 @@ export default function LivePage() {
                               Decline
                             </button>
                           </div>
+                          )}
                         </div>
                       );
                     })}
@@ -813,7 +828,7 @@ export default function LivePage() {
                 cursor: endingConcert ? 'not-allowed' : 'pointer',
               }}
             >
-              {endingConcert ? 'Ending Concert…' : 'End Concert'}
+              {endingConcert ? 'Ending Concert…' : isPreview ? 'End Taking Requests' : 'End Concert'}
             </button>
           </div>
 

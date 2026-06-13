@@ -551,6 +551,12 @@ export default function ConcertPage() {
         return;
       }
     }
+    await supabase
+      .from('songs')
+      .update({ status: 'active' })
+      .eq('concert_id', concertId)
+      .in('status', ['declined', 'played', 'accepted', 'deactivated']);
+
     const { data } = await supabase
       .from('concerts')
       .update({ status: 'preview' })
@@ -721,6 +727,27 @@ export default function ConcertPage() {
               </button>
             </div>
           </div>
+        )}
+
+        {c.status === 'preview' && (
+          <button
+            onClick={() => router.push(`/concerts/${concertId}/live`)}
+            style={{
+              width: '100%',
+              padding: '0.875rem',
+              borderRadius: '0.75rem',
+              border: 'none',
+              background: '#1e3a5f',
+              color: '#93c5fd',
+              fontSize: '1rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              letterSpacing: '0.01em',
+              marginBottom: '0.5rem',
+            }}
+          >
+            👁 View Leaderboard
+          </button>
         )}
 
         {c.status === 'preview' && songs.length > 0 && (
