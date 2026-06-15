@@ -87,6 +87,9 @@ export default function LivePage() {
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState('');
   const [endingConcert, setEndingConcert] = useState(false);
+  const [trackerAccepted, setTrackerAccepted] = useState(0);
+  const [trackerPending, setTrackerPending] = useState(0);
+  const [trackerTotal, setTrackerTotal] = useState(0);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [pendingDecline, setPendingDecline] = useState<SongWithTotal | null>(null);
   const [pendingAccept, setPendingAccept] = useState<SongWithTotal | null>(null);
@@ -150,6 +153,20 @@ export default function LivePage() {
     setSongs(activeSongs.filter((s) => s.total > 0));
   }, [concertId]);
 
+  const fetchContributionTracker = useCallback(async () => {
+    const { data } = await supabase
+      .from('contributions')
+      .select('amount, status')
+      .eq('concert_id', concertId)
+      .in('status', ['pending', 'captured']);
+    if (!data) return;
+    const pending = data.filter((c: any) => c.status === 'pending').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+    const accepted = data.filter((c: any) => c.status === 'captured').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+    setTrackerPending(pending);
+    setTrackerAccepted(accepted);
+    setTrackerTotal(pending + accepted);
+  }, [concertId]);
+
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -187,11 +204,12 @@ export default function LivePage() {
       }
 
       await fetchLeaderboard();
+      await fetchContributionTracker();
       setLoading(false);
     }
 
     init();
-  }, [concertId, router, fetchLeaderboard]);
+  }, [concertId, router, fetchLeaderboard, fetchContributionTracker]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -209,7 +227,7 @@ export default function LivePage() {
       .channel(`live-contributions-${concertId}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'contributions', filter: `concert_id=eq.${concertId}` },
-        () => fetchLeaderboard()
+        () => { fetchLeaderboard(); fetchContributionTracker(); }
       )
       .subscribe();
 
@@ -230,7 +248,7 @@ export default function LivePage() {
       supabase.removeChannel(contribChannel);
       supabase.removeChannel(concertChannel);
     };
-  }, [concertId, fetchLeaderboard, router]);
+  }, [concertId, fetchLeaderboard, fetchContributionTracker, router]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -480,7 +498,7 @@ export default function LivePage() {
       {/* Header */}
       <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem', flexShrink: 0 }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{concert?.name}</h1>
             {isPreview ? (
               <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: '#14532d', color: '#86efac' }}>
@@ -495,6 +513,18 @@ export default function LivePage() {
               <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
                 {bandName}
               </span>
+            )}
+            {trackerTotal > 0 && (
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center', paddingLeft: '1.5rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.625rem', color: '#71717a', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Fan Contributions</div>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Accepted: <strong style={{ color: '#1DB954' }}>${Math.round(trackerAccepted)}</strong></span>
+                    <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Pending: <strong style={{ color: '#facc15' }}>${Math.round(trackerPending)}</strong></span>
+                    <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Total: <strong style={{ color: '#ffffff' }}>${Math.round(trackerTotal)}</strong></span>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
