@@ -111,10 +111,28 @@ export default function ProfilePage() {
         setConcertCode(data.concert_code ?? '');
         setPreviewCode(data.preview_code ?? '');
 
-        if (data.stripe_connect_account_id && data.has_payment_method) {
-          setPayoutsState('active');
-        } else if (data.stripe_connect_account_id) {
-          setPayoutsState('setup_in_progress');
+        if (data.stripe_connect_account_id) {
+          try {
+            const statusRes = await fetch(
+              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-connect-account`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId: session.user.id }),
+              }
+            );
+            const statusResult = await statusRes.json();
+            if (statusRes.ok && statusResult.success && statusResult.chargesEnabled && statusResult.payoutsEnabled) {
+              setPayoutsState('active');
+            } else {
+              setPayoutsState('setup_in_progress');
+            }
+          } catch {
+            setPayoutsState('setup_in_progress');
+          }
         } else {
           setPayoutsState('not_connected');
         }
@@ -257,14 +275,14 @@ export default function ProfilePage() {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ returnUrl: `${window.location.origin}/profile` }),
+          body: JSON.stringify({ userId, returnUrl: `${window.location.origin}/profile` }),
         }
       );
       if (!res.ok) {
         throw new Error('Failed to start onboarding.');
       }
-      const { url } = await res.json();
-      window.location.href = url;
+      const { onboardingUrl } = await res.json();
+      window.location.href = onboardingUrl;
     } catch {
       setConnectLoading(false);
       setConnectError('Failed to connect. Please try again.');
@@ -663,9 +681,29 @@ export default function ProfilePage() {
                   Setup In Progress
                 </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6 }}>
-                Your Stripe account is connected but setup is not complete. Log in to your Stripe dashboard to finish adding your bank account.
+              <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6, marginBottom: '16px' }}>
+                Your Stripe account is connected but setup is not complete. Finish adding your bank account to start receiving payouts.
               </p>
+              {connectError && (
+                <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
+              )}
+              <button
+                onClick={handleConnectBank}
+                disabled={connectLoading}
+                style={{
+                  width: '100%',
+                  padding: '11px 0',
+                  backgroundColor: connectLoading ? '#1a3acc' : '#2255ff',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: connectLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {connectLoading ? 'Redirecting...' : 'Continue Setup'}
+              </button>
             </div>
           )}
 
@@ -688,9 +726,29 @@ export default function ProfilePage() {
                   Payouts Active
                 </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6, marginBottom: '16px' }}>
                 Your bank account is connected and ready to receive payouts from fan song requests.
               </p>
+              {connectError && (
+                <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
+              )}
+              <button
+                onClick={handleConnectBank}
+                disabled={connectLoading}
+                style={{
+                  width: '100%',
+                  padding: '11px 0',
+                  backgroundColor: 'transparent',
+                  color: '#a1a1aa',
+                  border: '1px solid #2a2a2a',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: connectLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {connectLoading ? 'Redirecting...' : 'Manage Payout Account Settings'}
+              </button>
             </div>
           )}
         </section>
