@@ -562,6 +562,9 @@ export default function LivePage() {
                 </div>
               )}
             </div>
+            <button onClick={() => router.push('/profile')} style={backBtnStyle}>
+              Profile
+            </button>
             <button onClick={() => router.push(`/concerts/${concertId}`)} style={backBtnStyle}>
               Back to Catalog
             </button>
