@@ -22,7 +22,7 @@ type Song = {
   id: string;
   name: string;
   artist: string;
-  album: string;
+  album: string | null;
   album_art_url: string | null;
   comments: string | null;
   status: 'active' | 'declined' | 'played' | 'accepted' | 'deactivated';
@@ -404,7 +404,7 @@ export default function ConcertPage() {
       .update({
         name: editingSong.name.trim(),
         artist: editingSong.artist.trim(),
-        album: editingSong.album.trim() || null,
+        album: editingSong.album?.trim() || null,
         comments: editingSong.comments.trim() || null,
       })
       .eq('id', editingSong.id);
@@ -414,7 +414,7 @@ export default function ConcertPage() {
       ...s,
       name: editingSong.name.trim(),
       artist: editingSong.artist.trim(),
-      album: editingSong.album.trim() || null,
+      album: editingSong.album?.trim() || null,
       comments: editingSong.comments.trim() || null,
     } : s));
     setEditingSong(null);
@@ -1038,7 +1038,7 @@ export default function ConcertPage() {
                   }}
                 >
                   {song.album_art_url
-                    ? <img src={song.album_art_url} alt={song.album} width={68} height={68} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
+                    ? <img src={song.album_art_url} alt={song.album ?? ''} width={68} height={68} style={{ borderRadius: '0.375rem', flexShrink: 0, objectFit: 'cover' }} />
                     : <div style={{ width: 68, height: 68, borderRadius: '0.375rem', background: 'linear-gradient(135deg, #1a0a0a, #2e1065, #1e1b4b, #1e3a5f, #134e4a, #052e16, #0a0a0a)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{ fontSize: '1.5rem', color: '#71717a' }}>♫</span>
                       </div>
@@ -1048,7 +1048,7 @@ export default function ConcertPage() {
                       {song.name}
                     </p>
                     <p style={{ color: '#ffffff', fontSize: '1.15rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {song.artist} · {song.album}
+                      {song.artist}{song.album ? ` · ${song.album}` : ''}
                     </p>
                   </div>
                   {isBuilding ? (
@@ -1515,7 +1515,7 @@ export default function ConcertPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
-                <input type="text" value={editingSong.album} onChange={(e) => setEditingSong(prev => prev ? { ...prev, album: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <input type="text" value={editingSong.album ?? ''} onChange={(e) => setEditingSong(prev => prev ? { ...prev, album: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Performer Notes</label>
