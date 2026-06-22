@@ -324,11 +324,11 @@ export default function ConcertPage() {
     try {
       if (concert?.status === 'live') {
         await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/end-concert`,
           {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode: 'end_concert', concertId }),
+            body: JSON.stringify({ concertId }),
           }
         ).catch(() => {});
       }
@@ -502,7 +502,7 @@ export default function ConcertPage() {
         .from('contributions')
         .delete()
         .eq('concert_id', concertId)
-        .eq('status', 'pending');
+        .eq('status', 'active');
     }
 
     await supabase
@@ -570,14 +570,13 @@ export default function ConcertPage() {
   async function handleEndPreview() {
     setEndingPreview(true);
     await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/end-concert`,
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'end_concert', concertId }),
+        body: JSON.stringify({ concertId }),
       }
     ).catch(() => {});
-    await supabase.from('concerts').update({ status: 'closed' }).eq('id', concertId);
     setEndingPreview(false);
     setShowEndPreviewModal(false);
     router.push('/dashboard');

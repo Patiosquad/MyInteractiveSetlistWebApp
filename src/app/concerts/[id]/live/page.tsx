@@ -131,7 +131,7 @@ export default function LivePage() {
           .from('contributions')
           .select('amount, created_at')
           .eq('song_id', song.id)
-          .eq('status', 'pending');
+          .eq('status', 'active');
 
         const total = (contribData ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
         const earliest = (contribData ?? []).reduce((min, c) => {
@@ -158,10 +158,10 @@ export default function LivePage() {
       .from('contributions')
       .select('amount, status')
       .eq('concert_id', concertId)
-      .in('status', ['pending', 'captured']);
+      .in('status', ['active', 'accepted']);
     if (!data) return;
-    const pending = data.filter((c: any) => c.status === 'pending').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
-    const accepted = data.filter((c: any) => c.status === 'captured').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+    const pending = data.filter((c: any) => c.status === 'active').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+    const accepted = data.filter((c: any) => c.status === 'accepted').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
     setTrackerPending(pending);
     setTrackerAccepted(accepted);
     setTrackerTotal(pending + accepted);
@@ -332,7 +332,7 @@ export default function LivePage() {
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'decline', songId: song.id, concertId }),
+        body: JSON.stringify({ songId: song.id, concertId }),
       }
     ).catch(() => {});
     await supabase.from('songs').update({ status: 'declined' }).eq('id', song.id);
@@ -346,7 +346,7 @@ export default function LivePage() {
 
   async function handleReactivate(song: SongWithTotal) {
     setReactivatingId(song.id);
-    const ok = await callEdgeFunction('cancel-payments', { mode: 'decline', songId: song.id, concertId });
+    const ok = await callEdgeFunction('cancel-payments', { songId: song.id, concertId });
     if (!ok) { setReactivatingId(null); return; }
     await supabase.from('contributions').delete().eq('song_id', song.id);
     await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
@@ -437,14 +437,8 @@ export default function LivePage() {
   async function handleEndConcertConfirmed() {
     setShowEndConfirm(false);
     setEndingConcert(true);
-
-    const ok = await callEdgeFunction('cancel-payments', { mode: 'end_concert', concertId });
+    const ok = await callEdgeFunction('end-concert', { concertId });
     if (ok) {
-      await supabase
-        .from('concerts')
-        .update({ status: 'closed', ended_at: new Date().toISOString() })
-        .eq('id', concertId);
-
       router.push(`/concerts/${concertId}`);
     } else {
       setEndingConcert(false);
