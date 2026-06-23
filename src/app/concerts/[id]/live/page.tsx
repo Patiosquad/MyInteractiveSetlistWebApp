@@ -90,7 +90,10 @@ export default function LivePage() {
   const [trackerAccepted, setTrackerAccepted] = useState(0);
   const [trackerPending, setTrackerPending] = useState(0);
   const [trackerTotal, setTrackerTotal] = useState(0);
-  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [endConcertStep, setEndConcertStep] = useState<'none' | 'summary' | 'confirm' | 'processing' | 'outcome'>('none');
+  const endConcertStepRef = useRef<'none' | 'summary' | 'confirm' | 'processing' | 'outcome'>('none');
+  useEffect(() => { endConcertStepRef.current = endConcertStep; }, [endConcertStep]);
+  const [endConcertOutcome, setEndConcertOutcome] = useState<{ kind: 'success' | 'partial' | 'error'; message: string } | null>(null);
   const [pendingDecline, setPendingDecline] = useState<SongWithTotal | null>(null);
   const [pendingAccept, setPendingAccept] = useState<SongWithTotal | null>(null);
   const [bandName, setBandName] = useState('');
@@ -236,7 +239,14 @@ export default function LivePage() {
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'concerts', filter: `id=eq.${concertId}` },
         (payload) => {
-          if ((payload.new as { status: string }).status === 'closed') {
+          // If we are the one who just closed this concert via the End Concert flow,
+          // our own outcome modal and dismissEndConcertOutcome() handle navigation once
+          // the performer dismisses it. Don't let this listener race ahead and yank them
+          // away before they've seen the result.
+          if (
+            (payload.new as { status: string }).status === 'closed' &&
+            endConcertStepRef.current === 'none'
+          ) {
             router.push('/dashboard');
           }
         }
@@ -435,14 +445,55 @@ export default function LivePage() {
   }
 
   async function handleEndConcertConfirmed() {
-    setShowEndConfirm(false);
+    setEndConcertStep('processing');
     setEndingConcert(true);
-    const ok = await callEdgeFunction('end-concert', { concertId });
-    if (ok) {
-      router.push(`/concerts/${concertId}`);
-    } else {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/end-concert`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concertId }),
+        }
+      );
+      const result = await res.json().catch(() => ({}));
       setEndingConcert(false);
+
+      if (!res.ok || result.error) {
+        setEndConcertOutcome({
+          kind: 'error',
+          message: (result.message || result.error || 'Failed to end concert.') + ' Please check the concert status, and try again or contact support if it persists.',
+        });
+        setEndConcertStep('outcome');
+        return;
+      }
+
+      const failedCaptures = result.failedCaptures ?? 0;
+      if (failedCaptures > 0) {
+        setEndConcertOutcome({
+          kind: 'partial',
+          message: `${failedCaptures} fan payment(s) could not be processed and will need manual follow-up. View the full breakdown anytime in your Concert Earnings & History.`,
+        });
+      } else {
+        setEndConcertOutcome({
+          kind: 'success',
+          message: 'Payments have been processed. View the full breakdown anytime in your Concert Earnings & History.',
+        });
+      }
+      setEndConcertStep('outcome');
+    } catch (err: unknown) {
+      setEndingConcert(false);
+      setEndConcertOutcome({
+        kind: 'error',
+        message: (err instanceof Error ? err.message : 'Something went wrong.') + ' Please check the concert status, and try again or contact support if it persists.',
+      });
+      setEndConcertStep('outcome');
     }
+  }
+
+  function dismissEndConcertOutcome() {
+    setEndConcertStep('none');
+    router.push(`/concerts/${concertId}`);
   }
 
   // ── States ────────────────────────────────────────────────────────────────
@@ -841,7 +892,7 @@ export default function LivePage() {
           {/* End Concert */}
           <div style={{ paddingTop: '1rem', paddingBottom: '1.5rem', flexShrink: 0 }}>
             <button
-              onClick={() => setShowEndConfirm(true)}
+              onClick={() => setEndConcertStep('summary')}
               disabled={endingConcert}
               style={{
                 width: '100%',
@@ -1078,60 +1129,74 @@ export default function LivePage() {
         </div>
       )}
 
-      {showEndConfirm && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.7)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 50,
-        }}>
-          <div style={{
-            background: '#18181b',
-            border: '1px solid #3f3f46',
-            borderRadius: '0.75rem',
-            padding: '2rem',
-            maxWidth: '420px',
-            width: '90%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-          }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
-              End Concert?
-            </h2>
-            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-              This will end the concert and release all pending contributions for songs that were not played. This action cannot be undone.
-            </p>
+      {/* Dialog 1: Concert Summary */}
+      {endConcertStep === 'summary' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>End concert?</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', margin: 0 }}>
+                Total accepted: <span style={{ color: '#1DB954', fontWeight: 700 }}>${Math.round(trackerAccepted)}</span>
+              </p>
+              <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>This is what you&apos;ll be paid out, minus the platform fee.</p>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', margin: '0.5rem 0 0 0' }}>
+                Total pending: <span style={{ color: '#facc15', fontWeight: 700 }}>${Math.round(trackerPending)}</span>
+              </p>
+              <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>These contributions will be released back to fans, not charged.</p>
+            </div>
+            <p style={{ color: '#f87171', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <button
-                onClick={() => setShowEndConfirm(false)}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #3f3f46',
-                  background: 'transparent',
-                  color: '#a1a1aa',
-                  fontSize: '0.9375rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}
-              >
+              <button onClick={() => setEndConcertStep('none')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button
-                onClick={handleEndConcertConfirmed}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  background: '#991b1b',
-                  color: '#ffffff',
-                  fontSize: '0.9375rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
+              <button onClick={() => setEndConcertStep('confirm')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
                 End Concert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog 2: Final Confirmation */}
+      {endConcertStep === 'confirm' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>Are you certain you are ready to end the concert?</h2>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button onClick={() => setEndConcertStep('none')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={handleEndConcertConfirmed} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+                I am certain
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Processing overlay */}
+      {endConcertStep === 'processing' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+            <p style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Processing payments…</p>
+            <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>Please don&apos;t close this tab.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Outcome */}
+      {endConcertStep === 'outcome' && endConcertOutcome && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
+              {endConcertOutcome.kind === 'error' ? 'Something Went Wrong' : endConcertOutcome.kind === 'partial' ? 'Concert Ended — Some Payments Failed' : 'Concert Ended'}
+            </h2>
+            <p style={{ color: endConcertOutcome.kind === 'error' ? '#f87171' : '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              {endConcertOutcome.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button onClick={dismissEndConcertOutcome} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+                OK
               </button>
             </div>
           </div>
