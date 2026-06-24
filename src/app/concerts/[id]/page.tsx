@@ -109,6 +109,8 @@ export default function ConcertPage() {
   const [sortMode, setSortMode] = useState<'default' | 'song' | 'artist'>('default');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
+  const [manageStep, setManageStep] = useState<'none' | 'choice' | 'confirmPlayed'>('none');
+  const [managingSong, setManagingSong] = useState<Song | null>(null);
   const [showEmergencyAddModal, setShowEmergencyAddModal] = useState(false);
 
   const [goingLive, setGoingLive] = useState(false);
@@ -457,17 +459,25 @@ export default function ConcertPage() {
     setTimeout(() => setAddedMessage(''), 2500);
   }
 
-  async function handlePlay(song: Song) {
-    setProcessingId(song.id);
-    await supabase.from('songs').update({ status: 'played' }).eq('id', song.id);
-    setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: 'played' as const } : s));
-    setProcessingId(null);
-  }
-
-  async function handleDeactivate(song: Song) {
+  async function handleSetNotAvailable() {
+    if (!managingSong) return;
+    const song = managingSong;
+    setManageStep('none');
+    setManagingSong(null);
     setProcessingId(song.id);
     await supabase.from('songs').update({ status: 'deactivated' }).eq('id', song.id);
     setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: 'deactivated' as const } : s));
+    setProcessingId(null);
+  }
+
+  async function handleMarkAsPlayed() {
+    if (!managingSong) return;
+    const song = managingSong;
+    setManageStep('none');
+    setManagingSong(null);
+    setProcessingId(song.id);
+    await supabase.from('songs').update({ status: 'played' }).eq('id', song.id);
+    setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: 'played' as const } : s));
     setProcessingId(null);
   }
 
@@ -1084,25 +1094,23 @@ export default function ConcertPage() {
                   ) : (() => {
                     const isProcessing = processingId === song.id;
                     const isReactivating = reactivatingId === song.id;
-                    const isInactive = ['played', 'accepted', 'declined', 'deactivated'].includes(song.status);
+                    const isInactive = ['declined', 'deactivated'].includes(song.status);
                     if (song.status === 'active') {
                       return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0 }}>
-                          <button
-                            onClick={() => handlePlay(song)}
-                            disabled={isProcessing}
-                            style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: 'none', background: isProcessing ? '#27272a' : '#16a34a', color: isProcessing ? '#52525b' : '#ffffff', fontSize: '0.75rem', fontWeight: 600, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
-                          >
-                            Play
-                          </button>
-                          <button
-                            onClick={() => handleDeactivate(song)}
-                            disabled={isProcessing}
-                            style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isProcessing ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
-                          >
-                            Deactivate
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => { setManagingSong(song); setManageStep('choice'); }}
+                          disabled={isProcessing}
+                          style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isProcessing ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+                        >
+                          Manage
+                        </button>
+                      );
+                    }
+                    if (song.status === 'played') {
+                      return (
+                        <span style={{ flexShrink: 0, fontSize: '0.6875rem', fontWeight: 600, color: '#86efac', background: '#14532d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                          Played
+                        </span>
                       );
                     }
                     if (isInactive) {
@@ -1110,7 +1118,7 @@ export default function ConcertPage() {
                         <button
                           onClick={() => handleReactivate(song)}
                           disabled={isReactivating}
-                          style={{ flexShrink: 0, padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isReactivating ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isReactivating ? 'not-allowed' : 'pointer' }}
+                          style={{ flexShrink: 0, padding: '0.25rem 0.625rem', borderRadius: '0.5rem', border: 'none', background: isReactivating ? '#27272a' : '#9333ea', color: isReactivating ? '#52525b' : '#ffffff', fontSize: '0.75rem', fontWeight: 600, cursor: isReactivating ? 'not-allowed' : 'pointer' }}
                         >
                           {isReactivating ? '…' : 'Reactivate'}
                         </button>
@@ -1577,6 +1585,44 @@ export default function ConcertPage() {
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingComments(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSaveComments} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Song: Choice */}
+      {manageStep === 'choice' && managingSong && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>What would you like to do with &quot;{managingSong.name}&quot;?</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button onClick={() => { setManageStep('none'); setManagingSong(null); }} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={handleSetNotAvailable} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#3f3f46', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+                Set as Not Available
+              </button>
+              <button onClick={() => setManageStep('confirmPlayed')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+                Mark as Played
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Song: Confirm Mark as Played */}
+      {manageStep === 'confirmPlayed' && managingSong && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>Confirm: Mark as Played</h2>
+            <p style={{ color: '#f87171', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>This cannot be undone — &quot;{managingSong.name}&quot; will be marked played and cannot be reactivated for the remainder of this concert.</p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button onClick={() => setManageStep('choice')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={handleMarkAsPlayed} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+                Mark as Played
+              </button>
             </div>
           </div>
         </div>

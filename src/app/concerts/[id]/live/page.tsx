@@ -867,12 +867,12 @@ export default function LivePage() {
                                 disabled={isReactivating}
                                 style={{
                                   padding: '0.25rem 0.625rem',
-                                  borderRadius: '0.375rem',
-                                  border: '1px solid #3f3f46',
-                                  background: 'transparent',
-                                  color: isReactivating ? '#52525b' : '#a1a1aa',
+                                  borderRadius: '0.5rem',
+                                  border: 'none',
+                                  background: isReactivating ? '#27272a' : '#9333ea',
+                                  color: isReactivating ? '#52525b' : '#ffffff',
                                   fontSize: '0.75rem',
-                                  fontWeight: 500,
+                                  fontWeight: 600,
                                   cursor: isReactivating ? 'not-allowed' : 'pointer',
                                 }}
                               >
