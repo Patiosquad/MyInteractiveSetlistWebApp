@@ -101,6 +101,7 @@ export default function LivePage() {
   const [bandName, setBandName] = useState('');
   const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
+  const [showConcertOptionsDropdown, setShowConcertOptionsDropdown] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogSortMode, setCatalogSortMode] = useState<'default' | 'song' | 'artist'>('default');
   const [showEmergencyAddModal, setShowEmergencyAddModal] = useState(false);
@@ -119,6 +120,7 @@ export default function LivePage() {
   const [emergencyManualSubmitting, setEmergencyManualSubmitting] = useState(false);
 
   const layoutDropdownRef = useRef<HTMLDivElement>(null);
+  const concertOptionsDropdownRef = useRef<HTMLDivElement>(null);
   const emergencyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchLeaderboard = useCallback(async () => {
@@ -271,6 +273,16 @@ export default function LivePage() {
     if (showLayoutDropdown) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showLayoutDropdown]);
+
+  useEffect(() => {
+    function handleClickOutsideConcertOptions(e: MouseEvent) {
+      if (concertOptionsDropdownRef.current && !concertOptionsDropdownRef.current.contains(e.target as Node)) {
+        setShowConcertOptionsDropdown(false);
+      }
+    }
+    if (showConcertOptionsDropdown) document.addEventListener('mousedown', handleClickOutsideConcertOptions);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConcertOptions);
+  }, [showConcertOptionsDropdown]);
 
   useEffect(() => {
     if (!emergencyQuery.trim()) { setEmergencyResults([]); return; }
@@ -617,6 +629,24 @@ export default function LivePage() {
                 </div>
               )}
             </div>
+              <div ref={concertOptionsDropdownRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowConcertOptionsDropdown(prev => !prev)}
+                  style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', border: '1px solid #3f3f46', borderRadius: '0.5rem' }}
+                >
+                  Concert Options ▾
+                </button>
+                {showConcertOptionsDropdown && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.5rem', minWidth: '180px', zIndex: 100, overflow: 'hidden' }}>
+                    <button
+                      onClick={() => { setShowConcertOptionsDropdown(false); setEndConcertStep('summary'); }}
+                      style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0.625rem 1rem', background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      End Concert
+                    </button>
+                  </div>
+                )}
+              </div>
             <button onClick={() => router.push('/profile')} style={backBtnStyle}>
               Profile
             </button>
@@ -890,26 +920,6 @@ export default function LivePage() {
 
           </div>
 
-          {/* End Concert */}
-          <div style={{ paddingTop: '1rem', paddingBottom: '1.5rem', flexShrink: 0 }}>
-            <button
-              onClick={() => setEndConcertStep('summary')}
-              disabled={endingConcert}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                borderRadius: '0.75rem',
-                border: '1px solid #7f1d1d',
-                background: 'transparent',
-                color: endingConcert ? '#52525b' : '#f87171',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: endingConcert ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {endingConcert ? 'Ending Concert…' : isPreview ? 'End Taking Requests' : 'End Concert'}
-            </button>
-          </div>
 
         </div>
       </div>
