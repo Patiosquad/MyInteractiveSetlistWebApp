@@ -311,7 +311,7 @@ export default function ProfilePage() {
       .from('contributions')
       .select('amount, status, song_id, concert_id')
       .in('concert_id', concertIds)
-      .in('status', ['captured', 'released']);
+      .in('status', ['accepted', 'released']);
     const { data: songs } = await supabase
       .from('songs')
       .select('id, name, artist')
@@ -320,11 +320,11 @@ export default function ProfilePage() {
     if (songs) songs.forEach((s: any) => { songMap[s.id] = s; });
     const history = concerts.map((concert: any) => {
       const concertContribs = (contributions ?? []).filter((c: any) => c.concert_id === concert.id);
-      const captured = concertContribs.filter((c: any) => c.status === 'captured');
+      const captured = concertContribs.filter((c: any) => c.status === 'accepted');
       const released = concertContribs.filter((c: any) => c.status === 'released');
       const totalEarned = captured.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
       const totalReleased = released.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
-      const acceptedSongs = [...new Map(captured.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.amount), status: 'captured' }])).values()];
+      const acceptedSongs = [...new Map(captured.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.amount), status: 'accepted' }])).values()];
       const declinedSongs = [...new Map(released.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.amount), status: 'released' }])).values()];
       return {
         concertId: concert.id,
@@ -342,6 +342,110 @@ export default function ProfilePage() {
       };
     });
     setEarningsHistory(history);
+  }
+
+  function generatePerformerStatementHtml(concert: any) {
+    const accepted = concert.acceptedSongs ?? [];
+    const declined = concert.declinedSongs ?? [];
+
+    const totalEarned = Math.round(Number(concert.totalEarned ?? 0));
+    const totalReleased = Math.round(Number(concert.totalReleased ?? 0));
+
+    const dateSource = concert.endedAt ?? concert.createdAt;
+    const dateLabel = dateSource
+      ? new Date(dateSource).toLocaleString('en-US', {
+          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        })
+      : 'Unknown date';
+
+    const renderSongRows = (songs: any[], earned: boolean) =>
+      songs.length === 0
+        ? '<p class="empty">None</p>'
+        : songs.map((s: any) => `
+            <div class="song">
+              <div class="song-name">${s.songName}</div>
+              <div class="song-artist">${s.artist}</div>
+              <div class="contrib-row">
+                <span class="${earned ? 'amount-earned' : 'amount-released'}">${earned ? '+' : ''}$${Math.round(Number(s.amount))}</span>
+              </div>
+            </div>
+          `).join('');
+
+    const venueLine = `${concert.venue ?? ''}${concert.city ? ` — ${concert.city}` : ''}`;
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>SetTuner Earnings Statement</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #ffffff; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 32px; }
+  .container { max-width: 600px; margin: 0 auto; }
+  .logo { color: #1a7a3c; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+  .title { font-size: 28px; font-weight: 800; margin-top: 8px; }
+  .concert-name { font-size: 18px; font-weight: 700; margin-top: 20px; }
+  .venue { color: #555555; font-size: 14px; margin-top: 4px; }
+  .date { color: #777777; font-size: 13px; margin-top: 2px; }
+  .section { margin-top: 32px; }
+  .section-title { font-size: 16px; font-weight: 700; border-bottom: 1px solid #dddddd; padding-bottom: 8px; margin-bottom: 12px; }
+  .song { padding: 10px 0; border-bottom: 1px solid #eeeeee; }
+  .song-name { font-weight: 700; font-size: 15px; }
+  .song-artist { color: #555555; font-size: 13px; margin-top: 2px; }
+  .contrib-row { display: flex; justify-content: flex-end; align-items: center; margin-top: 6px; }
+  .amount-earned { color: #1a7a3c; font-weight: 700; font-size: 14px; }
+  .amount-released { color: #777777; font-weight: 700; font-size: 14px; }
+  .empty { color: #777777; font-size: 13px; font-style: italic; }
+  .footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #dddddd; }
+  .total-earned { color: #1a7a3c; font-size: 18px; font-weight: 800; }
+  .total-released { color: #777777; font-size: 16px; font-weight: 700; margin-top: 4px; }
+  .note { color: #777777; font-size: 13px; margin-top: 16px; line-height: 1.5; }
+  @media print {
+    body { padding: 0; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">SetTuner</div>
+    <div class="title">Earnings Statement</div>
+    <div class="concert-name">${concert.concertName}</div>
+    <div class="venue">${venueLine}</div>
+    <div class="date">${dateLabel}</div>
+
+    <div class="section">
+      <div class="section-title">Accepted &amp; Earned</div>
+      ${renderSongRows(accepted, true)}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Declined / Not Played</div>
+      ${renderSongRows(declined, false)}
+    </div>
+
+    <div class="footer">
+      <div class="total-earned">Total earned: +$${totalEarned}</div>
+      <div class="total-released">Total released: $${totalReleased}</div>
+      <div class="note">This statement reflects raw contribution totals. Platform fees are not yet reflected in this export.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  function exportPerformerStatement(concert: any) {
+    const html = generatePerformerStatementHtml(concert);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to export the statement.');
+      return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   }
 
   function toggleEarningsMonth(monthKey: string) {
@@ -910,7 +1014,10 @@ export default function ProfilePage() {
         <div style={{ position: 'fixed', inset: 0, background: '#0a0a0a', zIndex: 60, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
             <p style={{ color: '#ffffff', fontSize: '18px', fontWeight: '700', margin: 0 }}>{selectedEarningsConcert.concertName}</p>
-            <button onClick={() => setSelectedEarningsConcert(null)} style={{ background: 'transparent', border: 'none', color: '#555', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button onClick={() => exportPerformerStatement(selectedEarningsConcert)} style={{ background: 'transparent', border: 'none', color: '#4caf50', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Export</button>
+              <button onClick={() => setSelectedEarningsConcert(null)} style={{ background: 'transparent', border: 'none', color: '#555', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+            </div>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             <p style={{ color: '#888', fontSize: '13px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
