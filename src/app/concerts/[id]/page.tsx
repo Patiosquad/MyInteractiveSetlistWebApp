@@ -579,17 +579,28 @@ export default function ConcertPage() {
 
   async function handleEndPreview() {
     setEndingPreview(true);
-    await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/end-concert`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ concertId }),
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/end-taking-requests`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concertId }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        alert(result.error || 'Could not end Taking Requests. Please try again.');
+        setEndingPreview(false);
+        return;
       }
-    ).catch(() => {});
-    setEndingPreview(false);
-    setShowEndPreviewModal(false);
-    router.push('/dashboard');
+      setEndingPreview(false);
+      setShowEndPreviewModal(false);
+      router.push('/dashboard');
+    } catch {
+      setEndingPreview(false);
+      alert('Could not end Taking Requests. Please try again.');
+    }
   }
 
   // ── Loading / error states ────────────────────────────────────────────────
