@@ -551,15 +551,18 @@ export default function ConcertPage() {
       setGoingToPreview(false);
       return;
     }
-    if (concert.show_date) {
-      const showDate = new Date(concert.show_date);
-      const now = new Date();
-      const daysUntilShow = (showDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysUntilShow > 7) {
-        setPreviewError('Taking Requests can only be enabled within 7 days of the show date.');
-        setGoingToPreview(false);
-        return;
-      }
+    if (!concert.show_date) {
+      setPreviewError('A show date is required before enabling Taking Requests. Please set one in Edit Concert.');
+      setGoingToPreview(false);
+      return;
+    }
+    const showDate = new Date(concert.show_date);
+    const now = new Date();
+    const daysUntilShow = (showDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysUntilShow > 5) {
+      setPreviewError('Taking Requests can only be enabled within 5 days of the show date. Update the show date in Edit Concert if needed.');
+      setGoingToPreview(false);
+      return;
     }
     await supabase
       .from('songs')
@@ -569,7 +572,7 @@ export default function ConcertPage() {
 
     const { data } = await supabase
       .from('concerts')
-      .update({ status: 'preview' })
+      .update({ status: 'preview', preview_started_at: new Date().toISOString() })
       .eq('id', concertId)
       .select('*')
       .single();
