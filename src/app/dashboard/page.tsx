@@ -65,13 +65,14 @@ export default function DashboardPage() {
   const [newConcertName, setNewConcertName] = useState('');
   const [duplicateNameError, setDuplicateNameError] = useState('');
   const [duplicating, setDuplicating] = useState(false);
+  const [urgentPreviewCountdowns, setUrgentPreviewCountdowns] = useState<Record<string, string>>({});
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   async function fetchConcerts(uid: string) {
     const { data } = await supabase
       .from('concerts')
-      .select('id, name, venue_name, city, state, status, created_at, last_activity_at, show_date')
+      .select('id, name, venue_name, city, state, status, created_at, last_activity_at, show_date, preview_started_at')
       .eq('performer_id', uid);
 
     const STATUS_ORDER: Record<string, number> = { live: 0, preview: 1, new: 2, closed: 3 };
@@ -126,6 +127,32 @@ export default function DashboardPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
+
+  useEffect(() => {
+    function updateUrgentCountdowns() {
+      const next: Record<string, string> = {};
+      concerts.forEach((c: any) => {
+        if (c.status !== 'preview' || !c.preview_started_at) return;
+        const startedAt = new Date(c.preview_started_at).getTime();
+        const deadline = startedAt + 5 * 24 * 60 * 60 * 1000;
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) {
+          next[c.id] = 'Auto-closing soon';
+          return;
+        }
+        const totalHours = Math.floor(remainingMs / (1000 * 60 * 60));
+        if (totalHours < 24) {
+          const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+          next[c.id] = `${totalHours} hrs : ${minutes} min`;
+        }
+      });
+      setUrgentPreviewCountdowns(next);
+    }
+
+    updateUrgentCountdowns();
+    const interval = setInterval(updateUrgentCountdowns, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [concerts]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -402,6 +429,18 @@ export default function DashboardPage() {
                     }}>
                       {concert.status === 'preview' ? 'Taking Requests!' : concert.status.toUpperCase()}
                     </span>
+                      {concert.status === 'preview' && urgentPreviewCountdowns[concert.id] && (
+                        <span style={{
+                          position: 'absolute',
+                          top: 'calc(50% + 1.5rem)',
+                          right: '1.5rem',
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                          color: '#f87171',
+                        }}>
+                          {urgentPreviewCountdowns[concert.id]}
+                        </span>
+                      )}
                     <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.375rem', paddingRight: '6rem' }}>
                       {concert.name}
                     </h2>

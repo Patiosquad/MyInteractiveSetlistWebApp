@@ -118,6 +118,7 @@ export default function ConcertPage() {
   const [goingToPreview, setGoingToPreview] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const [showMultiplePreviewReminder, setShowMultiplePreviewReminder] = useState(false);
+  const [previewCountdown, setPreviewCountdown] = useState<{ text: string; urgent: boolean } | null>(null);
   const [showEndPreviewModal, setShowEndPreviewModal] = useState(false);
   const [endingPreview, setEndingPreview] = useState(false);
   const [showPreviewToLiveModal, setShowPreviewToLiveModal] = useState(false);
@@ -257,6 +258,39 @@ export default function ConcertPage() {
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, accessToken]);
+
+  useEffect(() => {
+    if (concert?.status !== 'preview' || !concert?.preview_started_at) {
+      setPreviewCountdown(null);
+      return;
+    }
+
+    function updateCountdown() {
+      const startedAt = new Date(concert!.preview_started_at).getTime();
+      const deadline = startedAt + 5 * 24 * 60 * 60 * 1000;
+      const remainingMs = deadline - Date.now();
+
+      if (remainingMs <= 0) {
+        setPreviewCountdown({ text: 'Auto-closing soon', urgent: true });
+        return;
+      }
+
+      const totalHours = Math.floor(remainingMs / (1000 * 60 * 60));
+
+      if (totalHours >= 24) {
+        const days = Math.floor(totalHours / 24);
+        const hours = totalHours % 24;
+        setPreviewCountdown({ text: `Auto-closes in ${days} d : ${hours} hrs`, urgent: false });
+      } else {
+        const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+        setPreviewCountdown({ text: `Auto-closes in ${totalHours} hrs : ${minutes} min`, urgent: true });
+      }
+    }
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [concert?.status, concert?.preview_started_at]);
 
   function openAddModal(track: SpotifyTrack) {
     setPendingTrack(track);
@@ -654,6 +688,11 @@ export default function ConcertPage() {
                 }}>
                   {c.status === 'preview' ? 'Taking Requests!' : c.status.toUpperCase()}
                 </span>
+                  {previewCountdown && (
+                    <span style={{ color: previewCountdown.urgent ? '#f87171' : '#a1a1aa', fontSize: '0.8125rem', fontWeight: 600 }}>
+                      {previewCountdown.text}
+                    </span>
+                  )}
                 {bandName && (
                   <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
                     {bandName}
