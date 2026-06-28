@@ -117,6 +117,7 @@ export default function ConcertPage() {
   const [goLiveError, setGoLiveError] = useState('');
   const [goingToPreview, setGoingToPreview] = useState(false);
   const [previewError, setPreviewError] = useState('');
+  const [showMultiplePreviewReminder, setShowMultiplePreviewReminder] = useState(false);
   const [showEndPreviewModal, setShowEndPreviewModal] = useState(false);
   const [endingPreview, setEndingPreview] = useState(false);
   const [showPreviewToLiveModal, setShowPreviewToLiveModal] = useState(false);
@@ -576,6 +577,10 @@ export default function ConcertPage() {
       .eq('id', concertId)
       .select('*')
       .single();
+
+    if (data && previewCheck && previewCheck.length >= 1) {
+      setShowMultiplePreviewReminder(true);
+    }
     if (data) setConcert(data);
     setGoingToPreview(false);
   }
@@ -1546,6 +1551,18 @@ export default function ConcertPage() {
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingSong(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSaveSong} disabled={savingSong} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: savingSong ? '#3f3f46' : '#ffffff', color: savingSong ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: savingSong ? 'not-allowed' : 'pointer' }}>{savingSong ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMultiplePreviewReminder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Reminder</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>You now have multiple concerts taking requests. Only one concert can be live at a time.</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowMultiplePreviewReminder(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
             </div>
           </div>
         </div>
