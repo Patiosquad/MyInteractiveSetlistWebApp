@@ -396,7 +396,6 @@ export default function LivePage() {
     setManagingSong(null);
     setProcessingId(song.id);
     await supabase.from('songs').update({ status: 'played' }).eq('id', song.id);
-    await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
     setSongs(prev => prev.filter(s => s.id !== song.id));
     setCatalog(prev => prev.map(s => s.id === song.id ? { ...s, status: 'played' as const } : s));
     setProcessingId(null);
