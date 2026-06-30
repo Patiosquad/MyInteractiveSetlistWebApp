@@ -15,6 +15,7 @@ type Concert = {
   estimated_length: string | null;
   show_date: string | null;
   status: 'new' | 'preview' | 'live' | 'closed';
+  preview_started_at: string | null;
   performer_id: string;
 };
 
@@ -119,6 +120,8 @@ export default function ConcertPage() {
   const [previewError, setPreviewError] = useState('');
   const [showMultiplePreviewReminder, setShowMultiplePreviewReminder] = useState(false);
   const [previewCountdown, setPreviewCountdown] = useState<{ text: string; urgent: boolean } | null>(null);
+  const [shownPreviewWarning, setShownPreviewWarning] = useState(false);
+  const [showPreviewWarningModal, setShowPreviewWarningModal] = useState(false);
   const [showEndPreviewModal, setShowEndPreviewModal] = useState(false);
   const [endingPreview, setEndingPreview] = useState(false);
   const [showPreviewToLiveModal, setShowPreviewToLiveModal] = useState(false);
@@ -285,12 +288,18 @@ export default function ConcertPage() {
         const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
         setPreviewCountdown({ text: `Auto-closes in ${totalHours} hrs : ${minutes} min`, urgent: true });
       }
+
+      const thirtyMinutes = 30 * 60 * 1000;
+      if (!shownPreviewWarning && remainingMs <= thirtyMinutes && remainingMs > 0) {
+        setShownPreviewWarning(true);
+        setShowPreviewWarningModal(true);
+      }
     }
 
     updateCountdown();
     const interval = setInterval(updateCountdown, 60 * 1000);
     return () => clearInterval(interval);
-  }, [concert?.status, concert?.preview_started_at]);
+  }, [concert?.status, concert?.preview_started_at, shownPreviewWarning]);
 
   function openAddModal(track: SpotifyTrack) {
     setPendingTrack(track);
@@ -1590,6 +1599,18 @@ export default function ConcertPage() {
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingSong(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSaveSong} disabled={savingSong} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: savingSong ? '#3f3f46' : '#ffffff', color: savingSong ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: savingSong ? 'not-allowed' : 'pointer' }}>{savingSong ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPreviewWarningModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>⚠️ Taking Requests Ending Soon</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>Taking Requests will automatically close in 30 minutes. Once closed, all fan contributions will be released. To prevent this, go live before the timer expires.</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowPreviewWarningModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
             </div>
           </div>
         </div>
