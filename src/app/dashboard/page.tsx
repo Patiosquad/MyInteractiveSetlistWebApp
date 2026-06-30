@@ -14,6 +14,9 @@ type Concert = {
   created_at: string;
   last_activity_at: string | null;
   show_date: string | null;
+  preview_started_at: string | null;
+  auto_close_reason: string | null;
+  auto_close_notification_seen: boolean | null;
 };
 
 type FullConcert = {
@@ -66,13 +69,14 @@ export default function DashboardPage() {
   const [duplicateNameError, setDuplicateNameError] = useState('');
   const [duplicating, setDuplicating] = useState(false);
   const [urgentPreviewCountdowns, setUrgentPreviewCountdowns] = useState<Record<string, string>>({});
+  const [pendingAutoCloseNotification, setPendingAutoCloseNotification] = useState<{ id: string; name: string; reason: string } | null>(null);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   async function fetchConcerts(uid: string) {
     const { data } = await supabase
       .from('concerts')
-      .select('id, name, venue_name, city, state, status, created_at, last_activity_at, show_date, preview_started_at')
+      .select('id, name, venue_name, city, state, status, created_at, last_activity_at, show_date, preview_started_at, auto_close_reason, auto_close_notification_seen')
       .eq('performer_id', uid);
 
     const STATUS_ORDER: Record<string, number> = { live: 0, preview: 1, new: 2, closed: 3 };
@@ -88,6 +92,7 @@ export default function DashboardPage() {
       return b.created_at.localeCompare(a.created_at);
     });
     setConcerts(sorted);
+    showPendingAutoCloseNotifications(sorted);
   }
 
   useEffect(() => {
@@ -153,6 +158,12 @@ export default function DashboardPage() {
     const interval = setInterval(updateUrgentCountdowns, 60 * 1000);
     return () => clearInterval(interval);
   }, [concerts]);
+
+  function showPendingAutoCloseNotifications(allConcerts: any[]) {
+    const pending = allConcerts.filter((c: any) => c.auto_close_reason && !c.auto_close_notification_seen);
+    if (pending.length === 0) return;
+    setPendingAutoCloseNotification({ id: pending[0].id, name: pending[0].name, reason: pending[0].auto_close_reason });
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -664,6 +675,43 @@ export default function DashboardPage() {
                 }}
               >
                 {duplicating ? 'Creating…' : 'Create Concert'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pendingAutoCloseNotification && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>&quot;{pendingAutoCloseNotification.name}&quot; Auto-Closed</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              {pendingAutoCloseNotification.reason === 'taking_requests_expired'
+                ? 'Taking Requests was automatically ended after 5 days with no activity.'
+                : pendingAutoCloseNotification.reason === 'live_max_duration'
+                ? 'This concert was automatically ended after reaching the 12-hour live limit.'
+                : pendingAutoCloseNotification.reason === 'live_inactivity'
+                ? 'This concert was automatically ended after 3 hours with no activity.'
+                : 'This concert was automatically ended.'}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={async () => {
+                  await supabase
+                    .from('concerts')
+                    .update({ auto_close_notification_seen: true })
+                    .eq('id', pendingAutoCloseNotification.id);
+                  const remaining = concerts.filter(
+                    (c: any) => c.auto_close_reason && !c.auto_close_notification_seen && c.id !== pendingAutoCloseNotification.id
+                  );
+                  if (remaining.length > 0) {
+                    setPendingAutoCloseNotification({ id: remaining[0].id, name: remaining[0].name, reason: remaining[0].auto_close_reason! });
+                  } else {
+                    setPendingAutoCloseNotification(null);
+                  }
+                }}
+                style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                OK
               </button>
             </div>
           </div>
