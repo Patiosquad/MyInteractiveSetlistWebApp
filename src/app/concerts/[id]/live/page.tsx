@@ -30,6 +30,8 @@ type Concert = {
   name: string;
   status: string;
   performer_id: string;
+  started_at: string | null;
+  last_activity_at: string | null;
 };
 
 function ordinal(n: number): string {
@@ -118,6 +120,10 @@ export default function LivePage() {
   const [emergencyManualAlbum, setEmergencyManualAlbum] = useState('');
   const [emergencyManualError, setEmergencyManualError] = useState('');
   const [emergencyManualSubmitting, setEmergencyManualSubmitting] = useState(false);
+  const [shownMaxDurationWarning, setShownMaxDurationWarning] = useState(false);
+  const [shownInactivityWarning, setShownInactivityWarning] = useState(false);
+  const [showMaxDurationWarningModal, setShowMaxDurationWarningModal] = useState(false);
+  const [showInactivityWarningModal, setShowInactivityWarningModal] = useState(false);
 
   const layoutDropdownRef = useRef<HTMLDivElement>(null);
   const concertOptionsDropdownRef = useRef<HTMLDivElement>(null);
@@ -191,7 +197,7 @@ export default function LivePage() {
 
       const { data: concertData } = await supabase
         .from('concerts')
-        .select('id, name, status, performer_id')
+        .select('id, name, status, performer_id, started_at, last_activity_at')
         .eq('id', concertId)
         .eq('performer_id', user.id)
         .single();
@@ -243,6 +249,7 @@ export default function LivePage() {
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'concerts', filter: `id=eq.${concertId}` },
         (payload) => {
+          setConcert(payload.new as Concert);
           // If we are the one who just closed this concert via the End Concert flow,
           // our own outcome modal and dismissEndConcertOutcome() handle navigation once
           // the performer dismisses it. Don't let this listener race ahead and yank them
@@ -302,6 +309,38 @@ export default function LivePage() {
     }, 300);
     return () => { if (emergencyDebounceRef.current) clearTimeout(emergencyDebounceRef.current); };
   }, [emergencyQuery, accessToken]);
+
+  useEffect(() => {
+    if (!concert?.started_at || concert.status !== 'live') return;
+
+    function checkWarnings() {
+      const now = Date.now();
+      const startedAt = new Date(concert!.started_at!).getTime();
+      const lastActivity = new Date(concert!.last_activity_at ?? concert!.started_at!).getTime();
+
+      const maxDurationExpiresAt = startedAt + 12 * 60 * 60 * 1000;
+      const inactivityExpiresAt = lastActivity + 3 * 60 * 60 * 1000;
+      const thirtyMinutes = 30 * 60 * 1000;
+
+      if (!shownMaxDurationWarning && maxDurationExpiresAt - now <= thirtyMinutes && maxDurationExpiresAt - now > 0) {
+        setShownMaxDurationWarning(true);
+        setShowMaxDurationWarningModal(true);
+      }
+
+      if (!shownInactivityWarning && inactivityExpiresAt - now <= thirtyMinutes && inactivityExpiresAt - now > 0) {
+        setShownInactivityWarning(true);
+        setShowInactivityWarningModal(true);
+      }
+    }
+
+    checkWarnings();
+    const interval = setInterval(checkWarnings, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [concert?.started_at, concert?.last_activity_at, concert?.status, shownMaxDurationWarning, shownInactivityWarning]);
+
+  useEffect(() => {
+    setShownInactivityWarning(false);
+  }, [concert?.last_activity_at]);
 
   async function callEdgeFunction(path: string, body: Record<string, unknown>): Promise<boolean> {
     const res = await fetch(
@@ -923,6 +962,28 @@ export default function LivePage() {
         </div>
       </div>
 
+      {showMaxDurationWarningModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>⚠️ Concert Ending Soon</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>This concert will automatically end in 30 minutes — it has been live for nearly 12 hours. To keep it going, there is no action available: the 12-hour limit cannot be extended.</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowMaxDurationWarningModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showInactivityWarningModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>⚠️ Concert Ending Soon</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>This concert will automatically end in 30 minutes due to inactivity. To reset the timer, accept or decline a song, or a fan needs to make a contribution.</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowInactivityWarningModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showEmergencyAddModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '520px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
