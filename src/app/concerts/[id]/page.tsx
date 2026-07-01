@@ -269,7 +269,7 @@ export default function ConcertPage() {
     }
 
     function updateCountdown() {
-      const startedAt = new Date(concert!.preview_started_at).getTime();
+      const startedAt = new Date(concert!.preview_started_at!).getTime();
       const deadline = startedAt + 5 * 24 * 60 * 60 * 1000;
       const remainingMs = deadline - Date.now();
 
@@ -549,6 +549,12 @@ export default function ConcertPage() {
       setGoLiveError('You already have a concert in progress. Please end your current live concert before starting a new one.');
       setGoingLive(false);
       return;
+    }
+
+    if (concert.status === 'preview') {
+      supabase.functions.invoke('refresh-payment-intents', { body: { concertId } })
+        .then(({ error: refreshError }) => { if (refreshError) console.error('refresh-payment-intents failed:', refreshError); })
+        .catch((refreshError) => { console.error('refresh-payment-intents failed:', refreshError); });
     }
 
     if (concert.status !== 'preview') {
