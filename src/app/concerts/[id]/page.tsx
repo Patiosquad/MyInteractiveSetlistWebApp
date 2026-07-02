@@ -687,7 +687,7 @@ export default function ConcertPage() {
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem' }}>
+      <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem', position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#09090b' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>

@@ -259,7 +259,10 @@ export default function DashboardPage() {
         <header style={{
           borderBottom: '1px solid #27272a',
           padding: '1rem 2rem',
-          position: 'relative',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          backgroundColor: '#09090b',
         }}>
           <div style={{
             maxWidth: '1000px',
