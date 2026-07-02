@@ -107,7 +107,10 @@ export default function ConcertPage() {
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
   const [catalogSearch, setCatalogSearch] = useState('');
-  const [sortMode, setSortMode] = useState<'default' | 'song' | 'artist'>('default');
+  const [sortMode, setSortMode] = useState<'default' | 'song' | 'song-desc' | 'artist' | 'artist-desc'>('default');
+  const [groupMode, setGroupMode] = useState<'none' | 'contributed' | 'active'>('none');
+  const [contributedSongIds, setContributedSongIds] = useState<Set<string>>(new Set());
+  const [contributedSongAmounts, setContributedSongAmounts] = useState<Record<string, number>>({});
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [manageStep, setManageStep] = useState<'none' | 'choice' | 'confirmPlayed'>('none');
@@ -184,11 +187,30 @@ export default function ConcertPage() {
         .order('created_at', { ascending: false });
 
       setSongs(songsData ?? []);
+      await fetchContributedSongs(concertId);
       setLoading(false);
     }
 
     init();
   }, [concertId, router]);
+
+  const fetchContributedSongs = async (cId: string) => {
+    const { data } = await supabase
+      .from('contributions')
+      .select('song_id, total_amount')
+      .eq('concert_id', cId)
+      .eq('status', 'active');
+    if (data) {
+      const ids = new Set<string>();
+      const amounts: Record<string, number> = {};
+      data.forEach((r: { song_id: string; total_amount: number }) => {
+        ids.add(r.song_id);
+        amounts[r.song_id] = (amounts[r.song_id] ?? 0) + r.total_amount;
+      });
+      setContributedSongIds(ids);
+      setContributedSongAmounts(amounts);
+    }
+  };
 
   // Real-time subscription
   useEffect(() => {
@@ -1059,32 +1081,96 @@ export default function ConcertPage() {
               s.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
               s.artist.toLowerCase().includes(catalogSearch.toLowerCase())
             );
-            const sortedSongs = [...filteredSongs].sort((a, b) => {
-              if (sortMode === 'song') return a.name.localeCompare(b.name);
-              if (sortMode === 'artist') return a.artist.localeCompare(b.artist);
-              return 0;
-            });
+
+            const applyBaseSort = (arr: typeof filteredSongs) =>
+              [...arr].sort((a, b) => {
+                if (sortMode === 'song') return a.name.localeCompare(b.name);
+                if (sortMode === 'song-desc') return b.name.localeCompare(a.name);
+                if (sortMode === 'artist') return a.artist.localeCompare(b.artist);
+                if (sortMode === 'artist-desc') return b.artist.localeCompare(a.artist);
+                return 0;
+              });
+
+            const sortedSongs = (() => {
+              const deactivated = filteredSongs.filter(s => s.status === 'deactivated');
+              const rest = filteredSongs.filter(s => s.status !== 'deactivated');
+
+              if (groupMode === 'contributed') {
+                const withContribs = rest.filter(s => contributedSongIds.has(s.id));
+                const withoutContribs = rest.filter(s => !contributedSongIds.has(s.id));
+                return [
+                  ...applyBaseSort(withContribs),
+                  ...applyBaseSort(withoutContribs),
+                  ...applyBaseSort(deactivated),
+                ];
+              }
+
+              if (groupMode === 'active') {
+                const notPlayed = rest.filter(s => s.status !== 'played');
+                const played = rest.filter(s => s.status === 'played');
+                return [
+                  ...applyBaseSort(notPlayed),
+                  ...applyBaseSort(played),
+                  ...applyBaseSort(deactivated),
+                ];
+              }
+
+              // groupMode === 'none'
+              return [
+                ...applyBaseSort(rest),
+                ...applyBaseSort(deactivated),
+              ];
+            })();
             return (
               <>
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '0.75rem' }}>
-                  {(['default', 'song', 'artist'] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setSortMode(mode)}
-                      style={{
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        background: sortMode === mode ? '#ffffff' : '#27272a',
-                        color: sortMode === mode ? '#000000' : '#a1a1aa',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {mode === 'default' ? 'Default' : mode === 'song' ? 'Song A-Z' : 'Artist A-Z'}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '0.75rem', overflowX: 'auto', paddingBottom: '4px' }}>
+                  {[
+                    { key: 'default', label: 'Default' },
+                    { key: 'song', label: sortMode === 'song' ? 'Song A-Z' : sortMode === 'song-desc' ? 'Song Z-A' : 'Song A-Z' },
+                    { key: 'artist', label: sortMode === 'artist' ? 'Artist A-Z' : sortMode === 'artist-desc' ? 'Artist Z-A' : 'Artist A-Z' },
+                    { key: 'contributed', label: 'Contributed' },
+                    { key: 'active', label: 'Active' },
+                  ].map(({ key, label }) => {
+                    const isActive =
+                      key === 'default'
+                        ? sortMode === 'default' && groupMode === 'none'
+                        : key === 'song'
+                        ? sortMode === 'song' || sortMode === 'song-desc'
+                        : key === 'artist'
+                        ? sortMode === 'artist' || sortMode === 'artist-desc'
+                        : groupMode === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          if (key === 'default') {
+                            setSortMode('default');
+                            setGroupMode('none');
+                          } else if (key === 'song') {
+                            setSortMode(prev => prev === 'song' ? 'song-desc' : 'song');
+                          } else if (key === 'artist') {
+                            setSortMode(prev => prev === 'artist' ? 'artist-desc' : 'artist');
+                          } else {
+                            setGroupMode(prev => prev === key ? 'none' : key as 'contributed' | 'active');
+                          }
+                        }}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: isActive ? '#ffffff' : '#27272a',
+                          color: isActive ? '#000000' : '#a1a1aa',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div style={{ marginBottom: '0.75rem' }}>
                   <input
@@ -1115,7 +1201,7 @@ export default function ConcertPage() {
                     gap: '0.875rem',
                     padding: '0.875rem 1rem',
                     borderRadius: '0.75rem',
-                    border: '1px solid #27272a',
+                    border: contributedSongIds.has(song.id) ? '2px solid #6366f1' : '1px solid #27272a',
                     background: '#18181b',
                   }}
                 >
@@ -1132,6 +1218,14 @@ export default function ConcertPage() {
                     <p style={{ color: '#ffffff', fontSize: '1.15rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {song.artist}{song.album ? ` · ${song.album}` : ''}
                     </p>
+                    {contributedSongIds.has(song.id) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6366f1' }} />
+                        <span style={{ color: '#6366f1', fontSize: '0.75rem', fontWeight: 500 }}>
+                          In queue — ${Math.round(contributedSongAmounts[song.id] ?? 0)} contributed
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {isBuilding ? (
                     <>
