@@ -685,7 +685,7 @@ export default function LivePage() {
                   </div>
                 )}
               </div>
-            <button onClick={() => router.push('/profile')} style={backBtnStyle}>
+            <button onClick={() => router.push(`/profile?returnTo=/concerts/${concertId}/live`)} style={backBtnStyle}>
               Profile
             </button>
             <button onClick={() => router.push(`/concerts/${concertId}`)} style={backBtnStyle}>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import QRCode from 'qrcode';
 
@@ -36,6 +36,8 @@ type PayoutsState = 'not_connected' | 'setup_in_progress' | 'active';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
 
   const [userId, setUserId] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -476,7 +478,7 @@ export default function ProfilePage() {
       {/* Top bar */}
       <div style={{ maxWidth: '500px', margin: '0 auto 28px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={() => router.push(returnTo ?? '/dashboard')}
           style={{
             background: 'transparent',
             border: 'none',

@@ -767,7 +767,7 @@ export default function ConcertPage() {
                 </button>
               )}
               <button
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push(`/profile?returnTo=/concerts/${concert.id}`)}
                 style={{
                   padding: '0.5rem 1rem',
                   borderRadius: '0.5rem',
