@@ -1,0 +1,65 @@
+:root {
+  /* Backgrounds */
+  --bg-primary: #0a0a0a;
+  --bg-tile: #1a1a1a;
+  --bg-tile-deep: #141414;
+  --bg-overlay: rgba(0,0,0,0.7);
+  --bg-overlay-heavy: rgba(0,0,0,0.85);
+
+  /* Text */
+  --text-primary: #ffffff;
+  --text-muted: #888888;
+  --text-faint: #555555;
+  --text-secondary: #a1a1aa;
+
+  /* Accent */
+  --accent-blue: #2255ff;
+  --accent-green: #1db954;
+
+  /* Gold (rank / leaderboard) */
+  --gold: #fbbf24;
+
+  /* Danger / destructive */
+  --danger: #ff4444;
+
+  /* Status badges — background / text pairs */
+  --status-live-bg: #14532d;
+  --status-live-text: #86efac;
+  --status-building-bg: #1e3a5f;
+  --status-building-text: #93c5fd;
+  --status-closed-bg: #7f1d1d;
+  --status-closed-text: #fca5a5;
+  --status-preview-bg: #14532d;
+  --status-preview-text: #86efac;
+
+  /* Borders */
+  --border: #3f3f46;
+  --border-subtle: #27272a;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 30px;
+
+  /* Font sizes */
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-md: 15px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+  --font-xxl: 22px;
+  --font-display: 28px;
+  --font-hero: 32px;
+
+  /* Spacing */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-screen: 24px;
+}
