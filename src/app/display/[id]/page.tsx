@@ -76,7 +76,7 @@ export default function DisplayPage() {
           .from('contributions')
           .select('amount, created_at')
           .eq('song_id', song.id)
-          .eq('status', 'pending');
+          .eq('status', 'active');
 
         const total = (contribData ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
         const earliest = (contribData ?? []).reduce((min, c) => {
