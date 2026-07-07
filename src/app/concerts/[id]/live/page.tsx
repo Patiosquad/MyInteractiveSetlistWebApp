@@ -101,7 +101,7 @@ export default function LivePage() {
   const [manageStep, setManageStep] = useState<'none' | 'choice' | 'confirmPlayed'>('none');
   const [managingSong, setManagingSong] = useState<SongWithTotal | null>(null);
   const [bandName, setBandName] = useState('');
-  const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top5' | 'ambient'>('top10');
+  const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top10grid' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
   const [showConcertOptionsDropdown, setShowConcertOptionsDropdown] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -651,9 +651,10 @@ export default function LivePage() {
               {showLayoutDropdown && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.5rem', minWidth: '220px', zIndex: 100, overflow: 'hidden' }}>
                   {([
-                    { value: 'top10',   label: 'Top 10 Leaderboard' },
-                    { value: 'top5',    label: 'Top 5 Leaderboard' },
-                    { value: 'ambient', label: "Ambient — Tonight's Requests" },
+                    { value: 'top10',     label: 'Top 10 Leaderboard' },
+                    { value: 'top10grid', label: 'Top 10 Grid' },
+                    { value: 'top5',      label: 'Top 5 Leaderboard' },
+                    { value: 'ambient',   label: "Ambient — Tonight's Requests" },
                   ] as const).map(option => (
                     <button
                       key={option.value}
