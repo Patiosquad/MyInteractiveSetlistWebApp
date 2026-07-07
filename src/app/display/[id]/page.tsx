@@ -286,9 +286,40 @@ export default function DisplayPage() {
 
             {/* LEFT — QR Code (~30%) */}
             <div style={{ flex: '0 0 28%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: 150, height: 150, border: '2px dashed rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.875rem' }}>
-                QR Code
-              </div>
+              {qrDataUrl && (
+                <div style={{
+                  background: 'rgba(20,20,20,0.95)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '14px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                  maxWidth: '240px',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}>
+                  <img
+                    src={qrDataUrl}
+                    alt="QR Code"
+                    style={{
+                      width: 'clamp(100px, 12vw, 160px)',
+                      height: 'clamp(100px, 12vw, 160px)',
+                      background: 'white',
+                      borderRadius: '8px',
+                      padding: '4px',
+                      display: 'block',
+                    }}
+                  />
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ color: '#ffffff', fontSize: 'clamp(0.85rem, 1.2vw, 1.1rem)', fontWeight: 700, margin: '0 0 4px' }}>SetTuner</p>
+                    <p style={{ color: '#aaaaaa', fontSize: 'clamp(0.65rem, 0.9vw, 0.85rem)', lineHeight: 1.5, margin: 0 }}>
+                      Scan to join the show and contribute to songs
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* RIGHT — Title + Song list (~70%) */}

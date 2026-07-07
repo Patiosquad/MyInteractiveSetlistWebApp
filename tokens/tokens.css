@@ -63,3 +63,13 @@
   --space-xxl: 48px;
   --space-screen: 24px;
 }
+
+[data-ambient="true"] {
+  --bg-primary: #0a0908;
+  --bg-tile: #191614;
+  --text-primary: #f2ece2;
+  --accent: #d98a5f;
+  --gold: #d9a94f;
+  --text-muted: #a89a8c;
+  --border-subtle: #221e1a;
+}
