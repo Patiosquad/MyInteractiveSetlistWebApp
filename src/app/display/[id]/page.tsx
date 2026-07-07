@@ -74,11 +74,11 @@ export default function DisplayPage() {
       songsData.map(async (song) => {
         const { data: contribData } = await supabase
           .from('contributions')
-          .select('amount, created_at')
+          .select('total_amount, created_at')
           .eq('song_id', song.id)
           .eq('status', 'active');
 
-        const total = (contribData ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
+        const total = (contribData ?? []).reduce((sum, c) => sum + (c.total_amount ?? 0), 0);
         const earliest = (contribData ?? []).reduce((min, c) => {
           if (!min) return c.created_at;
           return c.created_at < min ? c.created_at : min;
