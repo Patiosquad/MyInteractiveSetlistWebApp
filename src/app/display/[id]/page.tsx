@@ -560,7 +560,7 @@ export default function DisplayPage() {
                             </div>
                         }
                         <div style={{ marginTop: '0.6vh', minHeight: 0, overflow: 'hidden' }}>
-                          <p style={{ fontSize: 'clamp(0.85rem, 1.5vw, 1.4rem)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <p style={{ fontSize: 'clamp(0.85rem, 1.5vw, 1.4rem)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
                             {song.name}
                           </p>
                           <p style={{ fontSize: 'clamp(0.65rem, 1.05vw, 0.95rem)', color: 'var(--text-secondary)', margin: '0.2em 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -576,28 +576,31 @@ export default function DisplayPage() {
                 <div style={{ flex: '0 0 22%', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1vh 0.5vw', borderLeft: '1px solid var(--border-subtle)' }}>
                   {rest.slice(4, 9).map((song, i) => {
                     const rankNum = i + 6;
+                    const rankColorVar = rankNum === 2 ? 'var(--gold)' : 'var(--text-primary)';
                     return (
                       <div
                         key={`${song.id}-zone3-${i}`}
                         ref={(el) => { if (el) tileRefs.current.set(song.id, el); else tileRefs.current.delete(song.id); }}
-                        style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.75vw', overflow: 'hidden' }}
+                        style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, padding: '0.4vh 0.5vw', gap: '0.3vh' }}
                       >
-                        <span style={{ flexShrink: 0, minWidth: 'clamp(1.4rem, 2vw, 2.2rem)', textAlign: 'center', fontSize: 'clamp(0.7rem, 1vw, 1rem)', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: 'clamp(0.8rem, 1.2vw, 1.1rem)', fontWeight: 900, color: rankColorVar, lineHeight: 1 }}>
                           {ordinal(rankNum)}
                         </span>
-                        {song.album_art_url
-                          ? <img src={song.album_art_url} alt="" style={{ width: 'clamp(24px, 2.4vw, 36px)', height: 'clamp(24px, 2.4vw, 36px)', borderRadius: 4, flexShrink: 0, objectFit: 'cover' }} />
-                          : <div style={{ width: 'clamp(24px, 2.4vw, 36px)', height: 'clamp(24px, 2.4vw, 36px)', borderRadius: 4, background: ART_FALLBACK_GRADIENT, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>♫</span>
-                            </div>
-                        }
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 'clamp(0.7rem, 1.1vw, 0.95rem)', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {song.name}
-                          </p>
-                          <p style={{ fontSize: 'clamp(0.6rem, 0.9vw, 0.8rem)', color: 'var(--text-secondary)', margin: '0.1em 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {song.artist}
-                          </p>
+                        <div style={{ display: 'flex', flexDirection: 'row', flex: 1, minHeight: 0, gap: '0.5vw', alignItems: 'center' }}>
+                          {song.album_art_url
+                            ? <img src={song.album_art_url} alt="" style={{ height: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }} />
+                            : <div style={{ height: '100%', aspectRatio: '1', borderRadius: '6px', background: ART_FALLBACK_GRADIENT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>♫</span>
+                              </div>
+                          }
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.2vh' }}>
+                            <p style={{ fontSize: 'clamp(0.7rem, 1.1vw, 1rem)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
+                              {song.name}
+                            </p>
+                            <p style={{ fontSize: 'clamp(0.55rem, 0.85vw, 0.8rem)', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {song.artist}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );
@@ -682,14 +685,14 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
         }} />
         {song.album_art_url
           ? <img src={song.album_art_url} alt="" style={{
-              width: artSize,
-              height: artSize,
+              width: centered ? artSize : 'min(100%, 28vh)',
+              height: centered ? artSize : 'min(100%, 28vh)',
               borderRadius: 14,
               objectFit: 'cover',
               position: 'relative',
               boxShadow: '0 8px 40px color-mix(in srgb, var(--gold) 30%, transparent)',
             }} />
-          : <div style={{ width: artSize, height: artSize, borderRadius: 14, background: ART_FALLBACK_GRADIENT, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          : <div style={{ width: centered ? artSize : 'min(100%, 28vh)', height: centered ? artSize : 'min(100%, 28vh)', borderRadius: 14, background: ART_FALLBACK_GRADIENT, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: '2rem', color: 'var(--text-muted)' }}>♫</span>
             </div>
         }
@@ -697,10 +700,11 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
 
       {/* Song name */}
       <p style={{
-        fontSize: centered ? 'clamp(2rem, 4vw, 5rem)' : 'clamp(2rem, 4.5vw, 5.5rem)',
+        fontSize: centered ? 'clamp(2rem, 4vw, 5rem)' : 'clamp(2.5rem, 5vw, 6.5rem)',
         fontWeight: 900,
         color: 'var(--text-primary)',
         margin: 0,
+        paddingBottom: centered ? 0 : '0.15em',
         lineHeight: 1.05,
         letterSpacing: '-0.02em',
         overflow: 'hidden',
