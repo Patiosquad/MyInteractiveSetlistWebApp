@@ -539,7 +539,6 @@ export default function DisplayPage() {
                         key={`${song.id}-quad-${i}`}
                         ref={(el) => { if (el) tileRefs.current.set(song.id, el); else tileRefs.current.delete(song.id); }}
                         style={{
-                          position: 'relative',
                           display: 'flex',
                           flexDirection: 'column',
                           minHeight: 0,
@@ -551,12 +550,12 @@ export default function DisplayPage() {
                           overflow: 'hidden',
                         }}
                       >
-                        <span style={{ position: 'absolute', top: '0.5vh', left: '0.6vw', fontSize: 'clamp(1.2rem, 2vw, 2.2rem)', fontWeight: 900, color: rankColorVar, lineHeight: 1, zIndex: 1 }}>
+                        <span style={{ display: 'block', fontSize: 'clamp(1.2rem, 2vw, 2.5rem)', fontWeight: 900, color: rankColorVar, padding: '0.5vh 0.75vw', lineHeight: 1 }}>
                           {ordinal(rankNum)}
                         </span>
                         {song.album_art_url
-                          ? <img src={song.album_art_url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '8px' }} />
-                          : <div style={{ width: '100%', aspectRatio: '1', borderRadius: '8px', background: ART_FALLBACK_GRADIENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          ? <img src={song.album_art_url} alt="" style={{ width: '100%', flex: 1, minHeight: 0, objectFit: 'cover', borderRadius: '8px' }} />
+                          : <div style={{ width: '100%', flex: 1, minHeight: 0, borderRadius: '8px', background: ART_FALLBACK_GRADIENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>♫</span>
                             </div>
                         }
