@@ -142,11 +142,11 @@ export default function LivePage() {
       songsData.map(async (song) => {
         const { data: contribData } = await supabase
           .from('contributions')
-          .select('amount, created_at')
+          .select('total_amount, created_at')
           .eq('song_id', song.id)
           .eq('status', 'active');
 
-        const total = (contribData ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
+        const total = (contribData ?? []).reduce((sum, c) => sum + (c.total_amount ?? 0), 0);
         const earliest = (contribData ?? []).reduce((min, c) => {
           if (!min) return c.created_at;
           return c.created_at < min ? c.created_at : min;
@@ -169,12 +169,12 @@ export default function LivePage() {
   const fetchContributionTracker = useCallback(async () => {
     const { data } = await supabase
       .from('contributions')
-      .select('amount, status')
+      .select('total_amount, status')
       .eq('concert_id', concertId)
       .in('status', ['active', 'accepted']);
     if (!data) return;
-    const pending = data.filter((c: any) => c.status === 'active').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
-    const accepted = data.filter((c: any) => c.status === 'accepted').reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+    const pending = data.filter((c: any) => c.status === 'active').reduce((sum: number, c: any) => sum + Number(c.total_amount), 0);
+    const accepted = data.filter((c: any) => c.status === 'accepted').reduce((sum: number, c: any) => sum + Number(c.total_amount), 0);
     setTrackerPending(pending);
     setTrackerAccepted(accepted);
     setTrackerTotal(pending + accepted);

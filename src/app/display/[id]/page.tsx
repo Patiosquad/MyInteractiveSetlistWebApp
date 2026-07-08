@@ -573,7 +573,7 @@ export default function DisplayPage() {
                 </div>
 
                 {/* ZONE 3 — ranks 6–10 */}
-                <div style={{ flex: '0 0 22%', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1vh 0.5vw', borderLeft: '1px solid var(--border-subtle)' }}>
+                <div style={{ flex: '0 0 22%', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1vh 0.5vw', borderLeft: '1px solid var(--border-subtle)', justifyContent: 'space-evenly' }}>
                   {rest.slice(4, 9).map((song, i) => {
                     const rankNum = i + 6;
                     const rankColorVar = rankNum === 2 ? 'var(--gold)' : 'var(--text-primary)';
@@ -581,7 +581,7 @@ export default function DisplayPage() {
                       <div
                         key={`${song.id}-zone3-${i}`}
                         ref={(el) => { if (el) tileRefs.current.set(song.id, el); else tileRefs.current.delete(song.id); }}
-                        style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, padding: '0.4vh 0.5vw', gap: '0.3vh' }}
+                        style={{ display: 'flex', flexDirection: 'column', height: 'clamp(120px, 16vh, 200px)', padding: '0.4vh 0.5vw', gap: '0.3vh', flexShrink: 0 }}
                       >
                         <span style={{ fontSize: 'clamp(0.8rem, 1.2vw, 1.1rem)', fontWeight: 900, color: rankColorVar, lineHeight: 1 }}>
                           {ordinal(rankNum)}
