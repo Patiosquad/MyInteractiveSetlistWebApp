@@ -251,8 +251,8 @@ export default function DisplayPage() {
               src={qrDataUrl}
               alt="QR Code"
               style={{
-                width: 'clamp(70px, 8vw, 110px)',
-                height: 'clamp(70px, 8vw, 110px)',
+                width: 'clamp(110px, 12vw, 170px)',
+                height: 'clamp(110px, 12vw, 170px)',
                 background: 'white',
                 borderRadius: '8px',
                 padding: '4px',
@@ -278,14 +278,16 @@ export default function DisplayPage() {
   }
 
   // Zone 2 tile — vertical ranked list, shared by top5 / top10
-  function renderRankedTile(song: SongWithTotal, i: number) {
+  function renderRankedTile(song: SongWithTotal, i: number, large = false) {
     const isTopRight = i < 2; // ranks 2–3
     const accentColorVar = i === 0 ? 'var(--gold)' : i === 1 ? 'var(--accent)' : 'var(--border-subtle)';
     const rankColorVar = i === 0 ? 'var(--gold)' : i === 1 ? 'var(--accent)' : 'var(--text-muted)';
     const borderWidth = isTopRight ? 4 : 1;
     const weight = isTopRight ? 2 : 1;
 
-    const artSz  = isTopRight ? 'clamp(36px, 4.5vw, 68px)' : 'clamp(24px, 2.8vw, 46px)';
+    const artSz  = large
+      ? (isTopRight ? 'clamp(120px, 14vw, 220px)' : 'clamp(56px, 6.5vw, 120px)')
+      : (isTopRight ? 'clamp(36px, 4.5vw, 68px)' : 'clamp(24px, 2.8vw, 46px)');
     const rankSz = isTopRight ? 'clamp(1.5rem, 2.8vw, 3.2rem)' : 'clamp(0.85rem, 1.4vw, 1.8rem)';
     const nameSz = isTopRight ? 'clamp(1.4rem, 2.5vw, 3rem)'   : 'clamp(0.9rem, 1.8vw, 2.2rem)';
     const artSz2 = isTopRight ? 'clamp(0.85rem, 1.35vw, 1.7rem)' : 'clamp(0.67rem, 1.0vw, 1.25rem)';
@@ -438,13 +440,14 @@ export default function DisplayPage() {
             {/* LEFT — QR Code (~30%), centered vertically */}
             <div style={{ flex: '0 0 28%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {qrDataUrl && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
                   <img
                     src={qrDataUrl}
                     alt="QR Code"
                     style={{
-                      width: 'clamp(120px, 14vw, 200px)',
-                      height: 'clamp(120px, 14vw, 200px)',
+                      width: '100%',
+                      height: 'auto',
+                      maxWidth: '260px',
                       background: 'white',
                       borderRadius: '8px',
                       padding: '4px',
@@ -502,7 +505,7 @@ export default function DisplayPage() {
                 {renderZone1(top!)}
                 {/* RIGHT ZONE — ranks 2–5 */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1vh 0' }}>
-                  {rest.slice(0, 4).map((song, i) => renderRankedTile(song, i))}
+                  {rest.slice(0, 4).map((song, i) => renderRankedTile(song, i, true))}
                 </div>
               </>
             )}
