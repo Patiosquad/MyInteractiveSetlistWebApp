@@ -19,6 +19,9 @@
   /* Gold (rank / leaderboard) */
   --gold: #ffb703;
 
+  /* Success (Accept action) */
+  --success: #16a34a;
+
   /* Danger / destructive */
   --danger: #ef3524;
 

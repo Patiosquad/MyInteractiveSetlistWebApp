@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import '../../../../../tokens/tokens.css';
 
 type SongWithTotal = {
   id: string;
@@ -45,12 +46,7 @@ function ordinal(n: number): string {
   }
 }
 
-const rankAccent = (idx: number) => {
-  if (idx === 0) return '#FFD700';
-  if (idx === 1) return '#C0C0C0';
-  if (idx === 2) return '#CD7F32';
-  return '#3f3f46';
-};
+const rankAccent = (idx: number) => (idx === 0 ? 'var(--gold)' : 'var(--text-muted)');
 
 const backBtnStyle: React.CSSProperties = {
   padding: '0.5rem 1rem',
@@ -58,6 +54,25 @@ const backBtnStyle: React.CSSProperties = {
   border: '1px solid #27272a',
   background: 'transparent',
   color: '#a1a1aa',
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+};
+
+const navBtnStyle: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--border)',
+  background: 'var(--bg-tile)',
+  color: 'var(--text-primary)',
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+};
+
+const quietLinkStyle: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--text-muted)',
   fontSize: '0.875rem',
   cursor: 'pointer',
 };
@@ -598,52 +613,60 @@ export default function LivePage() {
   const isPreview = concert?.status === 'preview';
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' }}>
+      <style>{`
+        .live-catalog-search::placeholder { color: var(--text-faint); }
+        .live-catalog-scroll::-webkit-scrollbar { width: 8px; }
+        .live-catalog-scroll::-webkit-scrollbar-track { background: var(--bg-tile); }
+        .live-catalog-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-pill); }
+      `}</style>
 
       {/* Header */}
-      <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem', flexShrink: 0 }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+      <header style={{ borderBottom: '1px solid var(--border-subtle)', padding: '1rem 2rem', flexShrink: 0 }}>
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{concert?.name}</h1>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{concert?.name}</h1>
             {isPreview ? (
-              <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: '#14532d', color: '#86efac' }}>
+              <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-preview-bg)', color: 'var(--status-preview-text)' }}>
                 Taking Requests!
               </span>
             ) : (
-              <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: '#7f1d1d', color: '#fca5a5' }}>
+              <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-live-bg)', color: 'var(--status-live-text)' }}>
                 LIVE
               </span>
             )}
             {bandName && (
-              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>
                 {bandName}
               </span>
             )}
             {trackerTotal > 0 && (
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center', paddingLeft: '1.5rem' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.625rem', color: '#71717a', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Fan Contributions</div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Accepted: <strong style={{ color: '#1DB954' }}>${Math.round(trackerAccepted)}</strong></span>
-                    <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Pending: <strong style={{ color: '#facc15' }}>${Math.round(trackerPending)}</strong></span>
-                    <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Total: <strong style={{ color: '#ffffff' }}>${Math.round(trackerTotal)}</strong></span>
-                  </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', paddingLeft: '1.5rem' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Fan Contributions</div>
+                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'baseline', background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 16px' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Accepted <strong style={{ display: 'block', color: 'var(--gold)', fontSize: '30px', fontWeight: 700 }}>${Math.round(trackerAccepted)}</strong></span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pending <strong style={{ display: 'block', color: 'var(--accent)', fontSize: '30px', fontWeight: 700 }}>${Math.round(trackerPending)}</strong></span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total <strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: '34px', fontWeight: 700 }}>${Math.round(trackerTotal)}</strong></span>
                 </div>
               </div>
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
             <div ref={layoutDropdownRef} style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', borderRadius: '0.5rem', border: '1px solid #3f3f46', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden' }}>
                 <button
                   onClick={() => window.open(`/display/${concertId}?layout=${selectedLayout}`, '_blank')}
-                  style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', border: 'none', borderRight: '1px solid #3f3f46' }}
+                  onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
+                  style={{ padding: '0.5rem 1rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', borderRight: '1px solid var(--border-subtle)' }}
                 >
                   Open Display
                 </button>
                 <button
                   onClick={() => setShowLayoutDropdown(prev => !prev)}
-                  style={{ padding: '0.5rem 0.625rem', background: 'transparent', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', border: 'none', lineHeight: 1 }}
+                  onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
+                  style={{ padding: '0.5rem 0.625rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', lineHeight: 1 }}
                 >
                   ▾
                 </button>
@@ -671,7 +694,9 @@ export default function LivePage() {
               <div ref={concertOptionsDropdownRef} style={{ position: 'relative' }}>
                 <button
                   onClick={() => setShowConcertOptionsDropdown(prev => !prev)}
-                  style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', border: '1px solid #3f3f46', borderRadius: '0.5rem' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  style={navBtnStyle}
                 >
                   Concert Options ▾
                 </button>
@@ -686,10 +711,20 @@ export default function LivePage() {
                   </div>
                 )}
               </div>
-            <button onClick={() => router.push(`/profile?returnTo=/concerts/${concertId}/live`)} style={backBtnStyle}>
+            <button
+              onClick={() => router.push(`/profile?returnTo=/concerts/${concertId}/live`)}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+              style={navBtnStyle}
+            >
               Profile
             </button>
-            <button onClick={() => router.push(`/concerts/${concertId}`)} style={backBtnStyle}>
+            <button
+              onClick={() => router.push(`/concerts/${concertId}`)}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+              style={quietLinkStyle}
+            >
               Back to Catalog
             </button>
           </div>
@@ -700,7 +735,7 @@ export default function LivePage() {
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{
           flex: 1, overflow: 'hidden',
-          maxWidth: '1400px', width: '100%', margin: '0 auto',
+          width: '100%',
           display: 'flex', flexDirection: 'column',
           padding: '0 2rem', boxSizing: 'border-box',
         }}>
@@ -716,17 +751,17 @@ export default function LivePage() {
 
             {/* LEFT: Leaderboard (55%) */}
             <div style={{ flex: 55, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingRight: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fbbf24', letterSpacing: '0.01em', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #3f3f46', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.01em', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 🎵 Song Leaderboard
               </h2>
               {isPreview && (
-                <p style={{ color: '#86efac', fontSize: '0.8125rem', fontStyle: 'italic', textAlign: 'center', margin: '0 0 0.75rem', padding: '0.5rem', background: '#14532d22', borderRadius: '0.5rem', border: '1px solid #14532d' }}>
+                <p style={{ color: 'var(--gold)', fontSize: '0.8125rem', fontStyle: 'italic', textAlign: 'center', margin: '0 0 0.75rem', padding: '0.5rem', background: 'var(--bg-tile-deep)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
                   Songs cannot be accepted until the show goes live
                 </p>
               )}
-              <div style={{ flex: 1, overflowY: 'auto' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '4px' }}>
                 {songs.length === 0 ? (
-                  <p style={{ color: '#52525b', textAlign: 'center', padding: '4rem 0', margin: 0 }}>
+                  <p style={{ color: 'var(--text-faint)', textAlign: 'center', padding: '4rem 0', margin: 0, fontStyle: 'italic' }}>
                     Waiting for fans to contribute...
                   </p>
                 ) : (
@@ -734,16 +769,18 @@ export default function LivePage() {
                     {songs.map((song, idx) => {
                       const isProcessing = processingId === song.id;
                       const accent = rankAccent(idx);
+                      const isTopRank = idx === 0;
                       return (
                         <div
                           key={song.id}
                           style={{
                             display: 'flex', alignItems: 'center', gap: '0.75rem',
-                            padding: '0.875rem 1rem',
-                            borderRadius: '0.75rem',
-                            border: '1px solid #27272a',
-                            borderLeft: `4px solid ${accent}`,
-                            background: '#18181b',
+                            padding: '12px 16px 12px 20px',
+                            borderRadius: 'var(--radius-lg)',
+                            border: '1px solid var(--border)',
+                            borderLeft: isTopRank ? '3px solid var(--gold)' : '3px solid var(--border)',
+                            background: 'var(--bg-tile)',
+                            boxShadow: isTopRank ? '0 0 0 2px var(--gold)' : 'none',
                           }}
                         >
                           <div style={{ width: '2.25rem', flexShrink: 0, textAlign: 'center' }}>
@@ -756,10 +793,10 @@ export default function LivePage() {
                               </div>
                           }
                           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            <p style={{ fontWeight: 700, fontSize: '1.5rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                            <p style={{ fontWeight: 600, fontSize: '1.5rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
                               {song.name}
                             </p>
-                            <p style={{ color: '#ffffff', fontSize: '1.15rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '1.15rem', marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
                               {song.artist}
                             </p>
                             {song.comments && (
@@ -767,7 +804,7 @@ export default function LivePage() {
                             )}
                           </div>
                           <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '3.5rem' }}>
-                            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e4e4e7' }}>${Math.round(song.total)}</span>
+                            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--gold)' }}>${Math.round(song.total)}</span>
                           </div>
                           {!isPreview && (
                           <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
@@ -775,9 +812,9 @@ export default function LivePage() {
                               onClick={() => handleAccept(song)}
                               disabled={isProcessing}
                               style={{
-                                padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: 'none',
-                                background: isProcessing ? '#27272a' : '#16a34a',
-                                color: isProcessing ? '#52525b' : '#ffffff',
+                                padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-md)', border: 'none',
+                                background: isProcessing ? 'var(--border)' : 'var(--success)',
+                                color: isProcessing ? 'var(--text-faint)' : 'var(--text-primary)',
                                 fontSize: '0.8125rem', fontWeight: 600,
                                 cursor: isProcessing ? 'not-allowed' : 'pointer',
                               }}
@@ -788,9 +825,10 @@ export default function LivePage() {
                               onClick={() => setPendingDecline(song)}
                               disabled={isProcessing}
                               style={{
-                                padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: 'none',
-                                background: isProcessing ? '#27272a' : '#991b1b',
-                                color: isProcessing ? '#52525b' : '#ffffff',
+                                padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-md)',
+                                border: isProcessing ? '1px solid var(--border)' : '1px solid var(--danger)',
+                                background: 'transparent',
+                                color: isProcessing ? 'var(--text-faint)' : 'var(--danger)',
                                 fontSize: '0.8125rem', fontWeight: 600,
                                 cursor: isProcessing ? 'not-allowed' : 'pointer',
                               }}
@@ -808,14 +846,16 @@ export default function LivePage() {
             </div>
 
             {/* RIGHT: Catalog (45%) */}
-            <div style={{ flex: 45, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #27272a', paddingLeft: '1.5rem' }}>
+            <div style={{ flex: 45, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--border-subtle)', paddingLeft: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexShrink: 0 }}>
-                <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', margin: 0 }}>
-                  Catalog <span style={{ color: '#52525b', fontWeight: 400 }}>({catalog.length})</span>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Catalog <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>({catalog.length})</span>
                 </h2>
                 <button
                   onClick={() => setShowEmergencyAddModal(true)}
-                  style={{ backgroundColor: '#14532d', color: '#86efac', fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
+                  style={{ background: 'transparent', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent)', cursor: 'pointer' }}
                 >
                   + Add Song
                 </button>
@@ -827,11 +867,11 @@ export default function LivePage() {
                     onClick={() => setCatalogSortMode(mode)}
                     style={{
                       padding: '3px 10px',
-                      borderRadius: '6px',
-                      border: 'none',
+                      borderRadius: 'var(--radius-pill)',
+                      border: catalogSortMode === mode ? 'none' : '1px solid var(--border)',
                       cursor: 'pointer',
-                      background: catalogSortMode === mode ? '#ffffff' : '#27272a',
-                      color: catalogSortMode === mode ? '#000000' : '#a1a1aa',
+                      background: catalogSortMode === mode ? 'var(--accent)' : 'var(--bg-tile)',
+                      color: catalogSortMode === mode ? 'var(--text-primary)' : 'var(--text-muted)',
                       fontSize: '0.7rem',
                       fontWeight: 600,
                     }}
@@ -845,16 +885,17 @@ export default function LivePage() {
                 value={catalogSearch}
                 onChange={(e) => setCatalogSearch(e.target.value)}
                 placeholder="Search songs and/or artists..."
-                style={{ width: '100%', padding: '0.4rem 0.6rem', backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 6, color: '#ffffff', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box', marginBottom: 8, flexShrink: 0 }}
+                className="live-catalog-search"
+                style={{ width: '100%', padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box', marginBottom: 8, flexShrink: 0 }}
               />
               {catalogSearch && (
                 <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', margin: '0 0 8px', flexShrink: 0 }}>
                   Showing {filteredCatalogSongs.length} of {catalog.length}
                 </p>
               )}
-              <div style={{ flex: 1, overflowY: 'auto' }}>
+              <div className="live-catalog-scroll" style={{ flex: 1, overflowY: 'auto' }}>
                 {catalog.length === 0 ? (
-                  <p style={{ color: '#52525b', textAlign: 'center', padding: '4rem 0', margin: 0 }}>
+                  <p style={{ color: 'var(--text-faint)', textAlign: 'center', padding: '4rem 0', margin: 0 }}>
                     No songs in the catalog.
                   </p>
                 ) : (
@@ -863,6 +904,7 @@ export default function LivePage() {
                       const onLeaderboard = song.status === 'active' && song.total > 0;
                       const activeNoContrib = song.status === 'active' && song.total === 0;
                       const isInactive = ['declined', 'deactivated'].includes(song.status);
+                      const isPlayed = song.status === 'played';
                       const isReactivating = reactivatingId === song.id;
                       const isProcessing = processingId === song.id;
                       return (
@@ -870,12 +912,12 @@ export default function LivePage() {
                           key={song.id}
                           style={{
                             display: 'flex', alignItems: 'center', gap: '0.75rem',
-                            padding: '0.75rem',
-                            borderRadius: '0.75rem',
-                            border: '1px solid #27272a',
-                            borderLeft: onLeaderboard ? '4px solid #6366f1' : isInactive ? '4px solid #3f3f46' : '1px solid #27272a',
-                            background: '#18181b',
-                            opacity: isInactive ? 0.7 : 1,
+                            padding: '12px',
+                            borderRadius: 'var(--radius-lg)',
+                            border: '1px solid var(--border)',
+                            borderLeft: onLeaderboard ? '3px solid var(--accent)' : isInactive ? '4px solid var(--border)' : '1px solid var(--border)',
+                            background: 'var(--bg-tile)',
+                            opacity: isPlayed ? 0.5 : isInactive ? 0.7 : 1,
                           }}
                         >
                           {song.album_art_url
@@ -885,10 +927,10 @@ export default function LivePage() {
                               </div>
                           }
                           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            <p style={{ fontWeight: 700, fontSize: '1.35rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                            <p style={{ fontWeight: 600, fontSize: '1.35rem', color: isPlayed ? 'var(--text-muted)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
                               {song.name}
                             </p>
-                            <p style={{ color: '#ffffff', fontSize: '1.1rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
+                            <p style={{ color: isPlayed ? 'var(--text-muted)' : 'var(--text-secondary)', fontSize: '1.1rem', marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 0 }}>
                               {song.artist}
                             </p>
                             {song.comments && (
@@ -897,7 +939,7 @@ export default function LivePage() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                             {onLeaderboard && (
-                              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#818cf8' }}>
+                              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent)' }}>
                                 ${Math.round(song.total)}
                               </span>
                             )}
@@ -905,13 +947,15 @@ export default function LivePage() {
                               <button
                                 onClick={() => { setManagingSong(song); setManageStep('choice'); }}
                                 disabled={isProcessing}
-                                style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isProcessing ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+                                onMouseEnter={(e) => { if (!isProcessing) { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--accent)'; } }}
+                                onMouseLeave={(e) => { e.currentTarget.style.color = isProcessing ? 'var(--text-faint)' : 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                                style={{ padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: isProcessing ? 'var(--text-faint)' : 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
                               >
                                 Manage
                               </button>
                             )}
                             {song.status === 'played' && (
-                              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#86efac', background: '#14532d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--status-closed-text)', background: 'var(--status-closed-bg)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius-pill)' }}>
                                 Played
                               </span>
                             )}
@@ -1241,25 +1285,25 @@ export default function LivePage() {
 
       {/* Dialog 1: Concert Summary */}
       {endConcertStep === 'summary' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>End concert?</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', margin: 0 }}>
-                Total accepted: <span style={{ color: '#1DB954', fontWeight: 700 }}>${Math.round(trackerAccepted)}</span>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: 0 }}>
+                Total accepted: <span style={{ color: 'var(--gold)', fontWeight: 700 }}>${Math.round(trackerAccepted)}</span>
               </p>
               <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>This is what you&apos;ll be paid out, minus the platform fee.</p>
-              <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', margin: '0.5rem 0 0 0' }}>
-                Total pending: <span style={{ color: '#facc15', fontWeight: 700 }}>${Math.round(trackerPending)}</span>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: '0.5rem 0 0 0' }}>
+                Total pending: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>${Math.round(trackerPending)}</span>
               </p>
               <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>These contributions will be released back to fans, not charged.</p>
             </div>
-            <p style={{ color: '#f87171', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>This cannot be undone.</p>
+            <p style={{ color: 'var(--danger)', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <button onClick={() => setEndConcertStep('none')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={() => setEndConcertStep('none')} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button onClick={() => setEndConcertStep('confirm')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setEndConcertStep('confirm')} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--danger)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer' }}>
                 End Concert
               </button>
             </div>
@@ -1269,14 +1313,14 @@ export default function LivePage() {
 
       {/* Dialog 2: Final Confirmation */}
       {endConcertStep === 'confirm' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>Are you certain you are ready to end the concert?</h2>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <button onClick={() => setEndConcertStep('none')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={() => setEndConcertStep('none')} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button onClick={handleEndConcertConfirmed} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={handleEndConcertConfirmed} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--danger)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer' }}>
                 I am certain
               </button>
             </div>
@@ -1286,8 +1330,8 @@ export default function LivePage() {
 
       {/* Processing overlay */}
       {endConcertStep === 'processing' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
             <p style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Processing payments…</p>
             <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>Please don&apos;t close this tab.</p>
           </div>
@@ -1296,16 +1340,16 @@ export default function LivePage() {
 
       {/* Outcome */}
       {endConcertStep === 'outcome' && endConcertOutcome && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
               {endConcertOutcome.kind === 'error' ? 'Something Went Wrong' : endConcertOutcome.kind === 'partial' ? 'Concert Ended — Some Payments Failed' : 'Concert Ended'}
             </h2>
-            <p style={{ color: endConcertOutcome.kind === 'error' ? '#f87171' : '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: endConcertOutcome.kind === 'error' ? 'var(--danger)' : 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
               {endConcertOutcome.message}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <button onClick={dismissEndConcertOutcome} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={dismissEndConcertOutcome} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
                 OK
               </button>
             </div>
