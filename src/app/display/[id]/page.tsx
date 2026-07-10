@@ -35,6 +35,7 @@ export default function DisplayPage() {
 
   const [concertName, setConcertName] = useState('');
   const [concert, setConcert] = useState<{ performer_id: string } | null>(null);
+  const [performerHandle, setPerformerHandle] = useState<string | null>(null);
   const [songs, setSongs] = useState<SongWithTotal[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
@@ -108,6 +109,13 @@ export default function DisplayPage() {
       if (concertData) {
         setConcertName(concertData.name);
         setConcert(concertData);
+
+        const { data: performerData } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', concertData.performer_id)
+          .maybeSingle();
+        setPerformerHandle(performerData?.username ?? null);
       }
       await fetchLeaderboard();
     }
@@ -408,27 +416,87 @@ export default function DisplayPage() {
       }}>
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div style={{ flexShrink: 0, padding: '1.8vh 4vw 1.2vh', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '0.3vh' }}>
-            <h1 style={{ fontSize: 'clamp(1.1rem, 2.2vh, 2rem)', fontWeight: 800, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>
-              {concertName}
-            </h1>
-            <span style={{
-              padding: '0.2rem 0.6rem',
-              borderRadius: '9999px',
-              background: 'var(--status-live-bg)',
-              color: 'var(--status-live-text)',
-              fontSize: 'clamp(0.55rem, 0.9vh, 0.8rem)',
-              fontWeight: 700,
-              letterSpacing: '0.12em',
-              animation: 'pulse-live 2s ease-in-out infinite',
-            }}>
-              LIVE
+        <div style={{
+          flexShrink: 0,
+          position: 'relative',
+          padding: '16px 24px',
+          background: 'radial-gradient(ellipse at top right, rgba(255,90,31,0.06) 0%, transparent 60%), var(--bg-primary)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '24px',
+        }}>
+          {/* LEFT ZONE — Brand lockup */}
+          <div style={{
+            flexShrink: 0,
+            width: 'clamp(200px, 18vw, 240px)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            paddingRight: '24px',
+            borderRight: '1px solid var(--border)',
+          }}>
+            <span style={{ fontSize: 'clamp(24px, 2.5vw, 36px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <span style={{ color: 'var(--text-primary)' }}>Set</span><span style={{ color: 'var(--accent)' }}>Tuner</span>
+            </span>
+            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: '4px' }}>
+              Live Music &middot; Fan Powered
             </span>
           </div>
-          <p style={{ fontSize: 'clamp(0.65rem, 1vh, 0.95rem)', fontWeight: 700, color: 'var(--text-muted)', margin: 0, letterSpacing: '0.06em' }}>
-            SetTuner &nbsp;·&nbsp; Live music. Fan powered.
-          </p>
+
+          {/* RIGHT ZONE — Concert identity */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', paddingRight: '56px', gap: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <span style={{
+                flexShrink: 0,
+                padding: '4px 12px',
+                borderRadius: 'var(--radius-pill)',
+                background: 'var(--status-live-bg)',
+                color: 'var(--status-live-text)',
+                fontSize: '13px',
+                fontWeight: 700,
+                animation: 'pulse-live 2s ease-in-out infinite',
+              }}>
+                LIVE
+              </span>
+              <h1 style={{
+                fontSize: 'clamp(20px, 2.2vw, 34px)',
+                fontWeight: 900,
+                color: 'var(--text-primary)',
+                margin: 0,
+                lineHeight: 1.1,
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {concertName}
+              </h1>
+            </div>
+            {performerHandle && (
+              <p style={{
+                color: 'var(--text-muted)',
+                fontSize: '14px',
+                fontWeight: 400,
+                margin: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '100%',
+              }}>
+                @{performerHandle}
+              </p>
+            )}
+          </div>
+
+          {/* Ember baseline */}
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: '3px',
+            background: 'linear-gradient(to right, var(--accent), var(--gold))',
+          }} />
         </div>
 
         {/* ── Main area ───────────────────────────────────────────────────── */}
