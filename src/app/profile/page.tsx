@@ -4,12 +4,13 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import QRCode from 'qrcode';
+import '../../../tokens/tokens.css';
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: '10px',
-  color: '#555555',
-  letterSpacing: '1px',
+  fontSize: '12px',
+  color: 'var(--text-faint)',
+  letterSpacing: '0.08em',
   textTransform: 'uppercase',
   marginBottom: '6px',
   fontWeight: '600',
@@ -17,20 +18,36 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  backgroundColor: '#0d0d0d',
-  border: '1px solid #2a2a2a',
-  borderRadius: '8px',
-  padding: '10px 12px',
+  backgroundColor: 'var(--bg-tile-deep)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-md)',
+  padding: '10px 14px',
   fontSize: '14px',
-  color: '#cccccc',
+  color: 'var(--text-primary)',
   boxSizing: 'border-box',
   outline: 'none',
 };
 
-const dividerStyle: React.CSSProperties = {
-  borderTop: '1px solid #1e1e1e',
-  margin: '28px 0',
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: '11px',
+  color: 'var(--text-faint)',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  fontWeight: '600',
+  marginBottom: '12px',
 };
+
+const saveButtonStyle = (saving: boolean): React.CSSProperties => ({
+  width: '100%',
+  padding: '14px 24px',
+  backgroundColor: saving ? 'var(--border)' : 'var(--accent)',
+  color: saving ? 'var(--text-faint)' : 'var(--text-primary)',
+  border: 'none',
+  borderRadius: 'var(--radius-lg)',
+  fontSize: '15px',
+  fontWeight: '700',
+  cursor: saving ? 'not-allowed' : 'pointer',
+});
 
 type PayoutsState = 'not_connected' | 'setup_in_progress' | 'active';
 
@@ -481,61 +498,106 @@ function ProfilePageInner() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0d0d0d', padding: '24px 16px 60px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      <style>{`
+        .profile-input::placeholder { color: var(--text-faint); }
+        .profile-input:focus { border-color: var(--accent); outline: none; }
+      `}</style>
 
-      {/* Top bar */}
-      <div style={{ maxWidth: '500px', margin: '0 auto 28px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button
-          onClick={() => router.push(returnTo ?? '/dashboard')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#555',
-            fontSize: '20px',
-            cursor: 'pointer',
-            padding: '0',
-            lineHeight: 1,
+      {/* Header */}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        padding: '16px 24px',
+        background: 'radial-gradient(ellipse at top right, rgba(255,90,31,0.06) 0%, transparent 60%), var(--bg-primary)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {/* LEFT ZONE — Brand lockup */}
+          <div style={{
+            flexShrink: 0,
+            width: 'clamp(200px, 18vw, 240px)',
             display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          ←
-        </button>
-        <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 }}>
-          Profile
-        </h1>
-      </div>
-
-      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-          <span style={{
-            display: 'inline-block',
-            backgroundColor: '#2255ff22',
-            border: '1px solid #2255ff',
-            borderRadius: '20px',
-            padding: '4px 12px',
-            fontSize: '12px',
-            fontWeight: '600',
-            color: '#2255ff',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            paddingRight: '24px',
+            borderRight: '1px solid var(--border)',
           }}>
-            Performer Account
-          </span>
+            <span style={{ fontSize: 'clamp(24px, 2.5vw, 36px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <span style={{ color: 'var(--text-primary)' }}>Set</span><span style={{ color: 'var(--accent)' }}>Tuner</span>
+            </span>
+            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: '4px' }}>
+              Live Music &middot; Fan Powered
+            </span>
+          </div>
+
+          {/* RIGHT ZONE — Page identity */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <h1 style={{ fontSize: 'clamp(18px, 2vw, 28px)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              Profile
+            </h1>
+          </div>
+
+          {/* FAR RIGHT — Log Out + Back link */}
+          <div style={{ flexShrink: 0, marginLeft: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={handleLogout}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-tile)'; e.currentTarget.style.color = 'var(--danger)'; }}
+              style={{
+                background: 'var(--bg-tile)',
+                border: '1px solid var(--danger)',
+                color: 'var(--danger)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 16px',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+              }}
+            >
+              Log Out
+            </button>
+            <button
+              onClick={() => router.push(returnTo ?? '/dashboard')}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+              }}
+            >
+              Back to My Concerts
+            </button>
+          </div>
         </div>
+
+        {/* Ember baseline */}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px', background: 'linear-gradient(to right, var(--accent), var(--gold))' }} />
+      </header>
+
+      <div style={{ width: '100%', padding: '32px 24px', display: 'flex', gap: '32px', alignItems: 'flex-start', boxSizing: 'border-box' }}>
+
+        {/* LEFT COLUMN */}
+        <div style={{ flex: 55, display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
         {/* Account Info */}
         <section>
-          <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '16px' }}>
+          <p style={sectionLabelStyle}>
             Account Info
           </p>
 
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '14px' }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>First Name</label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                className="profile-input"
                 style={inputStyle}
               />
             </div>
@@ -545,6 +607,7 @@ function ProfilePageInner() {
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                className="profile-input"
                 style={inputStyle}
               />
             </div>
@@ -552,7 +615,7 @@ function ProfilePageInner() {
 
           <div style={{ marginBottom: '14px' }}>
             <label style={labelStyle}>Email</label>
-            <p style={{ fontSize: '14px', color: '#555', padding: '10px 12px' }}>{email}</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', padding: '10px 0', margin: 0 }}>{email}</p>
           </div>
 
           <div style={{ marginBottom: '20px' }}>
@@ -561,41 +624,30 @@ function ProfilePageInner() {
               type="text"
               value={bandName}
               onChange={(e) => setBandName(e.target.value)}
+              className="profile-input"
               style={inputStyle}
             />
           </div>
 
           {profileError && (
-            <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{profileError}</p>
+            <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{profileError}</p>
           )}
           {profileSuccess && (
-            <p style={{ color: '#4caf50', fontSize: '13px', marginBottom: '12px' }}>{profileSuccess}</p>
+            <p style={{ color: 'var(--success)', fontSize: '13px', marginBottom: '12px' }}>{profileSuccess}</p>
           )}
 
           <button
             onClick={handleSaveProfile}
             disabled={profileSaving}
-            style={{
-              width: '100%',
-              padding: '13px 0',
-              backgroundColor: profileSaving ? '#1a3acc' : '#2255ff',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: profileSaving ? 'not-allowed' : 'pointer',
-            }}
+            style={saveButtonStyle(profileSaving)}
           >
             {profileSaving ? 'Saving...' : 'Save Profile'}
           </button>
         </section>
 
-        <div style={dividerStyle} />
-
         {/* Concert Code */}
         <section>
-          <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '16px' }}>
+          <p style={sectionLabelStyle}>
             Concert Code
           </p>
 
@@ -607,12 +659,13 @@ function ProfilePageInner() {
               onChange={(e) => setConcertCode(e.target.value.slice(0, 15))}
               placeholder="e.g. BandName2024"
               maxLength={15}
+              className="profile-input"
               style={inputStyle}
             />
             <span style={{
               flexShrink: 0,
               fontSize: '12px',
-              color: '#555',
+              color: 'var(--text-faint)',
               minWidth: '34px',
               textAlign: 'right',
             }}>
@@ -620,39 +673,28 @@ function ProfilePageInner() {
             </span>
           </div>
 
-          <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6, marginBottom: '20px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-faint)', lineHeight: 1.6, marginBottom: '20px' }}>
             Fans enter this code in the Join Concert tab to go straight into your live show. No spaces. Max 15 characters. Case sensitive.
           </p>
 
           {codeError && (
-            <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{codeError}</p>
+            <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{codeError}</p>
           )}
           {codeSuccess && (
-            <p style={{ color: '#4caf50', fontSize: '13px', marginBottom: '12px' }}>{codeSuccess}</p>
+            <p style={{ color: 'var(--success)', fontSize: '13px', marginBottom: '12px' }}>{codeSuccess}</p>
           )}
 
           <button
             onClick={handleSaveCode}
             disabled={codeSaving}
-            style={{
-              width: '100%',
-              padding: '13px 0',
-              backgroundColor: codeSaving ? '#1a3acc' : '#2255ff',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: codeSaving ? 'not-allowed' : 'pointer',
-            }}
+            style={saveButtonStyle(codeSaving)}
           >
             {codeSaving ? 'Saving...' : 'Save Code'}
           </button>
         </section>
 
-        <div style={{ height: '1px', background: '#1a1a1a', margin: '24px 0' }} />
         <section>
-          <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '16px' }}>
+          <p style={sectionLabelStyle}>
             Taking Requests Code
           </p>
           <label style={labelStyle}>Taking Requests Code</label>
@@ -663,48 +705,42 @@ function ProfilePageInner() {
               onChange={(e) => setPreviewCode(e.target.value.slice(0, 15))}
               placeholder="e.g. BandNameFriday"
               maxLength={15}
+              className="profile-input"
               style={inputStyle}
             />
-            <span style={{ flexShrink: 0, fontSize: '12px', color: '#555', minWidth: '34px', textAlign: 'right' }}>
+            <span style={{ flexShrink: 0, fontSize: '12px', color: 'var(--text-faint)', minWidth: '34px', textAlign: 'right' }}>
               {previewCode.length}/15
             </span>
           </div>
-          <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6, marginBottom: '20px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-faint)', lineHeight: 1.6, marginBottom: '20px' }}>
             Share this code so Fans can find your Taking Requests concerts. No spaces. Max 15 characters. Case sensitive. Must be different from your Concert Code.
           </p>
           {previewCodeError && (
-            <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{previewCodeError}</p>
+            <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{previewCodeError}</p>
           )}
           {previewCodeSuccess && (
-            <p style={{ color: '#4caf50', fontSize: '13px', marginBottom: '12px' }}>{previewCodeSuccess}</p>
+            <p style={{ color: 'var(--success)', fontSize: '13px', marginBottom: '12px' }}>{previewCodeSuccess}</p>
           )}
           <button
             onClick={handleSavePreviewCode}
             disabled={previewCodeSaving}
-            style={{
-              width: '100%',
-              padding: '13px 0',
-              backgroundColor: previewCodeSaving ? '#1a3acc' : '#2255ff',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: previewCodeSaving ? 'not-allowed' : 'pointer',
-            }}
+            style={saveButtonStyle(previewCodeSaving)}
           >
             {previewCodeSaving ? 'Saving...' : 'Save Taking Requests Code'}
           </button>
         </section>
 
-        {/* QR Code */}
-        <div style={{ height: '1px', background: '#1a1a1a', margin: '24px 0' }} />
+        </div>
 
+        {/* RIGHT COLUMN */}
+        <div style={{ flex: 45, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+        {/* QR Code */}
         <section>
-          <p style={{ fontSize: '10px', color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '12px', textAlign: 'center' }}>
+          <p style={sectionLabelStyle}>
             Your QR Code
           </p>
-          <p style={{ fontSize: '12px', color: '#555', textAlign: 'center', margin: '0 0 12px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', margin: '0 0 12px', lineHeight: 1.5 }}>
             This QR code is linked to your Concert Code only. It does not work for Taking Requests concerts.
           </p>
 
@@ -712,15 +748,15 @@ function ProfilePageInner() {
             <>
               <img
                 src={qrDataUrl}
-                width={100}
-                height={100}
                 alt="QR Code"
-                style={{ borderRadius: '8px', display: 'block', margin: '0 auto 12px', background: 'white', padding: '6px' }}
+                style={{ width: '100%', maxWidth: '280px', margin: '0 auto 12px', display: 'block', background: 'white', borderRadius: 'var(--radius-lg)', padding: '16px', boxSizing: 'border-box' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   onClick={() => setShowQRModal(true)}
-                  style={{ background: '#141414', border: '1px solid #333', borderRadius: '8px', padding: '8px 16px', color: '#888', fontSize: '13px', cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  style={{ flex: 1, background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 16px', color: 'var(--text-primary)', fontSize: '13px', cursor: 'pointer' }}
                 >
                   ⛶ View Full Screen
                 </button>
@@ -731,7 +767,9 @@ function ProfilePageInner() {
                     link.href = qrDataUrl;
                     link.click();
                   }}
-                  style={{ background: '#141414', border: '1px solid #2255ff44', borderRadius: '8px', padding: '8px 16px', color: '#2255ff', fontSize: '13px', cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  style={{ flex: 1, background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 16px', color: 'var(--text-primary)', fontSize: '13px', cursor: 'pointer' }}
                 >
                   ↓ Download PNG
                 </button>
@@ -740,21 +778,19 @@ function ProfilePageInner() {
           )}
         </section>
 
-        <div style={dividerStyle} />
-
         {/* Payouts */}
         <section>
-          <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', marginBottom: '16px' }}>
+          <p style={sectionLabelStyle}>
             Payouts
           </p>
 
           {payoutsState === 'not_connected' && (
-            <div>
-              <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.6, marginBottom: '20px' }}>
+            <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
                 Connect a bank account to receive payouts from fan song requests.
               </p>
               {connectError && (
-                <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
+                <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
               )}
               <button
                 onClick={handleConnectBank}
@@ -762,10 +798,10 @@ function ProfilePageInner() {
                 style={{
                   width: '100%',
                   padding: '13px 0',
-                  backgroundColor: connectLoading ? '#1a3acc' : '#2255ff',
-                  color: '#ffffff',
+                  backgroundColor: connectLoading ? 'var(--border)' : 'var(--accent)',
+                  color: connectLoading ? 'var(--text-faint)' : 'var(--text-primary)',
                   border: 'none',
-                  borderRadius: '10px',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '15px',
                   fontWeight: '600',
                   cursor: connectLoading ? 'not-allowed' : 'pointer',
@@ -778,9 +814,9 @@ function ProfilePageInner() {
 
           {payoutsState === 'setup_in_progress' && (
             <div style={{
-              backgroundColor: '#111111',
-              border: '1px solid #2a2a2a',
-              borderRadius: '10px',
+              background: 'var(--bg-tile)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
               padding: '16px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -788,18 +824,18 @@ function ProfilePageInner() {
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  backgroundColor: '#f59e0b',
+                  backgroundColor: 'var(--gold)',
                   flexShrink: 0,
                 }} />
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#f59e0b' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--gold)' }}>
                   Setup In Progress
                 </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6, marginBottom: '16px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
                 Your Stripe account is connected but setup is not complete. Finish adding your bank account to start receiving payouts.
               </p>
               {connectError && (
-                <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
+                <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
               )}
               <button
                 onClick={handleConnectBank}
@@ -807,10 +843,10 @@ function ProfilePageInner() {
                 style={{
                   width: '100%',
                   padding: '11px 0',
-                  backgroundColor: connectLoading ? '#1a3acc' : '#2255ff',
-                  color: '#ffffff',
+                  backgroundColor: connectLoading ? 'var(--border)' : 'var(--accent)',
+                  color: connectLoading ? 'var(--text-faint)' : 'var(--text-primary)',
                   border: 'none',
-                  borderRadius: '10px',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: connectLoading ? 'not-allowed' : 'pointer',
@@ -823,39 +859,35 @@ function ProfilePageInner() {
 
           {payoutsState === 'active' && (
             <div style={{
-              backgroundColor: '#111111',
-              border: '1px solid #2a2a2a',
-              borderRadius: '10px',
+              background: 'var(--bg-tile)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
               padding: '16px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#4caf50',
-                  flexShrink: 0,
-                }} />
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#4caf50' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ color: 'var(--success)', fontSize: '10px', marginRight: '6px' }}>●</span>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--success)' }}>
                   Payouts Active
                 </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.6, marginBottom: '16px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
                 Your bank account is connected and ready to receive payouts from fan song requests.
               </p>
               {connectError && (
-                <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
+                <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
               )}
               <button
                 onClick={handleConnectBank}
                 disabled={connectLoading}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
                 style={{
                   width: '100%',
-                  padding: '11px 0',
-                  backgroundColor: 'transparent',
-                  color: '#a1a1aa',
-                  border: '1px solid #2a2a2a',
-                  borderRadius: '10px',
+                  padding: '10px',
+                  backgroundColor: 'var(--bg-tile-deep)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: connectLoading ? 'not-allowed' : 'pointer',
@@ -866,8 +898,6 @@ function ProfilePageInner() {
             </div>
           )}
         </section>
-
-        <div style={{ height: '1px', background: '#1a1a1a', margin: '24px 0' }} />
         <section>
           <div
             onClick={() => {
@@ -876,14 +906,14 @@ function ProfilePageInner() {
                 return !prev;
               });
             }}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: '8px' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '12px 16px' }}
           >
-            <p style={{ fontSize: '11px', color: '#555', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: '600', margin: 0 }}>Concert & Earnings History</p>
-            <span style={{ color: '#555', fontSize: '14px' }}>{earningsExpanded ? '▾' : '▸'}</span>
+            <p style={{ fontSize: '11px', color: 'var(--text-faint)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: '600', margin: 0 }}>Concert & Earnings History</p>
+            <span style={{ color: earningsExpanded ? 'var(--accent)' : 'var(--text-faint)', fontSize: '14px' }}>{earningsExpanded ? '▾' : '▸'}</span>
           </div>
           {earningsExpanded && (
             earningsHistory.length === 0 ? (
-              <p style={{ color: '#555', fontSize: '13px' }}>No recent concert history.</p>
+              <p style={{ color: 'var(--text-faint)', fontSize: '13px', marginTop: '12px' }}>No recent concert history.</p>
             ) : (() => {
               const grouped = earningsHistory.reduce((acc: Record<string, any[]>, concert: any) => {
                 const date = new Date(concert.endedAt ?? concert.createdAt ?? 0);
@@ -895,7 +925,7 @@ function ProfilePageInner() {
               }, {});
               const monthKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                   {monthKeys.map((monthKey) => {
                     const monthConcerts = grouped[monthKey];
                     const monthLabel = monthConcerts[0].monthLabel;
@@ -905,32 +935,33 @@ function ProfilePageInner() {
                       <div key={monthKey}>
                         <div
                           onClick={() => toggleEarningsMonth(monthKey)}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-tile-deep)', borderBottom: '1px solid var(--border-subtle)', padding: '10px 16px', cursor: 'pointer' }}
                         >
                           <div>
-                            <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '700', margin: 0 }}>{monthLabel}</p>
-                            <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
+                            <p style={{ color: 'var(--gold)', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', margin: 0 }}>{monthLabel}</p>
+                            <p style={{ color: 'var(--text-faint)', fontSize: '12px', margin: '2px 0 0' }}>
                               {monthConcerts.length} {monthConcerts.length === 1 ? 'concert' : 'concerts'}{monthTotalEarned > 0 ? ` · $${Math.round(monthTotalEarned)} earned` : ''}
                             </p>
                           </div>
-                          <span style={{ color: '#555', fontSize: '14px' }}>{isMonthExpanded ? '▾' : '▸'}</span>
+                          <span style={{ color: isMonthExpanded ? 'var(--accent)' : 'var(--text-faint)', fontSize: '14px' }}>{isMonthExpanded ? '▾' : '▸'}</span>
                         </div>
                         {isMonthExpanded && (
-                          <div style={{ paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {monthConcerts.map((concert: any, cIdx: number) => {
+                          <div style={{ paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {monthConcerts.map((concert: any) => {
                               const dateLabel = new Date(concert.endedAt ?? concert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
                               const venueLabel = [concert.venue, concert.city].filter(Boolean).join(' — ');
                               return (
-                                <div key={concert.concertId} style={{ paddingBottom: cIdx < monthConcerts.length - 1 ? '16px' : 0, borderBottom: cIdx < monthConcerts.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
-                                  <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '700', margin: '0 0 2px' }}>{concert.concertName}</p>
-                                  <p style={{ color: '#555', fontSize: '11px', margin: '0 0 2px' }}>{dateLabel}</p>
-                                  <p style={{ color: '#555', fontSize: '11px', margin: '0 0 8px' }}>{venueLabel}</p>
-                                  <p style={{ color: '#4caf50', fontSize: '13px', fontWeight: '600', margin: '0 0 2px' }}>Earned: ${Math.round(concert.totalEarned)}</p>
-                                  <p style={{ color: '#555', fontSize: '13px', margin: '0 0 2px' }}>Released: ${Math.round(concert.totalReleased)}</p>
-                                  <p style={{ color: '#555', fontSize: '11px', margin: '0 0 10px' }}>{concert.capturedCount} contribution{concert.capturedCount !== 1 ? 's' : ''} accepted · {concert.releasedCount} released</p>
+                                <div key={concert.concertId} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 16px', margin: '4px 8px' }}>
+                                  <p style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{concert.concertName}</p>
+                                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 8px' }}>{venueLabel}{venueLabel ? ' · ' : ''}{dateLabel}</p>
+                                  <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--text-muted)' }}>Earned </span><span style={{ color: 'var(--gold)', fontWeight: '700' }}>${Math.round(concert.totalEarned)}</span></p>
+                                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 2px' }}>Released ${Math.round(concert.totalReleased)}</p>
+                                  <p style={{ color: 'var(--text-faint)', fontSize: '12px', margin: '0 0 10px' }}>{concert.capturedCount} contribution{concert.capturedCount !== 1 ? 's' : ''} accepted · {concert.releasedCount} released</p>
                                   <button
                                     onClick={() => setSelectedEarningsConcert(concert)}
-                                    style={{ padding: '6px 16px', borderRadius: '20px', border: '1px solid #333', background: 'transparent', color: '#ffffff', fontSize: '12px', cursor: 'pointer' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                    style={{ padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer' }}
                                   >
                                     View Details
                                   </button>
@@ -948,26 +979,7 @@ function ProfilePageInner() {
           )}
         </section>
 
-        <div style={dividerStyle} />
-
-        {/* Log Out */}
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '100%',
-            padding: '13px 0',
-            backgroundColor: 'transparent',
-            color: '#ff4444',
-            border: '1px solid #2a2a2a',
-            borderRadius: '10px',
-            fontSize: '15px',
-            fontWeight: '600',
-            cursor: 'pointer',
-          }}
-        >
-          Log Out
-        </button>
-
+        </div>
       </div>
 
       {/* QR Full Screen Modal */}
@@ -1021,55 +1033,73 @@ function ProfilePageInner() {
       )}
 
       {selectedEarningsConcert && (
-        <div style={{ position: 'fixed', inset: 0, background: '#0a0a0a', zIndex: 60, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
-            <p style={{ color: '#ffffff', fontSize: '18px', fontWeight: '700', margin: 0 }}>{selectedEarningsConcert.concertName}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button onClick={() => exportPerformerStatement(selectedEarningsConcert)} style={{ background: 'transparent', border: 'none', color: '#4caf50', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Export</button>
-              <button onClick={() => setSelectedEarningsConcert(null)} style={{ background: 'transparent', border: 'none', color: '#555', fontSize: '24px', cursor: 'pointer' }}>✕</button>
-            </div>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-            <p style={{ color: '#888', fontSize: '13px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
-            <p style={{ color: '#555', fontSize: '11px', margin: '0 0 20px' }}>{new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-              <div style={{ flex: 1, background: '#111', borderRadius: '10px', padding: '16px' }}>
-                <p style={{ color: '#4caf50', fontSize: '22px', fontWeight: '700', margin: '0 0 4px' }}>${Math.round(selectedEarningsConcert.totalEarned)}</p>
-                <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>Total Earned</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '32px', maxWidth: '800px', width: '100%', margin: 'auto', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <p style={{ color: 'var(--text-primary)', fontSize: '28px', fontWeight: '800', margin: 0 }}>{selectedEarningsConcert.concertName}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                <button
+                  onClick={() => exportPerformerStatement(selectedEarningsConcert)}
+                  style={{ background: 'var(--accent)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '6px 14px', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  Export
+                </button>
+                <button
+                  onClick={() => setSelectedEarningsConcert(null)}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '20px', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
               </div>
-              <div style={{ flex: 1, background: '#111', borderRadius: '10px', padding: '16px' }}>
-                <p style={{ color: '#888', fontSize: '22px', fontWeight: '700', margin: '0 0 4px' }}>${Math.round(selectedEarningsConcert.totalReleased)}</p>
-                <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>Total Released</p>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 20px' }}>{new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
+              <div>
+                <p style={{ color: 'var(--text-faint)', fontSize: '11px', textTransform: 'uppercase', margin: '0 0 4px' }}>Total Earned</p>
+                <p style={{ color: 'var(--gold)', fontSize: '40px', fontWeight: '800', margin: 0 }}>${Math.round(selectedEarningsConcert.totalEarned)}</p>
+              </div>
+              <div>
+                <p style={{ color: 'var(--text-faint)', fontSize: '11px', textTransform: 'uppercase', margin: '0 0 4px' }}>Total Released</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '32px', fontWeight: '700', margin: 0 }}>${Math.round(selectedEarningsConcert.totalReleased)}</p>
               </div>
             </div>
             {selectedEarningsConcert.acceptedSongs.length > 0 && (
               <div style={{ marginBottom: '24px' }}>
-                <p style={{ color: '#ffffff', fontSize: '15px', fontWeight: '700', margin: '0 0 12px' }}>✓ Accepted Songs</p>
-                {selectedEarningsConcert.acceptedSongs.map((song: any, idx: number) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid #1a1a1a' }}>
-                    <div>
-                      <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{song.songName}</p>
-                      <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>{song.artist}</p>
+                <p style={sectionLabelStyle}>Accepted Songs</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {selectedEarningsConcert.acceptedSongs.map((song: any, idx: number) => (
+                    <div key={idx} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.songName}</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist}</p>
+                      </div>
+                      <p style={{ color: 'var(--gold)', fontSize: '14px', fontWeight: '700', margin: 0, flexShrink: 0 }}>${Math.round(song.amount)}</p>
                     </div>
-                    <p style={{ color: '#4caf50', fontSize: '14px', fontWeight: '600', margin: 0 }}>${Math.round(song.amount)}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
-            {selectedEarningsConcert.declinedSongs.length > 0 && (
-              <div>
-                <p style={{ color: '#ffffff', fontSize: '15px', fontWeight: '700', margin: '0 0 12px' }}>✕ Declined Songs</p>
-                {selectedEarningsConcert.declinedSongs.map((song: any, idx: number) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid #1a1a1a' }}>
-                    <div>
-                      <p style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{song.songName}</p>
-                      <p style={{ color: '#555', fontSize: '12px', margin: 0 }}>{song.artist}</p>
+            <div>
+              <p style={sectionLabelStyle}>Declined / Not Played Songs</p>
+              {selectedEarningsConcert.declinedSongs.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {selectedEarningsConcert.declinedSongs.map((song: any, idx: number) => (
+                    <div key={idx} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.songName}</p>
+                        <p style={{ color: 'var(--text-faint)', fontSize: '12px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist}</p>
+                      </div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, flexShrink: 0 }}>${Math.round(song.amount)}</p>
                     </div>
-                    <p style={{ color: '#888', fontSize: '14px', margin: 0 }}>${Math.round(song.amount)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: 'var(--text-faint)', textAlign: 'center', padding: '24px 0', margin: 0 }}>No declined songs</p>
+              )}
+            </div>
           </div>
         </div>
       )}
