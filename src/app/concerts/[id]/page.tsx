@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import '../../../../tokens/tokens.css';
 
 type Concert = {
   id: string;
@@ -39,11 +40,11 @@ type SpotifyTrack = {
   decade: string | null;
 };
 
-const STATUS_BADGE: Record<Concert['status'], { background: string; color: string; border?: string }> = {
-  live:     { background: '#7f1d1d', color: '#fca5a5' },
-  preview:  { background: '#14532d', color: '#86efac' },
-  new:      { background: '#1e3a5f', color: '#93c5fd' },
-  closed:   { background: '#27272a', color: '#a1a1aa', border: '1px solid #3f3f46' },
+const STATUS_BADGE: Record<Concert['status'], { background: string; color: string }> = {
+  live:     { background: '#3a120c', color: '#ff3b2e' },
+  preview:  { background: '#2a150a', color: '#ffcf6b' },
+  new:      { background: '#3a2408', color: '#ffb703' },
+  closed:   { background: '#221a16', color: '#8a7566' },
 };
 
 const SONG_STATUS_COLOR: Record<Song['status'], string> = {
@@ -67,13 +68,42 @@ function concertSubtitle(c: Concert): string {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '0.625rem 0.875rem',
-  borderRadius: '0.5rem',
-  border: '1px solid #27272a',
-  background: '#18181b',
-  color: '#ffffff',
+  borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--border)',
+  background: 'var(--bg-tile-deep)',
+  color: 'var(--text-primary)',
   fontSize: '1rem',
   outline: 'none',
   boxSizing: 'border-box',
+};
+
+const navBtnStyle: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--border)',
+  background: 'var(--bg-tile)',
+  color: 'var(--text-primary)',
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+};
+
+const dangerNavBtnStyle: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--danger)',
+  background: 'var(--bg-tile)',
+  color: 'var(--danger)',
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+};
+
+const quietLinkStyle: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--text-muted)',
+  fontSize: '0.875rem',
+  cursor: 'pointer',
 };
 
 export default function ConcertPage() {
@@ -707,118 +737,143 @@ export default function ConcertPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      <style>{`
+        .concert-input::placeholder { color: var(--text-faint); }
+        .pill-disabled {
+          background: var(--bg-tile);
+          border: 1px solid var(--border-subtle);
+          color: var(--text-faint);
+          border-radius: var(--radius-pill);
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+      `}</style>
       {/* Header */}
-      <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem', position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#09090b' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{c.name}</h1>
-                <span style={{
-                  padding: '0.2rem 0.625rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  textTransform: 'capitalize',
-                  ...badge,
-                }}>
-                  {c.status === 'preview' ? 'Taking Requests!' : c.status.toUpperCase()}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        padding: '16px 24px',
+        background: 'radial-gradient(ellipse at top right, rgba(255,90,31,0.06) 0%, transparent 60%), var(--bg-primary)',
+      }}>
+        <div style={{
+          maxWidth: '1000px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+        }}>
+          {/* LEFT ZONE — Brand lockup */}
+          <div style={{
+            flexShrink: 0,
+            width: 'clamp(200px, 18vw, 240px)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            paddingRight: '24px',
+            borderRight: '1px solid var(--border)',
+          }}>
+            <span style={{ fontSize: 'clamp(24px, 2.5vw, 36px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <span style={{ color: 'var(--text-primary)' }}>Set</span><span style={{ color: 'var(--accent)' }}>Tuner</span>
+            </span>
+            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: '4px' }}>
+              Live Music &middot; Fan Powered
+            </span>
+          </div>
+
+          {/* RIGHT ZONE — Concert identity */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <h1 style={{ fontSize: 'clamp(18px, 2vw, 28px)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {c.name}
+              </h1>
+              <span style={{
+                flexShrink: 0,
+                padding: '0.2rem 0.625rem',
+                borderRadius: 'var(--radius-pill)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'capitalize',
+                ...badge,
+              }}>
+                {c.status === 'preview' ? 'Taking Requests!' : c.status.toUpperCase()}
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '2px 0 0', textAlign: 'right' }}>
+              {concertSubtitle(c)}
+              {previewCountdown && (
+                <span style={{ color: previewCountdown.urgent ? 'var(--danger)' : 'var(--text-secondary)', fontWeight: 600, marginLeft: '8px' }}>
+                  {previewCountdown.text}
                 </span>
-                  {previewCountdown && (
-                    <span style={{ color: previewCountdown.urgent ? '#f87171' : '#a1a1aa', fontSize: '0.8125rem', fontWeight: 600 }}>
-                      {previewCountdown.text}
-                    </span>
-                  )}
-                {bandName && (
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
-                    {bandName}
-                  </span>
-                )}
-              </div>
-              <p style={{ color: '#71717a', fontSize: '0.875rem' }}>{concertSubtitle(c)}</p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-              {c.status === 'live' && (
-                <button
-                  onClick={() => router.push(`/concerts/${concertId}/live`)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: 'none',
-                    background: '#14532d',
-                    color: '#86efac',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Go to Live View
-                </button>
               )}
-              {c.status !== 'live' && (
-                <button
-                  onClick={openEditConcertModal}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #27272a',
-                    background: 'transparent',
-                    color: '#a1a1aa',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Edit Concert
-                </button>
-              )}
-              {(c.status === 'new' || c.status === 'closed') && (
-                <button
-                  onClick={() => setShowDeleteConcertModal(true)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #7f1d1d',
-                    background: 'transparent',
-                    color: '#f87171',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Delete Concert
-                </button>
-              )}
+            </p>
+            {bandName && (
+              <p style={{ fontSize: '13px', fontWeight: 400, color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                @{bandName}
+              </p>
+            )}
+          </div>
+
+          {/* FAR RIGHT — nav buttons */}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '24px' }}>
+            {c.status === 'live' && (
               <button
-                onClick={() => router.push(`/profile?returnTo=/concerts/${concert?.id}`)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #27272a',
-                  background: 'transparent',
-                  color: '#a1a1aa',
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                }}
+                onClick={() => router.push(`/concerts/${concertId}/live`)}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                style={navBtnStyle}
               >
-                Profile
+                Go to Live View
               </button>
+            )}
+            {c.status !== 'live' && (
               <button
-                onClick={() => router.push('/dashboard')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #27272a',
-                  background: 'transparent',
-                  color: '#a1a1aa',
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                }}
+                onClick={openEditConcertModal}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                style={navBtnStyle}
               >
-                Back to My Concerts
+                Edit Concert
               </button>
-            </div>
+            )}
+            {(c.status === 'new' || c.status === 'closed') && (
+              <button
+                onClick={() => setShowDeleteConcertModal(true)}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-tile)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                style={dangerNavBtnStyle}
+              >
+                Delete Concert
+              </button>
+            )}
+            <button
+              onClick={() => router.push(`/profile?returnTo=/concerts/${concert?.id}`)}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+              style={navBtnStyle}
+            >
+              Profile
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+              style={quietLinkStyle}
+            >
+              Back to My Concerts
+            </button>
           </div>
         </div>
+
+        {/* Ember baseline */}
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: '3px',
+          background: 'linear-gradient(to right, var(--accent), var(--gold))',
+        }} />
       </header>
 
       <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -832,14 +887,18 @@ export default function ConcertPage() {
               <button
                 onClick={() => setShowPreviewToLiveModal(true)}
                 disabled={goingLive}
-                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: 'none', background: goingLive ? '#14532d80' : '#16a34a', color: '#ffffff', fontSize: '1rem', fontWeight: 700, cursor: goingLive ? 'not-allowed' : 'pointer' }}
+                onMouseEnter={(e) => { if (!goingLive) { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--success)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ flex: 1, padding: '16px 24px', borderRadius: 'var(--radius-lg)', border: 'none', background: goingLive ? 'var(--border)' : 'var(--success)', color: goingLive ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '16px', fontWeight: 700, cursor: goingLive ? 'not-allowed' : 'pointer' }}
               >
                 {goingLive ? 'Going Live…' : '🎤 Go Live'}
               </button>
               <button
                 onClick={handleGoToPreview}
                 disabled={goingToPreview}
-                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: 'none', background: goingToPreview ? '#78350f80' : '#92400e', color: '#fcd34d', fontSize: '1rem', fontWeight: 700, cursor: goingToPreview ? 'not-allowed' : 'pointer' }}
+                onMouseEnter={(e) => { if (!goingToPreview) { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ flex: 1, padding: '16px 24px', borderRadius: 'var(--radius-lg)', border: 'none', background: goingToPreview ? 'var(--border)' : 'var(--accent)', color: goingToPreview ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '16px', fontWeight: 700, cursor: goingToPreview ? 'not-allowed' : 'pointer' }}
               >
                 {goingToPreview ? 'Starting…' : '🎟️ Take Requests'}
               </button>
@@ -850,21 +909,23 @@ export default function ConcertPage() {
         {c.status === 'preview' && (
           <button
             onClick={() => router.push(`/concerts/${concertId}/live`)}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
             style={{
               width: '100%',
-              padding: '0.875rem',
-              borderRadius: '0.75rem',
-              border: 'none',
-              background: '#1e3a5f',
-              color: '#93c5fd',
+              padding: '14px 24px',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-tile)',
+              color: 'var(--text-primary)',
               fontSize: '1rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               letterSpacing: '0.01em',
               marginBottom: '0.5rem',
             }}
           >
-            👁 View Leaderboard
+            <span style={{ color: 'var(--accent)' }}>👁</span> View Leaderboard
           </button>
         )}
 
@@ -875,13 +936,17 @@ export default function ConcertPage() {
               <button
                 onClick={() => setShowPreviewToLiveModal(true)}
                 disabled={goingLive}
-                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: 'none', background: goingLive ? '#14532d80' : '#16a34a', color: '#ffffff', fontSize: '1rem', fontWeight: 700, cursor: goingLive ? 'not-allowed' : 'pointer' }}
+                onMouseEnter={(e) => { if (!goingLive) { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--success)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ flex: 1, padding: '16px 24px', borderRadius: 'var(--radius-lg)', border: 'none', background: goingLive ? 'var(--border)' : 'var(--success)', color: goingLive ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '16px', fontWeight: 700, cursor: goingLive ? 'not-allowed' : 'pointer' }}
               >
                 {goingLive ? 'Going Live…' : '🎤 Go Live'}
               </button>
               <button
                 onClick={() => setShowEndPreviewModal(true)}
-                style={{ flex: 1, padding: '0.875rem', borderRadius: '0.75rem', border: '1px solid #7f1d1d', background: 'transparent', color: '#f87171', fontSize: '1rem', fontWeight: 700, cursor: 'pointer' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--danger)'; }}
+                style={{ flex: 1, padding: '14px 24px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--danger)', background: 'transparent', color: 'var(--danger)', fontSize: '1rem', fontWeight: 600, cursor: 'pointer' }}
               >
                 End Taking Requests
               </button>
@@ -892,7 +957,7 @@ export default function ConcertPage() {
         {/* Add Song panel — building only */}
         {isBuilding && (
           <section>
-            <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: '#e4e4e7' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
               Add a Song
             </h2>
 
@@ -902,11 +967,11 @@ export default function ConcertPage() {
                 onClick={() => { setAddMode('spotify'); setManualError(''); }}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  border: addMode === 'spotify' ? 'none' : '1px solid var(--border)',
                   cursor: 'pointer',
-                  background: addMode === 'spotify' ? '#ffffff' : '#333333',
-                  color: addMode === 'spotify' ? '#000000' : '#aaaaaa',
+                  background: addMode === 'spotify' ? 'var(--accent)' : 'var(--bg-tile)',
+                  color: addMode === 'spotify' ? 'var(--text-primary)' : 'var(--text-muted)',
                   fontWeight: 600,
                 }}
               >
@@ -916,11 +981,11 @@ export default function ConcertPage() {
                 onClick={() => { setAddMode('manual'); setManualError(''); }}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  border: addMode === 'manual' ? 'none' : '1px solid var(--border)',
                   cursor: 'pointer',
-                  background: addMode === 'manual' ? '#ffffff' : '#333333',
-                  color: addMode === 'manual' ? '#000000' : '#aaaaaa',
+                  background: addMode === 'manual' ? 'var(--accent)' : 'var(--bg-tile)',
+                  color: addMode === 'manual' ? 'var(--text-primary)' : 'var(--text-muted)',
                   fontWeight: 600,
                 }}
               >
@@ -942,7 +1007,7 @@ export default function ConcertPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search Spotify — song title, artist…"
-                  style={inputStyle}
+                  className="concert-input" style={inputStyle}
                 />
                 {searching && (
                   <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#71717a' }}>Searching…</p>
@@ -1006,7 +1071,7 @@ export default function ConcertPage() {
                     type="text"
                     value={manualName}
                     onChange={(e) => setManualName(e.target.value)}
-                    style={inputStyle}
+                    className="concert-input" style={inputStyle}
                   />
                 </div>
                 <div>
@@ -1017,7 +1082,7 @@ export default function ConcertPage() {
                     type="text"
                     value={manualArtist}
                     onChange={(e) => setManualArtist(e.target.value)}
-                    style={inputStyle}
+                    className="concert-input" style={inputStyle}
                   />
                 </div>
                 <div>
@@ -1028,12 +1093,12 @@ export default function ConcertPage() {
                     type="text"
                     value={manualAlbum}
                     onChange={(e) => setManualAlbum(e.target.value)}
-                    style={inputStyle}
+                    className="concert-input" style={inputStyle}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Performer Notes</label>
-                  <input type="text" value={manualComments} onChange={(e) => setManualComments(e.target.value)} placeholder="e.g. Play in drop D, slow tempo" style={inputStyle} />
+                  <input type="text" value={manualComments} onChange={(e) => setManualComments(e.target.value)} placeholder="e.g. Play in drop D, slow tempo" className="concert-input" style={inputStyle} />
                 </div>
                 {manualError && (
                   <p style={{ fontSize: '0.875rem', color: '#f87171', margin: 0 }}>{manualError}</p>
@@ -1063,13 +1128,15 @@ export default function ConcertPage() {
         {/* Song list */}
         <section>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#e4e4e7', margin: 0 }}>
-              {isBuilding ? 'Catalog' : 'Songs'} {songs.length > 0 && <span style={{ color: '#52525b', fontWeight: 400 }}>({songs.length})</span>}
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              {isBuilding ? 'Catalog' : 'Songs'} {songs.length > 0 && <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>({songs.length})</span>}
             </h2>
             {c.status === 'live' && (
               <button
                 onClick={() => setShowEmergencyAddModal(true)}
-                style={{ backgroundColor: '#14532d', color: '#86efac', fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
+                style={{ background: 'transparent', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600, padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent)', cursor: 'pointer' }}
               >
                 + Add Song
               </button>
@@ -1156,11 +1223,11 @@ export default function ConcertPage() {
                         }}
                         style={{
                           padding: '4px 12px',
-                          borderRadius: '6px',
-                          border: 'none',
+                          borderRadius: 'var(--radius-pill)',
+                          border: isActive ? 'none' : '1px solid var(--border)',
                           cursor: 'pointer',
-                          background: isActive ? '#ffffff' : '#27272a',
-                          color: isActive ? '#000000' : '#a1a1aa',
+                          background: isActive ? 'var(--accent)' : 'var(--bg-tile)',
+                          color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                           fontSize: '0.75rem',
                           fontWeight: 600,
                           whiteSpace: 'nowrap',
@@ -1178,7 +1245,8 @@ export default function ConcertPage() {
                     value={catalogSearch}
                     onChange={(e) => setCatalogSearch(e.target.value)}
                     placeholder="Search songs and/or artists..."
-                    style={{ width: '100%', padding: '0.5rem 0.75rem', backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, color: '#ffffff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                    className="concert-input"
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-tile-deep)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                   />
                   {catalogSearch && (
                     <p style={{ fontSize: '0.8rem', color: '#52525b', marginTop: '0.375rem', marginBottom: 0 }}>
@@ -1199,10 +1267,11 @@ export default function ConcertPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.875rem',
-                    padding: '0.875rem 1rem',
-                    borderRadius: '0.75rem',
-                    border: contributedSongIds.has(song.id) ? '2px solid #6366f1' : '1px solid #27272a',
-                    background: '#18181b',
+                    padding: '12px 16px',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1px solid var(--border)',
+                    borderLeft: contributedSongIds.has(song.id) ? '3px solid var(--accent)' : '1px solid var(--border)',
+                    background: 'var(--bg-tile)',
                   }}
                 >
                   {song.album_art_url
@@ -1212,16 +1281,16 @@ export default function ConcertPage() {
                       </div>
                   }
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <p style={{ fontWeight: 700, fontSize: '1.5rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ fontWeight: 600, fontSize: '1.5rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {song.name}
                     </p>
-                    <p style={{ color: '#ffffff', fontSize: '1.15rem', opacity: 0.55, marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {song.artist}{song.album ? ` · ${song.album}` : ''}
                     </p>
                     {contributedSongIds.has(song.id) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6366f1' }} />
-                        <span style={{ color: '#6366f1', fontSize: '0.75rem', fontWeight: 500 }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)' }} />
+                        <span style={{ color: 'var(--accent)', fontSize: '13px', fontWeight: 500 }}>
                           In queue — ${Math.round(contributedSongAmounts[song.id] ?? 0)} contributed
                         </span>
                       </div>
@@ -1232,21 +1301,25 @@ export default function ConcertPage() {
                       <button
                         onClick={() => setEditingSong({ id: song.id, name: song.name, artist: song.artist, album: song.album ?? '', comments: song.comments ?? '' })}
                         title="Edit song"
-                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#a78bfa', fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: 'var(--accent)', fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}
                       >
                         ✏️
                       </button>
                       <button
                         onClick={() => handleRemoveSong(song.id, song.name)}
                         title="Remove song"
+                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; }}
                         style={{
                           flexShrink: 0,
                           width: 28,
                           height: 28,
                           borderRadius: '50%',
-                          border: '1px solid #3f3f46',
+                          border: '1px solid var(--border)',
                           background: 'transparent',
-                          color: '#71717a',
+                          color: 'var(--text-faint)',
                           fontSize: '1rem',
                           lineHeight: 1,
                           cursor: 'pointer',
@@ -1267,7 +1340,9 @@ export default function ConcertPage() {
                         <button
                           onClick={() => { setManagingSong(song); setManageStep('choice'); }}
                           disabled={isProcessing}
-                          style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', border: '1px solid #3f3f46', background: 'transparent', color: isProcessing ? '#52525b' : '#a1a1aa', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+                          onMouseEnter={(e) => { if (!isProcessing) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = isProcessing ? 'var(--text-faint)' : 'var(--text-muted)'; }}
+                          style={{ padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: isProcessing ? 'var(--text-faint)' : 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 500, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
                         >
                           Manage
                         </button>
@@ -1311,8 +1386,8 @@ export default function ConcertPage() {
       </main>
 
       {showEmergencyAddModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '520px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '1.5rem', maxWidth: '520px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Add a Song</h2>
               <button onClick={closeEmergencyModal} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
@@ -1321,12 +1396,12 @@ export default function ConcertPage() {
               <p style={{ fontSize: '0.875rem', color: '#86efac', margin: 0, flexShrink: 0 }}>✓ {addedMessage}</p>
             )}
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-              <button onClick={() => { setAddMode('spotify'); setManualError(''); }} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: addMode === 'spotify' ? '#ffffff' : '#333333', color: addMode === 'spotify' ? '#000000' : '#aaaaaa', fontWeight: 600 }}>Search Spotify</button>
-              <button onClick={() => { setAddMode('manual'); setManualError(''); }} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: addMode === 'manual' ? '#ffffff' : '#333333', color: addMode === 'manual' ? '#000000' : '#aaaaaa', fontWeight: 600 }}>Add Manually</button>
+              <button onClick={() => { setAddMode('spotify'); setManualError(''); }} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: addMode === 'spotify' ? 'none' : '1px solid var(--border)', cursor: 'pointer', background: addMode === 'spotify' ? 'var(--accent)' : 'var(--bg-tile)', color: addMode === 'spotify' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 600 }}>Search Spotify</button>
+              <button onClick={() => { setAddMode('manual'); setManualError(''); }} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: addMode === 'manual' ? 'none' : '1px solid var(--border)', cursor: 'pointer', background: addMode === 'manual' ? 'var(--accent)' : 'var(--bg-tile)', color: addMode === 'manual' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 600 }}>Add Manually</button>
             </div>
             {addMode === 'spotify' && (
               <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Spotify — song title, artist…" style={inputStyle} />
+                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Spotify — song title, artist…" className="concert-input" style={inputStyle} />
                 {searching && <p style={{ fontSize: '0.875rem', color: '#71717a', margin: 0 }}>Searching…</p>}
                 {searchResults.length > 0 && (
                   <div style={{ borderRadius: '0.75rem', border: '1px solid #27272a', overflowY: 'auto', flex: 1 }}>
@@ -1348,19 +1423,19 @@ export default function ConcertPage() {
               <form onSubmit={handleManualAdd} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Song Name <span style={{ color: '#f87171' }}>*</span></label>
-                  <input type="text" value={manualName} onChange={(e) => setManualName(e.target.value)} style={inputStyle} />
+                  <input type="text" value={manualName} onChange={(e) => setManualName(e.target.value)} className="concert-input" style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Artist <span style={{ color: '#f87171' }}>*</span></label>
-                  <input type="text" value={manualArtist} onChange={(e) => setManualArtist(e.target.value)} style={inputStyle} />
+                  <input type="text" value={manualArtist} onChange={(e) => setManualArtist(e.target.value)} className="concert-input" style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
-                  <input type="text" value={manualAlbum} onChange={(e) => setManualAlbum(e.target.value)} style={inputStyle} />
+                  <input type="text" value={manualAlbum} onChange={(e) => setManualAlbum(e.target.value)} className="concert-input" style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Performer Notes</label>
-                  <input type="text" value={manualComments} onChange={(e) => setManualComments(e.target.value)} placeholder="e.g. Play in drop D, slow tempo" style={inputStyle} />
+                  <input type="text" value={manualComments} onChange={(e) => setManualComments(e.target.value)} placeholder="e.g. Play in drop D, slow tempo" className="concert-input" style={inputStyle} />
                 </div>
                 {manualError && <p style={{ fontSize: '0.875rem', color: '#f87171', margin: 0 }}>{manualError}</p>}
                 <button type="submit" disabled={manualSubmitting} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: manualSubmitting ? '#3f3f46' : '#ffffff', color: manualSubmitting ? '#a1a1aa' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: manualSubmitting ? 'not-allowed' : 'pointer', alignSelf: 'flex-start' }}>
@@ -1375,14 +1450,14 @@ export default function ConcertPage() {
       {pendingTrack && (
         <div style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.7)',
+          background: 'var(--bg-overlay-heavy)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 50,
         }}>
           <div style={{
-            background: '#18181b',
-            border: '1px solid #3f3f46',
-            borderRadius: '0.75rem',
+            background: 'var(--bg-tile)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-xl)',
             padding: '2rem',
             maxWidth: '480px',
             width: '90%',
@@ -1420,7 +1495,7 @@ export default function ConcertPage() {
                   type="text"
                   value={pendingName}
                   onChange={(e) => setPendingName(e.target.value)}
-                  style={inputStyle}
+                  className="concert-input" style={inputStyle}
                 />
               </div>
               <div>
@@ -1431,7 +1506,7 @@ export default function ConcertPage() {
                   type="text"
                   value={pendingArtist}
                   onChange={(e) => setPendingArtist(e.target.value)}
-                  style={inputStyle}
+                  className="concert-input" style={inputStyle}
                 />
               </div>
               <div>
@@ -1442,7 +1517,7 @@ export default function ConcertPage() {
                   type="text"
                   value={pendingAlbum}
                   onChange={(e) => setPendingAlbum(e.target.value)}
-                  style={inputStyle}
+                  className="concert-input" style={inputStyle}
                 />
               </div>
               <div>
@@ -1454,7 +1529,7 @@ export default function ConcertPage() {
                   value={pendingComments}
                   onChange={(e) => setPendingComments(e.target.value)}
                   placeholder="e.g. Play in drop D, slow tempo"
-                  style={inputStyle}
+                  className="concert-input" style={inputStyle}
                 />
               </div>
             </div>
@@ -1464,10 +1539,10 @@ export default function ConcertPage() {
                 onClick={closeAddModal}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #3f3f46',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
                   background: 'transparent',
-                  color: '#a1a1aa',
+                  color: 'var(--text-muted)',
                   fontSize: '0.9375rem',
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -1480,10 +1555,10 @@ export default function ConcertPage() {
                 disabled={!pendingName.trim() || !pendingArtist.trim()}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: 'var(--radius-md)',
                   border: 'none',
-                  background: !pendingName.trim() || !pendingArtist.trim() ? '#3f3f46' : '#ffffff',
-                  color: !pendingName.trim() || !pendingArtist.trim() ? '#71717a' : '#09090b',
+                  background: !pendingName.trim() || !pendingArtist.trim() ? 'var(--border)' : 'var(--accent)',
+                  color: !pendingName.trim() || !pendingArtist.trim() ? 'var(--text-faint)' : 'var(--text-primary)',
                   fontSize: '0.9375rem',
                   fontWeight: 600,
                   cursor: !pendingName.trim() || !pendingArtist.trim() ? 'not-allowed' : 'pointer',
@@ -1499,14 +1574,14 @@ export default function ConcertPage() {
       {pendingRemoveSong && (
         <div style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.7)',
+          background: 'var(--bg-overlay-heavy)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 50,
         }}>
           <div style={{
-            background: '#18181b',
-            border: '1px solid #3f3f46',
-            borderRadius: '0.75rem',
+            background: 'var(--bg-tile)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-xl)',
             padding: '2rem',
             maxWidth: '420px',
             width: '90%',
@@ -1525,10 +1600,10 @@ export default function ConcertPage() {
                 onClick={() => setPendingRemoveSong(null)}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #3f3f46',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
                   background: 'transparent',
-                  color: '#a1a1aa',
+                  color: 'var(--text-muted)',
                   fontSize: '0.9375rem',
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -1540,10 +1615,10 @@ export default function ConcertPage() {
                 onClick={handleRemoveSongConfirmed}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: 'var(--radius-md)',
                   border: 'none',
-                  background: '#991b1b',
-                  color: '#ffffff',
+                  background: 'var(--danger)',
+                  color: 'var(--text-primary)',
                   fontSize: '0.9375rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -1557,55 +1632,55 @@ export default function ConcertPage() {
       )}
 
       {showEditConcertModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '520px', width: '90%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '520px', width: '90%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Edit Concert</h2>
               <button onClick={() => setShowEditConcertModal(false)} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Concert Name *</label>
-                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Concert Name *</label>
+                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Venue Name *</label>
-                <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Venue Name *</label>
+                <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>City *</label>
-                <input type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>City *</label>
+                <input type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>State</label>
-                <input type="text" value={editState} onChange={(e) => setEditState(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>State</label>
+                <input type="text" value={editState} onChange={(e) => setEditState(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Country</label>
-                <input type="text" value={editCountry} onChange={(e) => setEditCountry(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Country</label>
+                <input type="text" value={editCountry} onChange={(e) => setEditCountry(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Show Date</label>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Show Date</label>
                 <input type="date" value={editShowDate} onChange={(e) => {
                   const selected = e.target.value;
                   const today = new Date().toISOString().split('T')[0];
                   if (selected && selected < today) return;
                   setEditShowDate(selected);
-                }} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }} />
+                }} min={new Date().toISOString().split('T')[0]} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Estimated Start Time</label>
-                <input type="text" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} placeholder="e.g. 8:00 PM" style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Estimated Start Time</label>
+                <input type="text" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} placeholder="e.g. 8:00 PM" className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Estimated Length</label>
-                <input type="text" value={editLength} onChange={(e) => setEditLength(e.target.value)} placeholder="e.g. 2 hours" style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Estimated Length</label>
+                <input type="text" value={editLength} onChange={(e) => setEditLength(e.target.value)} placeholder="e.g. 2 hours" className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
             </div>
             {saveConcertError && <p style={{ color: '#f87171', fontSize: '0.875rem', margin: 0 }}>{saveConcertError}</p>}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowEditConcertModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSaveConcert} disabled={savingConcert} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: savingConcert ? '#3f3f46' : '#ffffff', color: savingConcert ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: savingConcert ? 'not-allowed' : 'pointer' }}>{savingConcert ? 'Saving…' : 'Save'}</button>
+              <button onClick={() => setShowEditConcertModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveConcert} disabled={savingConcert} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: savingConcert ? 'var(--border)' : 'var(--accent)', color: savingConcert ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: savingConcert ? 'not-allowed' : 'pointer' }}>{savingConcert ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -1614,14 +1689,14 @@ export default function ConcertPage() {
       {showDeleteConcertModal && (
         <div style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.7)',
+          background: 'var(--bg-overlay-heavy)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 50,
         }}>
           <div style={{
-            background: '#18181b',
-            border: '1px solid #3f3f46',
-            borderRadius: '0.75rem',
+            background: 'var(--bg-tile)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-xl)',
             padding: '2rem',
             maxWidth: '420px',
             width: '90%',
@@ -1629,21 +1704,21 @@ export default function ConcertPage() {
             flexDirection: 'column',
             gap: '1rem',
           }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               Delete Concert?
             </h2>
-            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-              Permanently delete this concert and all its songs? Any pending contributions will be released. This cannot be undone.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              Permanently delete this concert and all its songs? Any pending contributions will be released. <span style={{ color: 'var(--danger)' }}>This cannot be undone.</span>
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <button
                 onClick={() => setShowDeleteConcertModal(false)}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #3f3f46',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
                   background: 'transparent',
-                  color: '#a1a1aa',
+                  color: 'var(--text-muted)',
                   fontSize: '0.9375rem',
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -1655,12 +1730,12 @@ export default function ConcertPage() {
                 onClick={handleDeleteConcertConfirmed}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: 'var(--radius-pill)',
                   border: 'none',
-                  background: '#991b1b',
-                  color: '#ffffff',
+                  background: 'var(--danger)',
+                  color: 'var(--text-primary)',
                   fontSize: '0.9375rem',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >
@@ -1672,71 +1747,71 @@ export default function ConcertPage() {
       )}
 
       {editingSong && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '480px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '480px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Edit Song</h2>
               <button onClick={() => setEditingSong(null)} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Song Name</label>
-                <input type="text" value={editingSong.name} onChange={(e) => setEditingSong(prev => prev ? { ...prev, name: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Song Name</label>
+                <input type="text" value={editingSong.name} onChange={(e) => setEditingSong(prev => prev ? { ...prev, name: e.target.value } : null)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Artist</label>
-                <input type="text" value={editingSong.artist} onChange={(e) => setEditingSong(prev => prev ? { ...prev, artist: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Artist</label>
+                <input type="text" value={editingSong.artist} onChange={(e) => setEditingSong(prev => prev ? { ...prev, artist: e.target.value } : null)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Album</label>
-                <input type="text" value={editingSong.album ?? ''} onChange={(e) => setEditingSong(prev => prev ? { ...prev, album: e.target.value } : null)} style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Album</label>
+                <input type="text" value={editingSong.album ?? ''} onChange={(e) => setEditingSong(prev => prev ? { ...prev, album: e.target.value } : null)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.375rem' }}>Performer Notes</label>
-                <input type="text" value={editingSong.comments} onChange={(e) => setEditingSong(prev => prev ? { ...prev, comments: e.target.value } : null)} placeholder="e.g. Play in drop D, slow tempo" style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Performer Notes</label>
+                <input type="text" value={editingSong.comments} onChange={(e) => setEditingSong(prev => prev ? { ...prev, comments: e.target.value } : null)} placeholder="e.g. Play in drop D, slow tempo" className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setEditingSong(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSaveSong} disabled={savingSong} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: savingSong ? '#3f3f46' : '#ffffff', color: savingSong ? '#71717a' : '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: savingSong ? 'not-allowed' : 'pointer' }}>{savingSong ? 'Saving…' : 'Save'}</button>
+              <button onClick={() => setEditingSong(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveSong} disabled={savingSong} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: savingSong ? 'var(--border)' : 'var(--accent)', color: savingSong ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: savingSong ? 'not-allowed' : 'pointer' }}>{savingSong ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
       )}
 
       {showPreviewWarningModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>⚠️ Taking Requests Ending Soon</h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>Taking Requests will automatically close in 30 minutes. Once closed, all fan contributions will be released. To prevent this, go live before the timer expires.</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowPreviewWarningModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
+              <button onClick={() => setShowPreviewWarningModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
             </div>
           </div>
         </div>
       )}
 
       {showMultiplePreviewReminder && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Reminder</h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>You now have multiple concerts taking requests. Only one concert can be live at a time.</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowMultiplePreviewReminder(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
+              <button onClick={() => setShowMultiplePreviewReminder(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
             </div>
           </div>
         </div>
       )}
 
       {showEndPreviewModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>End Taking Requests?</h2>
-            <p style={{ color: '#f87171', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>⚠️ All fan contributions will be released and the concert will be closed. This cannot be undone.</p>
+            <p style={{ color: 'var(--danger)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>⚠️ All fan contributions will be released and the concert will be closed. This cannot be undone.</p>
             <p style={{ color: '#a1a1aa', fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>Only do this if the show has been canceled or you no longer want to accept early requests.</p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowEndPreviewModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleEndPreview} disabled={endingPreview} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: endingPreview ? 'not-allowed' : 'pointer' }}>
+              <button onClick={() => setShowEndPreviewModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleEndPreview} disabled={endingPreview} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--danger)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: endingPreview ? 'not-allowed' : 'pointer' }}>
                 {endingPreview ? 'Releasing…' : 'End & Release All'}
               </button>
             </div>
@@ -1745,25 +1820,25 @@ export default function ConcertPage() {
       )}
 
       {showPreviewToLiveModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Go Live?</h2>
-            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Go Live?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
               {concert?.status === 'preview'
                 ? 'The concert will go live and all existing fan contributions will carry over to the leaderboard.'
                 : 'The concert will go live and fans will be able to contribute to songs on the leaderboard.'}
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowPreviewToLiveModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => { setShowPreviewToLiveModal(false); handleGoLive(); }} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#16a34a', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>Go Live</button>
+              <button onClick={() => setShowPreviewToLiveModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { setShowPreviewToLiveModal(false); handleGoLive(); }} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-pill)', border: 'none', background: 'var(--success)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer' }}>Go Live</button>
             </div>
           </div>
         </div>
       )}
 
       {editingComments && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Performer Notes</h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.875rem', margin: 0 }}>{editingComments.name}</p>
             <input
@@ -1771,11 +1846,11 @@ export default function ConcertPage() {
               value={editingComments.comments}
               onChange={(e) => setEditingComments(prev => prev ? { ...prev, comments: e.target.value } : null)}
               placeholder="e.g. Play in drop D, slow tempo"
-              style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#09090b', color: '#ffffff', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+              className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
             />
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setEditingComments(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSaveComments} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>Save</button>
+              <button onClick={() => setEditingComments(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveComments} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--accent)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>Save</button>
             </div>
           </div>
         </div>
@@ -1783,17 +1858,17 @@ export default function ConcertPage() {
 
       {/* Manage Song: Choice */}
       {manageStep === 'choice' && managingSong && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>What would you like to do with &quot;{managingSong.name}&quot;?</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <button onClick={() => { setManageStep('none'); setManagingSong(null); }} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={() => { setManageStep('none'); setManagingSong(null); }} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button onClick={handleSetNotAvailable} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#3f3f46', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={handleSetNotAvailable} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--accent)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
                 Set as Not Available
               </button>
-              <button onClick={() => setManageStep('confirmPlayed')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setManageStep('confirmPlayed')} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--danger)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
                 Mark as Played
               </button>
             </div>
@@ -1803,15 +1878,15 @@ export default function ConcertPage() {
 
       {/* Manage Song: Confirm Mark as Played */}
       {manageStep === 'confirmPlayed' && managingSong && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>Confirm: Mark as Played</h2>
-            <p style={{ color: '#f87171', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>This cannot be undone — &quot;{managingSong.name}&quot; will be marked played and cannot be reactivated for the remainder of this concert.</p>
+            <p style={{ color: 'var(--danger)', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>This cannot be undone — &quot;{managingSong.name}&quot; will be marked played and cannot be reactivated for the remainder of this concert.</p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <button onClick={() => setManageStep('choice')} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={() => setManageStep('choice')} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button onClick={handleMarkAsPlayed} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={handleMarkAsPlayed} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--danger)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
                 Mark as Played
               </button>
             </div>
