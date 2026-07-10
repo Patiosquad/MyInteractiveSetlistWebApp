@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import '../../../../tokens/tokens.css';
 
 type VenueSuggestion = {
   placePrediction: {
@@ -33,11 +34,11 @@ const US_STATES = [
 
 const inputStyle = {
   width: '100%',
-  padding: '0.625rem 0.875rem',
-  borderRadius: '0.5rem',
-  border: '1px solid #27272a',
-  background: '#18181b',
-  color: '#ffffff',
+  padding: '10px 14px',
+  borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--border)',
+  background: 'var(--bg-tile-deep)',
+  color: 'var(--text-primary)',
   fontSize: '1rem',
   outline: 'none',
   boxSizing: 'border-box' as const,
@@ -56,8 +57,11 @@ const selectStyle = {
 
 const labelStyle = {
   display: 'block',
-  fontSize: '0.875rem',
-  color: '#a1a1aa',
+  fontSize: '12px',
+  color: 'var(--text-faint)',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  fontWeight: 600,
   marginBottom: '0.375rem',
 };
 
@@ -74,7 +78,7 @@ function Field({
     <div>
       <label style={labelStyle}>
         {label}
-        {required && <span style={{ color: '#f87171', marginLeft: '0.25rem' }}>*</span>}
+        {required && <span style={{ color: 'var(--danger)', marginLeft: '0.25rem' }}>*</span>}
       </label>
       {children}
     </div>
@@ -243,37 +247,84 @@ export default function NewConcertPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      <style>{`
+        .new-concert-input::placeholder { color: var(--text-faint); }
+        .new-concert-input:focus { border-color: var(--accent); outline: none; }
+      `}</style>
       {/* Header */}
-      <header style={{ borderBottom: '1px solid #27272a', padding: '1rem 2rem', position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#09090b' }}>
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        padding: '16px 24px',
+        background: 'radial-gradient(ellipse at top right, rgba(255,90,31,0.06) 0%, transparent 60%), var(--bg-primary)',
+      }}>
         <div style={{
           maxWidth: '700px',
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
         }}>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Create Concert</h1>
-          <button
-            type="button"
-            onClick={() => router.push('/dashboard')}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '0.5rem',
-              border: '1px solid #27272a',
-              background: 'transparent',
-              color: '#a1a1aa',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
+          {/* LEFT ZONE — Brand lockup */}
+          <div style={{
+            flexShrink: 0,
+            width: 'clamp(200px, 18vw, 240px)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            paddingRight: '24px',
+            borderRight: '1px solid var(--border)',
+          }}>
+            <span style={{ fontSize: 'clamp(24px, 2.5vw, 36px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <span style={{ color: 'var(--text-primary)' }}>Set</span><span style={{ color: 'var(--accent)' }}>Tuner</span>
+            </span>
+            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: '4px' }}>
+              Live Music &middot; Fan Powered
+            </span>
+          </div>
+
+          {/* RIGHT ZONE — Page identity */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <h1 style={{ fontSize: 'clamp(18px, 2vw, 28px)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              Create Concert
+            </h1>
+          </div>
+
+          {/* FAR RIGHT — Cancel */}
+          <div style={{ flexShrink: 0, marginLeft: '24px' }}>
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard')}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
+
+        {/* Ember baseline */}
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: '3px',
+          background: 'linear-gradient(to right, var(--accent), var(--gold))',
+        }} />
       </header>
 
       {/* Form */}
-      <main style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem' }}>
+      <main style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem', background: 'var(--bg-primary)' }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           <Field label="Concert Name" required>
@@ -281,7 +332,7 @@ export default function NewConcertPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
+              className="new-concert-input" style={inputStyle}
             />
           </Field>
 
@@ -292,7 +343,7 @@ export default function NewConcertPage() {
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
                 onFocus={() => { if (venueSuggestions.length > 0) setShowVenueSuggestions(true); }}
-                style={inputStyle}
+                className="new-concert-input" style={inputStyle}
                 autoComplete="off"
               />
               {showVenueSuggestions && venueSuggestions.length > 0 && (
@@ -333,7 +384,7 @@ export default function NewConcertPage() {
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                style={inputStyle}
+                className="new-concert-input" style={inputStyle}
               />
             </Field>
             {isUS && (
@@ -358,6 +409,7 @@ export default function NewConcertPage() {
               value={showDate}
               onChange={(e) => setShowDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
+              className="new-concert-input"
               style={{ ...inputStyle, colorScheme: 'dark' }}
             />
           </div>
@@ -375,7 +427,7 @@ export default function NewConcertPage() {
                   <option key={h} value={h}>{h}</option>
                 ))}
               </select>
-              <span style={{ color: '#a1a1aa', fontWeight: 700, flexShrink: 0 }}>:</span>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 700, flexShrink: 0 }}>:</span>
               <select
                 value={startMinute}
                 onChange={(e) => setStartMinute(e.target.value)}
@@ -414,6 +466,7 @@ export default function NewConcertPage() {
               value={comments}
               onChange={(e) => setComments(e.target.value)}
               rows={4}
+              className="new-concert-input"
               style={{ ...inputStyle, resize: 'vertical' }}
             />
           </Field>
@@ -425,15 +478,18 @@ export default function NewConcertPage() {
           <button
             type="submit"
             disabled={submitting}
+            onMouseEnter={(e) => { if (!submitting) { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent)'; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = 'none'; }}
             style={{
               marginTop: '0.5rem',
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
+              width: '100%',
+              padding: '16px 24px',
+              borderRadius: 'var(--radius-lg)',
               border: 'none',
-              background: submitting ? '#3f3f46' : '#ffffff',
-              color: submitting ? '#a1a1aa' : '#09090b',
-              fontSize: '1rem',
-              fontWeight: 600,
+              background: submitting ? 'var(--border)' : 'var(--accent)',
+              color: submitting ? 'var(--text-faint)' : 'var(--text-primary)',
+              fontSize: '16px',
+              fontWeight: 700,
               cursor: submitting ? 'not-allowed' : 'pointer',
             }}
           >
