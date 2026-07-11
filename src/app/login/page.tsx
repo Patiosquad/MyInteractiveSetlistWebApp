@@ -1,5 +1,7 @@
 'use client';
 
+import '../../../tokens/tokens.css';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -109,76 +111,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#0d0d0d',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-    }}>
-      <h1 style={{
-        fontSize: '36px',
-        fontWeight: '700',
-        color: '#ffffff',
-        margin: '0 0 4px',
-        letterSpacing: '-0.5px',
-      }}>
-        SetList
-      </h1>
-      <p style={{
-        fontSize: '11px',
-        color: '#555',
-        margin: '0 0 16px',
-        letterSpacing: '1.5px',
-        textTransform: 'uppercase',
-      }}>
-        Performer Portal
-      </p>
+    <>
+    <div
+      className="login-atmosphere"
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingBottom: '40px',
+      }}
+    >
+      <div className="login-vignette" />
 
-      <div style={{
-        width: '30px',
-        height: '2px',
-        backgroundColor: '#2255ff',
-        borderRadius: '1px',
-        marginBottom: '24px',
-      }} />
+      <div style={{position:'absolute',left:'14%',bottom:'16%',width:'5px',height:'5px',borderRadius:'50%',background:'#ff8a3f',filter:'blur(0.5px)',animation:'emberDrift1 7s linear infinite'}} />
+      <div style={{position:'absolute',left:'26%',bottom:'8%',width:'3px',height:'3px',borderRadius:'50%',background:'#ffb703',filter:'blur(0.5px)',animation:'emberDrift2 9s linear infinite',animationDelay:'1.4s'}} />
+      <div style={{position:'absolute',left:'72%',bottom:'12%',width:'4px',height:'4px',borderRadius:'50%',background:'#ff5a1f',filter:'blur(0.5px)',animation:'emberDrift3 8s linear infinite',animationDelay:'0.6s'}} />
+      <div style={{position:'absolute',left:'84%',bottom:'20%',width:'3px',height:'3px',borderRadius:'50%',background:'#ffcf6b',filter:'blur(0.5px)',animation:'emberDrift1 10s linear infinite',animationDelay:'3s'}} />
+      <div style={{position:'absolute',left:'58%',bottom:'6%',width:'3px',height:'3px',borderRadius:'50%',background:'#ff8a3f',filter:'blur(0.5px)',animation:'emberDrift2 8.5s linear infinite',animationDelay:'4.2s'}} />
+      <div style={{position:'absolute',left:'40%',bottom:'10%',width:'2px',height:'2px',borderRadius:'50%',background:'#ffb703',filter:'blur(0.5px)',animation:'emberDrift3 11s linear infinite',animationDelay:'2.2s'}} />
 
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        backgroundColor: '#111111',
-        border: '1px solid #2255ff',
-        borderRadius: '16px',
-        padding: '28px 24px',
-        boxSizing: 'border-box',
-      }}>
+      <div style={{textAlign:'center',marginBottom:'8px'}}>
+        <span style={{fontWeight:900,fontSize:'clamp(52px,7vw,96px)',letterSpacing:'-0.02em',color:'var(--text-primary)',lineHeight:1}}>Set</span>
+        <span style={{fontWeight:900,fontSize:'clamp(52px,7vw,96px)',letterSpacing:'-0.02em',color:'var(--accent)',lineHeight:1}}>Tuner</span>
+      </div>
+      <div style={{color:'var(--text-secondary)',fontSize:'clamp(11px,1.2vw,14px)',fontWeight:600,letterSpacing:'0.12em',textTransform:'uppercase',textAlign:'center',marginBottom:'4px'}}>Live Music · Fan Powered</div>
+      <div style={{color:'var(--text-faint)',fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',textAlign:'center',marginBottom:'32px'}}>Performer Portal</div>
+
+      <div style={{background:'var(--bg-tile)',border:'1px solid var(--border)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'420px',position:'relative',zIndex:1}}>
 
         {/* Toggle */}
-        <div style={{
-          display: 'flex',
-          backgroundColor: '#1a1a1a',
-          borderRadius: '10px',
-          padding: '3px',
-          marginBottom: '24px',
-          gap: '3px',
-        }}>
+        <div style={{display:'flex',background:'var(--bg-tile-deep)',borderRadius:'30px',padding:'4px',marginBottom:'24px'}}>
           {(['login', 'signup'] as const).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
               style={{
                 flex: 1,
-                padding: '8px 0',
-                borderRadius: '8px',
+                padding: '10px 0',
+                borderRadius: '26px',
                 border: 'none',
-                fontSize: '13px',
-                fontWeight: '600',
+                background: mode === m ? 'var(--accent)' : 'transparent',
+                color: mode === m ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontWeight: mode === m ? 700 : 500,
+                fontSize: '15px',
                 cursor: 'pointer',
-                backgroundColor: mode === m ? '#2255ff' : 'transparent',
-                color: mode === m ? '#ffffff' : '#555555',
-                transition: 'all 0.2s',
               }}
             >
               {m === 'login' ? 'Log In' : 'Sign Up'}
@@ -251,19 +230,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(prev => !prev)}
-              style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                color: '#888888',
-              }}
+              style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',padding:0}}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
@@ -284,7 +251,7 @@ export default function LoginPage() {
         {/* Error */}
         {error && (
           <p style={{
-            color: '#ff4444',
+            color: 'var(--danger)',
             fontSize: '13px',
             marginBottom: '16px',
             textAlign: 'center',
@@ -297,44 +264,98 @@ export default function LoginPage() {
         <button
           onClick={mode === 'login' ? handleLogin : handleSignUp}
           disabled={loading}
-          style={{
-            width: '100%',
-            padding: '13px 0',
-            backgroundColor: loading ? '#1a3acc' : '#2255ff',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: '15px',
-            fontWeight: '600',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            transition: 'background-color 0.2s',
-          }}
+          style={{width:'100%',background:'var(--accent)',color:'var(--text-primary)',border:'none',borderRadius:'30px',padding:'14px 0',fontWeight:700,fontSize:'16px',cursor:'pointer',marginTop:'8px'}}
         >
           {loading ? 'Please wait...' : mode === 'login' ? 'Log In' : 'Create Account'}
         </button>
       </div>
+
+      <div className="ember-baseline" />
     </div>
+    <style>{`
+      .login-atmosphere {
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(50% 70% at 18% -8%, rgba(255,90,31,0.26), rgba(10,8,6,0) 60%),
+          radial-gradient(50% 70% at 82% -8%, rgba(255,183,3,0.14), rgba(10,8,6,0) 60%),
+          radial-gradient(70% 55% at 50% 112%, rgba(255,90,31,0.14), rgba(10,8,6,0) 65%),
+          var(--bg-primary);
+      }
+      @media (max-width: 480px) {
+        .login-atmosphere {
+          background:
+            radial-gradient(90% 45% at 20% -6%, rgba(255,90,31,0.26), rgba(10,8,6,0) 62%),
+            radial-gradient(90% 45% at 80% -6%, rgba(255,183,3,0.14), rgba(10,8,6,0) 62%),
+            radial-gradient(110% 40% at 50% 108%, rgba(255,90,31,0.14), rgba(10,8,6,0) 68%),
+            var(--bg-primary);
+        }
+      }
+      .login-vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(95% 85% at 50% 45%, rgba(10,8,6,0) 52%, rgba(5,4,3,0.55) 100%);
+      }
+      .ember-baseline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 3px;
+        background: linear-gradient(to right, var(--accent), var(--gold));
+      }
+      @keyframes emberDrift1 {
+        0%   { transform: translate(0,0);          opacity: 0; }
+        12%  { opacity: 0.8; }
+        88%  { opacity: 0.5; }
+        100% { transform: translate(24px,-190px);  opacity: 0; }
+      }
+      @keyframes emberDrift2 {
+        0%   { transform: translate(0,0);          opacity: 0; }
+        15%  { opacity: 0.6; }
+        85%  { opacity: 0.35; }
+        100% { transform: translate(-30px,-230px); opacity: 0; }
+      }
+      @keyframes emberDrift3 {
+        0%   { transform: translate(0,0);          opacity: 0; }
+        10%  { opacity: 0.7; }
+        90%  { opacity: 0.4; }
+        100% { transform: translate(14px,-160px);  opacity: 0; }
+      }
+      .login-atmosphere input:-webkit-autofill,
+      .login-atmosphere input:-webkit-autofill:hover,
+      .login-atmosphere input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px var(--bg-tile-deep) inset !important;
+        -webkit-text-fill-color: var(--text-primary) !important;
+        caret-color: var(--text-primary);
+      }
+      .login-atmosphere input::placeholder {
+        color: var(--text-muted);
+      }
+    `}</style>
+    </>
   );
 }
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: '10px',
-  color: '#555555',
-  letterSpacing: '1px',
+  color: 'var(--text-faint)',
+  fontSize: '11px',
+  fontWeight: 600,
+  letterSpacing: '0.1em',
   textTransform: 'uppercase',
   marginBottom: '6px',
-  fontWeight: '600',
 };
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  backgroundColor: '#0d0d0d',
-  border: '1px solid #2a2a2a',
-  borderRadius: '8px',
-  padding: '10px 12px',
-  fontSize: '14px',
-  color: '#cccccc',
-  boxSizing: 'border-box',
+  background: 'var(--bg-tile-deep)',
+  border: '1px solid var(--border)',
+  borderRadius: '10px',
+  padding: '12px 14px',
+  color: 'var(--text-primary)',
+  fontSize: '15px',
   outline: 'none',
+  boxSizing: 'border-box',
 };
