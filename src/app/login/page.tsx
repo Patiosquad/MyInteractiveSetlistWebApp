@@ -100,12 +100,12 @@ export default function LoginPage() {
     return (
       <div style={{
         minHeight: '100vh',
-        backgroundColor: '#0d0d0d',
+        backgroundColor: 'var(--bg-primary)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <div style={{ color: '#555', fontSize: '14px' }}>Loading...</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading...</div>
       </div>
     );
   }
