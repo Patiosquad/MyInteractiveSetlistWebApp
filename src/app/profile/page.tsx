@@ -1004,7 +1004,7 @@ function ProfilePageInner() {
           <p style={{ color: 'var(--text-primary)', fontSize: '36px', fontWeight: '700', letterSpacing: '-0.5px', marginBottom: '6px' }}>
             SetTuner
           </p>
-          <div style={{ width: '8px', height: '8px', background: '#2255ff', borderRadius: '4px', margin: '0 auto 24px' }} />
+          <div style={{ width: '8px', height: '8px', background: 'var(--accent)', borderRadius: '4px', margin: '0 auto 24px' }} />
 
           <img
             src={qrDataUrl}
@@ -1025,7 +1025,7 @@ function ProfilePageInner() {
               link.href = qrDataUrl;
               link.click();
             }}
-            style={{ background: '#2255ff', color: 'white', border: 'none', borderRadius: '8px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '16px' }}
+            style={{ background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '8px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '16px' }}
           >
             ↓ Download PNG
           </button>
