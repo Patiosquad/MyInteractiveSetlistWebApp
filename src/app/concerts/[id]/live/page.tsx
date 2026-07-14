@@ -653,24 +653,26 @@ export default function LivePage() {
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
             <div ref={layoutDropdownRef} style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <button
-                  onClick={() => window.open(`/display/${concertId}?layout=${selectedLayout}`, '_blank')}
-                  onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
-                  onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
-                  style={{ padding: '0.5rem 1rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', borderRight: '1px solid var(--border-subtle)' }}
-                >
-                  Open Display
-                </button>
-                <button
-                  onClick={() => setShowLayoutDropdown(prev => !prev)}
-                  onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
-                  onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
-                  style={{ padding: '0.5rem 0.625rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', lineHeight: 1 }}
-                >
-                  ▾
-                </button>
-              </div>
+              {!isPreview && (
+                <div style={{ display: 'flex', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <button
+                    onClick={() => window.open(`/display/${concertId}?layout=${selectedLayout}`, '_blank')}
+                    onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
+                    style={{ padding: '0.5rem 1rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', borderRight: '1px solid var(--border-subtle)' }}
+                  >
+                    Open Display
+                  </button>
+                  <button
+                    onClick={() => setShowLayoutDropdown(prev => !prev)}
+                    onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
+                    style={{ padding: '0.5rem 0.625rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', lineHeight: 1 }}
+                  >
+                    ▾
+                  </button>
+                </div>
+              )}
               {showLayoutDropdown && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.5rem', minWidth: '220px', zIndex: 100, overflow: 'hidden' }}>
                   {([
