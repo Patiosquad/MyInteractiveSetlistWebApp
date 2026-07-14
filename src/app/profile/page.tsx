@@ -987,7 +987,7 @@ function ProfilePageInner() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.95)',
+          background: 'var(--bg-overlay-heavy)',
           zIndex: 50,
           display: 'flex',
           flexDirection: 'column',
@@ -1001,8 +1001,8 @@ function ProfilePageInner() {
             ✕
           </button>
 
-          <p style={{ color: '#ffffff', fontSize: '36px', fontWeight: '700', letterSpacing: '-0.5px', marginBottom: '6px' }}>
-            SetList
+          <p style={{ color: 'var(--text-primary)', fontSize: '36px', fontWeight: '700', letterSpacing: '-0.5px', marginBottom: '6px' }}>
+            SetTuner
           </p>
           <div style={{ width: '8px', height: '8px', background: '#2255ff', borderRadius: '4px', margin: '0 auto 24px' }} />
 
