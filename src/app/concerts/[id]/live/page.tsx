@@ -182,18 +182,30 @@ export default function LivePage() {
   }, [concertId]);
 
   const fetchContributionTracker = useCallback(async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('contributions')
       .select('total_amount, status')
       .eq('concert_id', concertId)
       .in('status', ['active', 'accepted']);
+
+    if (concert?.started_at) {
+      query = query.gte('created_at', concert.started_at);
+    } else {
+      console.warn('[fetchContributionTracker] No started_at on concert state for', concertId, '- showing unscoped totals as fallback.');
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn('[fetchContributionTracker] query error for', concertId, error.message);
+      return;
+    }
     if (!data) return;
     const pending = data.filter((c: any) => c.status === 'active').reduce((sum: number, c: any) => sum + Number(c.total_amount), 0);
     const accepted = data.filter((c: any) => c.status === 'accepted').reduce((sum: number, c: any) => sum + Number(c.total_amount), 0);
     setTrackerPending(pending);
     setTrackerAccepted(accepted);
     setTrackerTotal(pending + accepted);
-  }, [concertId]);
+  }, [concertId, concert?.started_at]);
 
   useEffect(() => {
     async function init() {
