@@ -623,9 +623,14 @@ export default function ConcertPage() {
       .eq('concert_id', concertId)
       .in('status', ['declined', 'played', 'accepted', 'deactivated']);
 
+    const goLiveUpdatePayload: any = { status: 'live', started_at: new Date().toISOString() };
+    if (concert?.status !== 'preview') {
+      goLiveUpdatePayload.preview_started_at = null;
+    }
+
     const { data } = await supabase
       .from('concerts')
-      .update({ status: 'live', started_at: new Date().toISOString() })
+      .update(goLiveUpdatePayload)
       .eq('id', concertId)
       .select('*')
       .single();
