@@ -32,6 +32,7 @@ type Concert = {
   status: string;
   performer_id: string;
   started_at: string | null;
+  preview_started_at: string | null;
   last_activity_at: string | null;
 };
 
@@ -182,16 +183,18 @@ export default function LivePage() {
   }, [concertId]);
 
   const fetchContributionTracker = useCallback(async () => {
+    const cycleBoundary = concert?.preview_started_at ?? concert?.started_at;
+
     let query = supabase
       .from('contributions')
       .select('total_amount, status')
       .eq('concert_id', concertId)
       .in('status', ['active', 'accepted']);
 
-    if (concert?.started_at) {
-      query = query.gte('created_at', concert.started_at);
+    if (cycleBoundary) {
+      query = query.gte('created_at', cycleBoundary);
     } else {
-      console.warn('[fetchContributionTracker] No started_at on concert state for', concertId, '- showing unscoped totals as fallback.');
+      console.warn('[fetchContributionTracker] No cycle boundary on concert state for', concertId, '- showing unscoped totals as fallback.');
     }
 
     const { data, error } = await query;
@@ -205,7 +208,7 @@ export default function LivePage() {
     setTrackerPending(pending);
     setTrackerAccepted(accepted);
     setTrackerTotal(pending + accepted);
-  }, [concertId, concert?.started_at]);
+  }, [concertId, concert?.started_at, concert?.preview_started_at]);
 
   useEffect(() => {
     async function init() {
@@ -224,7 +227,7 @@ export default function LivePage() {
 
       const { data: concertData } = await supabase
         .from('concerts')
-        .select('id, name, status, performer_id, started_at, last_activity_at')
+        .select('id, name, status, performer_id, started_at, preview_started_at, last_activity_at')
         .eq('id', concertId)
         .eq('performer_id', user.id)
         .single();
