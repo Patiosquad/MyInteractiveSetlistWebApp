@@ -325,50 +325,92 @@ function ProfilePageInner() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+
     const { data: concerts } = await supabase
       .from('concerts')
-      .select('id, name, venue_name, city, ended_at, created_at')
-      .eq('performer_id', user.id)
-      .eq('status', 'closed')
-      .gt('ended_at', oneYearAgo)
-      .order('ended_at', { ascending: false });
+      .select('id, name, venue_name, city, created_at')
+      .eq('performer_id', user.id);
     if (!concerts || concerts.length === 0) { setEarningsHistory([]); return; }
     const concertIds = concerts.map((c: any) => c.id);
+    const concertMeta: Record<string, any> = {};
+    concerts.forEach((c: any) => { concertMeta[c.id] = c; });
+
+    const { data: cycles } = await supabase
+      .from('concert_cycles')
+      .select('id, concert_id, started_at, ended_at, total_earned')
+      .in('concert_id', concertIds)
+      .order('ended_at', { ascending: true });
+    if (!cycles || cycles.length === 0) { setEarningsHistory([]); return; }
+
     const { data: contributions } = await supabase
       .from('contributions')
-      .select('amount, status, song_id, concert_id')
+      .select('total_amount, status, song_id, concert_id, created_at')
       .in('concert_id', concertIds)
       .in('status', ['accepted', 'released']);
+
     const { data: songs } = await supabase
       .from('songs')
       .select('id, name, artist')
       .in('concert_id', concertIds);
     const songMap: Record<string, any> = {};
     if (songs) songs.forEach((s: any) => { songMap[s.id] = s; });
-    const history = concerts.map((concert: any) => {
-      const concertContribs = (contributions ?? []).filter((c: any) => c.concert_id === concert.id);
-      const captured = concertContribs.filter((c: any) => c.status === 'accepted');
-      const released = concertContribs.filter((c: any) => c.status === 'released');
-      const totalEarned = captured.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
-      const totalReleased = released.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
-      const acceptedSongs = [...new Map(captured.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.amount), status: 'accepted' }])).values()];
-      const declinedSongs = [...new Map(released.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.amount), status: 'released' }])).values()];
-      return {
-        concertId: concert.id,
-        concertName: concert.name,
-        venue: concert.venue_name ?? '',
-        city: concert.city ?? '',
-        endedAt: concert.ended_at,
-        createdAt: concert.created_at,
-        totalEarned,
-        totalReleased,
-        capturedCount: captured.length,
-        releasedCount: released.length,
-        acceptedSongs,
-        declinedSongs,
-      };
+
+    const cyclesByConcert: Record<string, any[]> = {};
+    cycles.forEach((cy: any) => {
+      if (!cyclesByConcert[cy.concert_id]) cyclesByConcert[cy.concert_id] = [];
+      cyclesByConcert[cy.concert_id].push(cy);
     });
-    setEarningsHistory(history);
+
+    const history: any[] = [];
+
+    Object.keys(cyclesByConcert).forEach((concertId) => {
+      const concertCycles = cyclesByConcert[concertId];
+      let previousEndedAt: string | null = null;
+
+      concertCycles.forEach((cycle: any) => {
+        const lower = previousEndedAt;
+        const upper = cycle.ended_at;
+
+        if (cycle.started_at) {
+          const windowedContribs = (contributions ?? []).filter((c: any) => {
+            if (c.concert_id !== concertId) return false;
+            if (lower && c.created_at <= lower) return false;
+            if (c.created_at > upper) return false;
+            return true;
+          });
+
+          const captured = windowedContribs.filter((c: any) => c.status === 'accepted');
+          const released = windowedContribs.filter((c: any) => c.status === 'released');
+          const totalReleased = released.reduce((sum: number, c: any) => sum + Number(c.total_amount), 0);
+          const acceptedSongs = [...new Map(captured.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.total_amount), status: 'accepted' }])).values()];
+          const declinedSongs = [...new Map(released.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.total_amount), status: 'released' }])).values()];
+
+          const meta = concertMeta[concertId] ?? {};
+          history.push({
+            concertId,
+            concertName: meta.name,
+            venue: meta.venue_name ?? '',
+            city: meta.city ?? '',
+            endedAt: cycle.ended_at,
+            createdAt: meta.created_at,
+            totalEarned: Number(cycle.total_earned) || 0,
+            totalReleased,
+            capturedCount: captured.length,
+            releasedCount: released.length,
+            acceptedSongs,
+            declinedSongs,
+          });
+        }
+
+        previousEndedAt = cycle.ended_at;
+      });
+    });
+
+    const recent = history
+      .filter((h: any) => h.endedAt > oneYearAgo)
+      .sort((a: any, b: any) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime());
+
+    setEarningsHistory(recent);
   }
 
   function generatePerformerStatementHtml(concert: any) {
