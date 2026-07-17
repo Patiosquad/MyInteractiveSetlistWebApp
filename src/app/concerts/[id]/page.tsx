@@ -268,6 +268,17 @@ export default function ConcertPage() {
       )
       .subscribe();
 
+    const contributionsChannel = supabase
+      .channel(`contributions-${concertId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'contributions', filter: `concert_id=eq.${concertId}` },
+        () => {
+          fetchContributedSongs(concertId);
+        }
+      )
+      .subscribe();
+
     const concertStatusChannel = supabase
       .channel(`concert-status-${concertId}`)
       .on(
@@ -279,12 +290,14 @@ export default function ConcertPage() {
             router.push('/dashboard');
           }
           concertStatusRef.current = newStatus;
+          setConcert(payload.new as typeof concert);
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(contributionsChannel);
       supabase.removeChannel(concertStatusChannel);
     };
   }, [concertId, router]);
