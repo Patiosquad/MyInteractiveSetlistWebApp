@@ -706,6 +706,23 @@ export default function ConcertPage() {
       setGoingToPreview(false);
       return;
     }
+    const estimatedStartMatch = (concert.estimated_start ?? '').trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (estimatedStartMatch) {
+      let hour24 = parseInt(estimatedStartMatch[1], 10) % 12;
+      if (estimatedStartMatch[3].toUpperCase() === 'PM') hour24 += 12;
+      const minute = parseInt(estimatedStartMatch[2], 10);
+      const actualShowDateTime = new Date(showDate);
+      actualShowDateTime.setHours(hour24, minute, 0, 0);
+      const preDeadlineBufferMs = 60 * 60 * 1000;
+      const autoCloseDeadline = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+      if (autoCloseDeadline.getTime() < actualShowDateTime.getTime() + preDeadlineBufferMs) {
+        const deadlineStr = autoCloseDeadline.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        const showStr = actualShowDateTime.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        setPreviewError(`Entering Taking Requests now means it will auto-close at ${deadlineStr}, which is too close to your scheduled show time of ${showStr}. At least one hour of buffer is required in case the show starts late. Please wait until closer to your show time, or update the show date/time in Edit Concert.`);
+        setGoingToPreview(false);
+        return;
+      }
+    }
     await supabase
       .from('songs')
       .update({ status: 'active' })
