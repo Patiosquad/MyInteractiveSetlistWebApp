@@ -168,7 +168,10 @@ export default function ConcertPage() {
   const [editState, setEditState] = useState('');
   const [editCountry, setEditCountry] = useState('');
   const [editShowDate, setEditShowDate] = useState('');
-  const [editStartTime, setEditStartTime] = useState('');
+  const [editStartHour, setEditStartHour] = useState('8');
+  const [editStartMinute, setEditStartMinute] = useState('00');
+  const [editStartAmPm, setEditStartAmPm] = useState('PM');
+  const [editComments, setEditComments] = useState('');
   const [editLength, setEditLength] = useState('');
   const [savingConcert, setSavingConcert] = useState(false);
   const [saveConcertError, setSaveConcertError] = useState('');
@@ -446,8 +449,31 @@ export default function ConcertPage() {
     setEditState(concert.state ?? '');
     setEditCountry(concert.country);
     setEditShowDate(concert.show_date ?? '');
-    setEditStartTime(concert.estimated_start ?? '');
+
+    let startHour = '8';
+    let startMinute = '00';
+    let startAmPm = 'PM';
+    const rawStart = concert.estimated_start ?? '';
+    const startMatch = rawStart.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (startMatch) {
+      const hourNum = parseInt(startMatch[1], 10);
+      if (hourNum >= 1 && hourNum <= 12) {
+        startHour = String(hourNum);
+        const minuteNum = parseInt(startMatch[2], 10);
+        const allowedMinutes = [0, 15, 30, 45];
+        const closestMinute = allowedMinutes.reduce((prev, curr) =>
+          Math.abs(curr - minuteNum) < Math.abs(prev - minuteNum) ? curr : prev
+        );
+        startMinute = String(closestMinute).padStart(2, '0');
+        startAmPm = startMatch[3].toUpperCase();
+      }
+    }
+    setEditStartHour(startHour);
+    setEditStartMinute(startMinute);
+    setEditStartAmPm(startAmPm);
+
     setEditLength(concert.estimated_length ?? '');
+    setEditComments(concert.comments ?? '');
     setSaveConcertError('');
     setShowEditConcertModal(true);
   }
@@ -459,6 +485,7 @@ export default function ConcertPage() {
     }
     setSavingConcert(true);
     setSaveConcertError('');
+    const estimatedStart = `${editStartHour}:${editStartMinute} ${editStartAmPm}`;
     const { data, error } = await supabase
       .from('concerts')
       .update({
@@ -468,8 +495,9 @@ export default function ConcertPage() {
         state: editState.trim() || null,
         country: editCountry.trim(),
         show_date: editShowDate || null,
-        estimated_start: editStartTime.trim() || null,
+        estimated_start: estimatedStart,
         estimated_length: editLength.trim() || null,
+        comments: editComments.trim() || null,
       })
       .eq('id', concertId)
       .select('*')
@@ -1687,11 +1715,31 @@ export default function ConcertPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Estimated Start Time</label>
-                <input type="text" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} placeholder="e.g. 8:00 PM" className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <select value={editStartHour} onChange={(e) => setEditStartHour(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}>
+                    {['1','2','3','4','5','6','7','8','9','10','11','12'].map((h) => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 700, flexShrink: 0 }}>:</span>
+                  <select value={editStartMinute} onChange={(e) => setEditStartMinute(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}>
+                    {['00','15','30','45'].map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <select value={editStartAmPm} onChange={(e) => setEditStartAmPm(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}>
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Estimated Length</label>
                 <input type="text" value={editLength} onChange={(e) => setEditLength(e.target.value)} placeholder="e.g. 2 hours" className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Comments</label>
+                <textarea value={editComments} onChange={(e) => setEditComments(e.target.value)} placeholder="Any notes about this concert..." rows={4} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
               </div>
             </div>
             {saveConcertError && <p style={{ color: '#f87171', fontSize: '0.875rem', margin: 0 }}>{saveConcertError}</p>}
