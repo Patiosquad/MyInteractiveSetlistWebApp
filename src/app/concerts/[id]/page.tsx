@@ -181,6 +181,8 @@ export default function ConcertPage() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const concertStatusRef = useRef<string | null>(null);
+
   // Auth + initial data load
   useEffect(() => {
     async function init() {
@@ -212,6 +214,7 @@ export default function ConcertPage() {
       }
 
       setConcert(concertData);
+      concertStatusRef.current = concertData.status;
 
       const { data: songsData } = await supabase
         .from('songs')
@@ -271,9 +274,11 @@ export default function ConcertPage() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'concerts', filter: `id=eq.${concertId}` },
         (payload) => {
-          if ((payload.new as { status: string }).status === 'closed') {
+          const newStatus = (payload.new as { status: string }).status;
+          if (newStatus === 'closed' && concertStatusRef.current !== 'closed') {
             router.push('/dashboard');
           }
+          concertStatusRef.current = newStatus;
         }
       )
       .subscribe();
