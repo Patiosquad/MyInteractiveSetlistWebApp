@@ -663,11 +663,18 @@ export default function ConcertPage() {
       setGoingToPreview(false);
       return;
     }
-    const showDate = new Date(concert.show_date);
+    const showDate = new Date(concert.show_date + 'T00:00:00');
     const now = new Date();
     const daysUntilShow = (showDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
     if (daysUntilShow > 5) {
       setPreviewError('Taking Requests can only be enabled within 5 days of the show date. Update the show date in Edit Concert if needed.');
+      setGoingToPreview(false);
+      return;
+    }
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+    if (showDate.getTime() < todayMidnight.getTime()) {
+      setPreviewError('The show date has already passed. Please update it in Edit Concert before enabling Taking Requests.');
       setGoingToPreview(false);
       return;
     }
@@ -812,6 +819,11 @@ export default function ConcertPage() {
                 </span>
               )}
             </p>
+            {previewCountdown && (
+              <p style={{ color: 'var(--text-faint, #6b5c50)', fontSize: '0.75rem', margin: '4px 0 0', textAlign: 'right' }}>
+                Auto-closes exactly 5 days (120 hrs) after Taking Requests began — not by calendar date. Go live before it reaches zero or all contributions release.
+              </p>
+            )}
             {bandName && (
               <p style={{ fontSize: '13px', fontWeight: 400, color: 'var(--text-muted)', margin: '2px 0 0' }}>
                 @{bandName}
