@@ -18,6 +18,8 @@ type Concert = {
   status: 'new' | 'preview' | 'live' | 'closed';
   preview_started_at: string | null;
   performer_id: string;
+  comments: string | null;
+  taking_requests_code: string | null;
 };
 
 type Song = {
@@ -178,6 +180,16 @@ export default function ConcertPage() {
   const [editingComments, setEditingComments] = useState<{ id: string, name: string, comments: string } | null>(null);
   const [editingSong, setEditingSong] = useState<{ id: string, name: string, artist: string, album: string, comments: string } | null>(null);
   const [savingSong, setSavingSong] = useState(false);
+
+  // ── Taking Requests Code modal ──
+  const [showTakingRequestsCodeModal, setShowTakingRequestsCodeModal] = useState(false);
+  const [takingRequestsCodeInput, setTakingRequestsCodeInput] = useState('');
+  const [takingRequestsCodeError, setTakingRequestsCodeError] = useState('');
+  const [savingTakingRequestsCode, setSavingTakingRequestsCode] = useState(false);
+  const [generatingTakingRequestsCode, setGeneratingTakingRequestsCode] = useState(false);
+  const [pendingPreviewTransition, setPendingPreviewTransition] = useState(false);
+  const [isEditingExistingCode, setIsEditingExistingCode] = useState(false);
+  const [pendingMultiplePreviewReminder, setPendingMultiplePreviewReminder] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -741,24 +753,118 @@ export default function ConcertPage() {
         return;
       }
     }
-    await supabase
-      .from('songs')
-      .update({ status: 'active' })
-      .eq('concert_id', concertId)
-      .in('status', ['declined', 'played', 'accepted', 'deactivated']);
-
-    const { data } = await supabase
-      .from('concerts')
-      .update({ status: 'preview', preview_started_at: new Date().toISOString() })
-      .eq('id', concertId)
-      .select('*')
-      .single();
-
-    if (data && previewCheck && previewCheck.length >= 1) {
-      setShowMultiplePreviewReminder(true);
-    }
-    if (data) setConcert(data);
+    setPendingMultiplePreviewReminder(!!(previewCheck && previewCheck.length >= 1));
+    setIsEditingExistingCode(false);
+    setTakingRequestsCodeInput('');
+    setTakingRequestsCodeError('');
+    setPendingPreviewTransition(true);
+    setShowTakingRequestsCodeModal(true);
     setGoingToPreview(false);
+  }
+
+  function handleCancelTakingRequestsCodeModal() {
+    setShowTakingRequestsCodeModal(false);
+    setPendingPreviewTransition(false);
+    setTakingRequestsCodeInput('');
+    setTakingRequestsCodeError('');
+  }
+
+  async function handleGenerateTakingRequestsCode() {
+    setGeneratingTakingRequestsCode(true);
+    const adjectives = ['Crimson', 'Electric', 'Velvet', 'Neon', 'Golden', 'Wild', 'Midnight', 'Blazing', 'Silver', 'Rebel', 'Static', 'Amber'];
+    const nouns = ['Wolf', 'Echo', 'Riff', 'Storm', 'Anthem', 'Groove', 'Pulse', 'Vibe', 'Tempo', 'Roar', 'Beat', 'Encore'];
+
+    let candidate = '';
+    let attempts = 0;
+    let isUnique = false;
+
+    while (!isUnique && attempts < 8) {
+      const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const noun = nouns[Math.floor(Math.random() * nouns.length)];
+      const num = Math.floor(Math.random() * 90) + 10;
+      candidate = attempts < 5 ? `${adj}${noun}${num}` : `${adj}${noun}${num}${Math.floor(Math.random() * 9)}`;
+
+      const { data: concertMatch } = await supabase
+        .from('concerts')
+        .select('id')
+        .eq('taking_requests_code', candidate)
+        .neq('id', concertId)
+        .maybeSingle();
+      const { data: userMatch } = await supabase
+        .from('users')
+        .select('id')
+        .eq('concert_code', candidate)
+        .maybeSingle();
+
+      if (!concertMatch && !userMatch) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    setTakingRequestsCodeInput(candidate);
+    setTakingRequestsCodeError('');
+    setGeneratingTakingRequestsCode(false);
+  }
+
+  async function handleSaveTakingRequestsCode() {
+    const trimmed = takingRequestsCodeInput.trim();
+    if (!trimmed) return;
+    setSavingTakingRequestsCode(true);
+    setTakingRequestsCodeError('');
+
+    const { data: concertMatch } = await supabase
+      .from('concerts')
+      .select('id')
+      .eq('taking_requests_code', trimmed)
+      .neq('id', concertId)
+      .maybeSingle();
+    if (concertMatch) {
+      setTakingRequestsCodeError('That code is already in use — try another.');
+      setSavingTakingRequestsCode(false);
+      return;
+    }
+    const { data: userMatch } = await supabase
+      .from('users')
+      .select('id')
+      .eq('concert_code', trimmed)
+      .maybeSingle();
+    if (userMatch) {
+      setTakingRequestsCodeError('That code is already in use — try another.');
+      setSavingTakingRequestsCode(false);
+      return;
+    }
+
+    if (pendingPreviewTransition) {
+      await supabase
+        .from('songs')
+        .update({ status: 'active' })
+        .eq('concert_id', concertId)
+        .in('status', ['declined', 'played', 'accepted', 'deactivated']);
+      const { data } = await supabase
+        .from('concerts')
+        .update({ status: 'preview', preview_started_at: new Date().toISOString(), taking_requests_code: trimmed })
+        .eq('id', concertId)
+        .select('*')
+        .single();
+      if (data && pendingMultiplePreviewReminder) {
+        setShowMultiplePreviewReminder(true);
+      }
+      if (data) setConcert(data);
+      setPendingPreviewTransition(false);
+    } else {
+      const { data } = await supabase
+        .from('concerts')
+        .update({ taking_requests_code: trimmed })
+        .eq('id', concertId)
+        .select('*')
+        .single();
+      if (data) setConcert(data);
+    }
+
+    setSavingTakingRequestsCode(false);
+    setShowTakingRequestsCodeModal(false);
+    setTakingRequestsCodeInput('');
   }
 
   async function handleEndPreview() {
@@ -1781,6 +1887,47 @@ export default function ConcertPage() {
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowEditConcertModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSaveConcert} disabled={savingConcert} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: savingConcert ? 'var(--border)' : 'var(--accent)', color: savingConcert ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: savingConcert ? 'not-allowed' : 'pointer' }}>{savingConcert ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTakingRequestsCodeModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '480px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Set Your Taking Requests Code</h2>
+              <button onClick={handleCancelTakingRequestsCodeModal} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+              Fans will use this code to find and join this specific concert while it's Taking Requests.
+            </p>
+            <input
+              type="text"
+              value={takingRequestsCodeInput}
+              onChange={(e) => { setTakingRequestsCodeInput(e.target.value); setTakingRequestsCodeError(''); }}
+              placeholder="e.g. JoviBon80s"
+              maxLength={15}
+              className="concert-input"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: `1px solid ${takingRequestsCodeError ? '#f87171' : 'var(--border)'}`, background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+            />
+            {takingRequestsCodeError && <p style={{ color: '#f87171', fontSize: '0.875rem', margin: 0 }}>{takingRequestsCodeError}</p>}
+            <button
+              onClick={handleGenerateTakingRequestsCode}
+              disabled={generatingTakingRequestsCode}
+              style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              {generatingTakingRequestsCode ? 'Generating…' : 'Auto-Generate Code'}
+            </button>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={handleCancelTakingRequestsCodeModal} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button
+                onClick={handleSaveTakingRequestsCode}
+                disabled={savingTakingRequestsCode || !takingRequestsCodeInput.trim()}
+                style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: (savingTakingRequestsCode || !takingRequestsCodeInput.trim()) ? 'var(--border)' : 'var(--accent)', color: (savingTakingRequestsCode || !takingRequestsCodeInput.trim()) ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: (savingTakingRequestsCode || !takingRequestsCodeInput.trim()) ? 'not-allowed' : 'pointer' }}
+              >
+                {savingTakingRequestsCode ? 'Saving…' : 'Save Code'}
+              </button>
             </div>
           </div>
         </div>
