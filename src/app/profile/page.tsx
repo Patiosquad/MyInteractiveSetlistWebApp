@@ -75,10 +75,7 @@ function ProfilePageInner() {
 
   // Concert Code
   const [concertCode, setConcertCode] = useState('');
-  const [previewCode, setPreviewCode] = useState('');
-  const [previewCodeError, setPreviewCodeError] = useState('');
-  const [previewCodeSuccess, setPreviewCodeSuccess] = useState('');
-  const [previewCodeSaving, setPreviewCodeSaving] = useState(false);
+  const [previewConcerts, setPreviewConcerts] = useState<{ id: string; name: string; taking_requests_code: string | null }[]>([]);
 
   // Payouts
   const [payoutsState, setPayoutsState] = useState<PayoutsState>('not_connected');
@@ -115,6 +112,12 @@ function ProfilePageInner() {
   }, [userId]);
 
   useEffect(() => {
+    loadPreviewConcerts();
+    window.addEventListener('focus', loadPreviewConcerts);
+    return () => window.removeEventListener('focus', loadPreviewConcerts);
+  }, []);
+
+  useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -136,7 +139,6 @@ function ProfilePageInner() {
         setEmail(data.email ?? '');
         setBandName(data.username ?? '');
         setConcertCode(data.concert_code ?? '');
-        setPreviewCode(data.preview_code ?? '');
 
         if (data.stripe_connect_account_id) {
           try {
@@ -244,51 +246,6 @@ function ProfilePageInner() {
     }
   }
 
-  async function handleSavePreviewCode() {
-    if (!userId) return;
-    setPreviewCodeError('');
-    setPreviewCodeSuccess('');
-    if (!previewCode) {
-      setPreviewCodeError('Taking Requests code cannot be empty.');
-      return;
-    }
-    if (previewCode.length > 15) {
-      setPreviewCodeError('Taking Requests code must be 15 characters or fewer.');
-      return;
-    }
-    if (/\s/.test(previewCode)) {
-      setPreviewCodeError('Taking Requests code cannot contain spaces.');
-      return;
-    }
-    if (previewCode === concertCode) {
-      setPreviewCodeError('Taking Requests code must be different from your Concert Code.');
-      return;
-    }
-    setPreviewCodeSaving(true);
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('preview_code', previewCode)
-      .neq('id', userId)
-      .maybeSingle();
-    if (existing) {
-      setPreviewCodeError('This code is already in use. Please choose a different one.');
-      setPreviewCodeSaving(false);
-      return;
-    }
-    const { error } = await supabase
-      .from('users')
-      .update({ preview_code: previewCode })
-      .eq('id', userId);
-    setPreviewCodeSaving(false);
-    if (error) {
-      setPreviewCodeError('Failed to save code. Please try again.');
-    } else {
-      setPreviewCodeSuccess('Taking Requests code saved.');
-      setTimeout(() => setPreviewCodeSuccess(''), 3000);
-    }
-  }
-
   async function handleConnectBank() {
     if (!accessToken) return;
     setConnectError('');
@@ -319,6 +276,18 @@ function ProfilePageInner() {
   async function handleLogout() {
     await supabase.auth.signOut();
     router.replace('/login');
+  }
+
+  async function loadPreviewConcerts() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const id = session?.user?.id;
+    if (!id) return;
+    const { data } = await supabase
+      .from('concerts')
+      .select('id, name, taking_requests_code')
+      .eq('performer_id', id)
+      .eq('status', 'preview');
+    setPreviewConcerts(data ?? []);
   }
 
   async function loadEarningsHistory() {
@@ -737,39 +706,32 @@ function ProfilePageInner() {
 
         <section>
           <p style={sectionLabelStyle}>
-            Taking Requests Code
+            Taking Requests Codes
           </p>
-          <label style={labelStyle}>Taking Requests Code</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <input
-              type="text"
-              value={previewCode}
-              onChange={(e) => setPreviewCode(e.target.value.slice(0, 15))}
-              placeholder="e.g. BandNameFriday"
-              maxLength={15}
-              className="profile-input"
-              style={inputStyle}
-            />
-            <span style={{ flexShrink: 0, fontSize: '12px', color: 'var(--text-faint)', minWidth: '34px', textAlign: 'right' }}>
-              {previewCode.length}/15
-            </span>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-faint)', lineHeight: 1.6, marginBottom: '20px' }}>
-            Share this code so Fans can find your Taking Requests concerts. No spaces. Max 15 characters. Case sensitive. Must be different from your Concert Code.
+          <p style={{ fontSize: '13px', color: 'var(--text-faint)', lineHeight: 1.6, marginBottom: '12px' }}>
+            Each concert currently Taking Requests gets its own code. Set or change a
+            code from that concert's page.
           </p>
-          {previewCodeError && (
-            <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{previewCodeError}</p>
+          {previewConcerts.length === 0 ? (
+            <p style={{ fontSize: '13px', color: 'var(--text-faint)', fontStyle: 'italic' }}>
+              No concerts are currently Taking Requests.
+            </p>
+          ) : (
+            previewConcerts.map((c) => (
+              <div key={c.id} style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{c.name}</p>
+                <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
+                  {c.taking_requests_code ?? '(no code set)'}
+                </p>
+                <button
+                  onClick={() => router.push(`/concerts/${c.id}?editTakingRequestsCode=true`)}
+                  style={{ marginTop: '8px', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '13px', cursor: 'pointer' }}
+                >
+                  Edit Code
+                </button>
+              </div>
+            ))
           )}
-          {previewCodeSuccess && (
-            <p style={{ color: 'var(--success)', fontSize: '13px', marginBottom: '12px' }}>{previewCodeSuccess}</p>
-          )}
-          <button
-            onClick={handleSavePreviewCode}
-            disabled={previewCodeSaving}
-            style={saveButtonStyle(previewCodeSaving)}
-          >
-            {previewCodeSaving ? 'Saving...' : 'Save Taking Requests Code'}
-          </button>
         </section>
 
         </div>
