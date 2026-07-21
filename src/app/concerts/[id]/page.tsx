@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import '../../../../tokens/tokens.css';
 
@@ -111,6 +111,8 @@ const quietLinkStyle: React.CSSProperties = {
 export default function ConcertPage() {
   const router = useRouter();
   const { id: concertId } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const editTakingRequestsCode = searchParams.get('editTakingRequestsCode');
 
   const [concert, setConcert] = useState<Concert | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -194,6 +196,27 @@ export default function ConcertPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const concertStatusRef = useRef<string | null>(null);
+  const editCodeTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      editTakingRequestsCode === 'true' &&
+      concert &&
+      !editCodeTriggeredRef.current
+    ) {
+      editCodeTriggeredRef.current = true;
+      const confirmed = window.confirm(
+        "Changing this code will invalidate the current one — fans using the old code won't be able to join anymore. Continue?"
+      );
+      if (confirmed) {
+        setIsEditingExistingCode(true);
+        setTakingRequestsCodeInput(concert.taking_requests_code ?? '');
+        setTakingRequestsCodeError('');
+        setPendingPreviewTransition(false);
+        setShowTakingRequestsCodeModal(true);
+      }
+    }
+  }, [editTakingRequestsCode, concert]);
 
   // Auth + initial data load
   useEffect(() => {
@@ -232,7 +255,7 @@ export default function ConcertPage() {
         .from('songs')
         .select('*')
         .eq('concert_id', concertId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
 
       setSongs(songsData ?? []);
       await fetchContributedSongs(concertId);
@@ -274,7 +297,7 @@ export default function ConcertPage() {
             .from('songs')
             .select('*')
             .eq('concert_id', concertId)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: true });
           setSongs(data ?? []);
         }
       )
@@ -681,7 +704,7 @@ export default function ConcertPage() {
       .eq('concert_id', concertId)
       .in('status', ['declined', 'played', 'accepted', 'deactivated']);
 
-    const goLiveUpdatePayload: any = { status: 'live', started_at: new Date().toISOString() };
+    const goLiveUpdatePayload: any = { status: 'live', started_at: new Date().toISOString(), taking_requests_code: null };
     if (concert?.status !== 'preview') {
       goLiveUpdatePayload.preview_started_at = null;
     }
