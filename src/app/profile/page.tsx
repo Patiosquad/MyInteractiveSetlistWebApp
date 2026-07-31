@@ -430,15 +430,16 @@ function ProfilePageInner() {
     const renderSongRows = (songs: any[], earned: boolean) =>
       songs.length === 0
         ? '<p class="empty">None</p>'
-        : songs.map((s: any) => `
-            <div class="song">
-              <div class="song-name">${s.songName}</div>
-              <div class="song-artist">${s.artist}</div>
-              <div class="contrib-row">
-                <span class="${earned ? 'amount-earned' : 'amount-released'}">${earned ? '+' : ''}$${Math.round(Number(s.amount))}</span>
+        : `<div class="song-list">${songs.map((s: any) => `
+            <div class="song-row song-row-${earned ? 'accepted' : 'declined'}">
+              <div class="song-info">
+                <div class="song-name-${earned ? 'accepted' : 'declined'}">${s.songName}</div>
+                <div class="song-artist-${earned ? 'accepted' : 'declined'}">${s.artist}</div>
               </div>
+              <div class="song-time">${formatSongTime(s.timestamp)}</div>
+              <div class="song-amount song-amount-${earned ? 'accepted' : 'declined'}">${earned ? '+' : ''}$${Math.round(Number(s.amount))}</div>
             </div>
-          `).join('');
+          `).join('')}</div>`;
 
     const venueLine = `${concert.venue ?? ''}${concert.city ? ` — ${concert.city}` : ''}`;
 
@@ -449,54 +450,115 @@ function ProfilePageInner() {
 <title>SetTuner Earnings Statement</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #ffffff; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 32px; }
+  body { background: #0a0806; color: #fff6ea; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 32px; }
   .container { max-width: 600px; margin: 0 auto; }
-  .logo { color: #1a7a3c; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
-  .title { font-size: 28px; font-weight: 800; margin-top: 8px; }
-  .concert-name { font-size: 18px; font-weight: 700; margin-top: 20px; }
-  .venue { color: #555555; font-size: 14px; margin-top: 4px; }
-  .date { color: #777777; font-size: 13px; margin-top: 2px; }
-  .section { margin-top: 32px; }
-  .section-title { font-size: 16px; font-weight: 700; border-bottom: 1px solid #dddddd; padding-bottom: 8px; margin-bottom: 12px; }
-  .song { padding: 10px 0; border-bottom: 1px solid #eeeeee; }
-  .song-name { font-weight: 700; font-size: 15px; }
-  .song-artist { color: #555555; font-size: 13px; margin-top: 2px; }
-  .contrib-row { display: flex; justify-content: flex-end; align-items: center; margin-top: 6px; }
-  .amount-earned { color: #1a7a3c; font-weight: 700; font-size: 14px; }
-  .amount-released { color: #777777; font-weight: 700; font-size: 14px; }
-  .empty { color: #777777; font-size: 13px; font-style: italic; }
-  .footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #dddddd; }
-  .total-earned { color: #1a7a3c; font-size: 18px; font-weight: 800; }
-  .total-released { color: #777777; font-size: 16px; font-weight: 700; margin-top: 4px; }
-  .note { color: #777777; font-size: 13px; margin-top: 16px; line-height: 1.5; }
+  .header-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+  .wordmark { color: #ff5a1f; font-size: 22px; font-weight: 900; }
+  .doc-label { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #6b5c50; font-weight: 700; }
+  .concert-name { font-size: 26px; font-weight: 900; color: #fff6ea; margin-bottom: 5px; }
+  .venue-date { font-size: 14px; color: #b8a699; margin-bottom: 26px; }
+  .contrib-count { color: #ffb703; font-weight: 700; }
+  .summary-bar { display: flex; gap: 14px; margin-bottom: 28px; }
+  .tile { border-radius: 14px; padding: 18px 22px; }
+  .tile-earned { flex: 1.4; background: rgba(22,163,74,0.07); border: 1px solid rgba(22,163,74,0.28); }
+  .tile-released { flex: 1; background: #1c1310; border: 1px solid #2e211a; }
+  .tile-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #6b5c50; font-weight: 800; margin-bottom: 8px; }
+  .tile-figure-earned { font-size: 34px; font-weight: 900; color: #16a34a; font-variant-numeric: tabular-nums; }
+  .tile-figure-released { font-size: 26px; font-weight: 800; color: #ffb703; font-variant-numeric: tabular-nums; }
+  .panel { border-radius: 12px; padding: 18px 20px; }
+  .panel-accepted { background: rgba(22,163,74,0.055); border: 1px solid rgba(22,163,74,0.22); border-left: 3px solid #16a34a; margin-bottom: 14px; }
+  .panel-declined { background: #1c1310; border: 1px solid #2e211a; border-left: 3px solid #2e211a; }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; break-after: avoid; page-break-after: avoid; }
+  .panel-title-accepted { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #16a34a; font-weight: 800; }
+  .panel-title-declined { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6b5c50; font-weight: 800; }
+  .panel-count { font-size: 11px; color: #6b5c50; }
+  .panel-count-declined { font-size: 11px; color: #6b5c50; }
+  .song-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; break-inside: avoid; page-break-inside: avoid; }
+  .song-row-accepted { background: #1c1310; border: 1px solid #2e211a; }
+  .song-row-declined { background: #0a0806; opacity: 0.8; border: 1px solid #1f1713; }
+  .song-info { flex: 1; min-width: 0; }
+  .song-name-accepted { font-size: 14px; font-weight: 700; color: #fff6ea; }
+  .song-name-declined { font-size: 14px; font-weight: 600; color: #b8a699; }
+  .song-artist-accepted { font-size: 12px; color: #b8a699; margin-top: 2px; }
+  .song-artist-declined { font-size: 12px; color: #6b5c50; margin-top: 2px; }
+  .song-time { font-family: monospace; font-size: 11px; color: #6b5c50; }
+  .song-amount { width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+  .song-amount-accepted { font-size: 15px; font-weight: 800; color: #16a34a; }
+  .song-amount-declined { font-size: 14px; font-weight: 700; color: #6b5c50; }
+  .empty { color: #6b5c50; font-size: 13px; font-style: italic; }
+  .footer-note { margin-top: 20px; font-size: 11px; font-style: italic; color: #6b5c50; }
+  @page {
+    margin: 0.75in;
+  }
   @media print {
-    body { padding: 0; }
+    body { background: #fbf8f2; color: #1c1310; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .doc-label { color: #8a7a6c; }
+    .concert-name { color: #1c1310; }
+    .venue-date { color: #6b5c50; }
+    .contrib-count { color: #a9760a; }
+    .tile-earned { background: rgba(21,128,61,0.09); border: 1px solid rgba(21,128,61,0.3); }
+    .tile-released { background: #f1ebe1; border: 1px solid #e4dacc; }
+    .tile-label { color: #8a7a6c; }
+    .tile-figure-earned { color: #15803d; }
+    .tile-figure-released { color: #a9760a; }
+    .panel-accepted { background: rgba(21,128,61,0.07); border: 1px solid rgba(21,128,61,0.24); border-left: 3px solid #15803d; }
+    .panel-declined { background: #f4efe7; border: 1px solid #e4dacc; border-left: 3px solid #cdbfae; }
+    .panel-title-accepted { color: #15803d; }
+    .panel-title-declined { color: #8a7a6c; }
+    .panel-count { color: #8a7a6c; }
+    .panel-count-declined { color: #9c8d7f; }
+    .song-row-accepted { background: #ffffff; border: 1px solid #ede4d6; }
+    .song-row-declined { background: #faf6ef; border: 1px solid #ece3d5; opacity: 1; }
+    .song-name-accepted { color: #1c1310; }
+    .song-name-declined { color: #6b5c50; }
+    .song-artist-accepted { color: #6b5c50; }
+    .song-artist-declined { color: #9c8d7f; }
+    .song-time { color: #9c8d7f; }
+    .song-amount-accepted { color: #15803d; }
+    .song-amount-declined { color: #9c8d7f; }
+    .footer-note { color: #9c8d7f; }
   }
 </style>
 </head>
 <body>
   <div class="container">
-    <div class="logo">SetTuner</div>
-    <div class="title">Earnings Statement</div>
+    <div class="header-row">
+      <div class="wordmark">SetTuner</div>
+      <div class="doc-label">Earnings Statement</div>
+    </div>
     <div class="concert-name">${concert.concertName}</div>
-    <div class="venue">${venueLine}</div>
-    <div class="date">${dateLabel}</div>
+    <div class="venue-date">${venueLine ? `${venueLine} · ` : ''}${dateLabel}<span class="contrib-count"> · ${concert.capturedCount + concert.releasedCount} contributions</span></div>
 
-    <div class="section">
-      <div class="section-title">Accepted &amp; Earned</div>
+    <div class="summary-bar">
+      <div class="tile tile-earned">
+        <div class="tile-label">Total Earned</div>
+        <div class="tile-figure-earned">+$${totalEarned}</div>
+      </div>
+      <div class="tile tile-released">
+        <div class="tile-label">Released</div>
+        <div class="tile-figure-released">$${totalReleased}</div>
+      </div>
+    </div>
+
+    ${accepted.length > 0 ? `
+    <div class="panel panel-accepted">
+      <div class="panel-header">
+        <div class="panel-title-accepted">Accepted &amp; Earned</div>
+        <div class="panel-count">${accepted.length} song${accepted.length !== 1 ? 's' : ''}</div>
+      </div>
       ${renderSongRows(accepted, true)}
-    </div>
+    </div>` : ''}
 
-    <div class="section">
-      <div class="section-title">Declined / Not Played</div>
+    ${declined.length > 0 ? `
+    <div class="panel panel-declined">
+      <div class="panel-header">
+        <div class="panel-title-declined">Declined / Not Played</div>
+        <div class="panel-count-declined">${declined.length} song${declined.length !== 1 ? 's' : ''}</div>
+      </div>
       ${renderSongRows(declined, false)}
-    </div>
+    </div>` : ''}
 
-    <div class="footer">
-      <div class="total-earned">Total earned: +$${totalEarned}</div>
-      <div class="total-released">Total released: $${totalReleased}</div>
-      <div class="note">This statement reflects raw contribution totals. Platform fees are not yet reflected in this export.</div>
-    </div>
+    <div class="footer-note">Figures are raw totals. Platform fees are not yet reflected and will be deducted before payout.</div>
   </div>
 </body>
 </html>`;
