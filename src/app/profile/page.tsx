@@ -379,8 +379,10 @@ function ProfilePageInner() {
           const captured = windowedContribs.filter((c: any) => c.status === 'accepted');
           const released = windowedContribs.filter((c: any) => c.status === 'released');
           const totalReleased = released.reduce((sum: number, c: any) => sum + Number(c.total_amount), 0);
-          const acceptedSongs = [...new Map(captured.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.total_amount), status: 'accepted' }])).values()];
-          const declinedSongs = [...new Map(released.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.total_amount), status: 'released' }])).values()];
+          const capturedSorted = [...captured].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          const releasedSorted = [...released].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          const acceptedSongs = [...new Map(capturedSorted.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.total_amount), status: 'accepted', timestamp: c.created_at }])).values()];
+          const declinedSongs = [...new Map(releasedSorted.map((c: any) => [c.song_id, { songName: songMap[c.song_id]?.name ?? 'Unknown', artist: songMap[c.song_id]?.artist ?? '', amount: Number(c.total_amount), status: 'released', timestamp: c.created_at }])).values()];
 
           const meta = concertMeta[concertId] ?? {};
           history.push({
