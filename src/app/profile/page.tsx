@@ -173,6 +173,34 @@ function ProfilePageInner() {
     init();
   }, [router]);
 
+  useEffect(() => {
+    if (!userId) return;
+
+    const userChannel = supabase
+      .channel(`performer_profile_user_${userId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` }, async () => {
+        const { data } = await supabase
+          .from('users')
+          .select('concert_code')
+          .eq('id', userId)
+          .single();
+        if (data) setConcertCode(data.concert_code ?? '');
+      })
+      .subscribe();
+
+    const concertsChannel = supabase
+      .channel(`performer_profile_concerts_${userId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'concerts', filter: `performer_id=eq.${userId}` }, () => {
+        loadPreviewConcerts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(userChannel);
+      supabase.removeChannel(concertsChannel);
+    };
+  }, [userId]);
+
   async function handleSaveProfile() {
     if (!userId) return;
     setProfileError('');
