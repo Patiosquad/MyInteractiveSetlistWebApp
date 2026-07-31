@@ -524,6 +524,10 @@ function ProfilePageInner() {
     });
   }
 
+  function formatSongTime(ts: string) {
+    return new Date(ts).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
   if (loading) {
     return (
       <div style={{
@@ -1089,51 +1093,59 @@ function ProfilePageInner() {
               </div>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 20px' }}>{new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-              <div>
-                <p style={{ color: 'var(--text-faint)', fontSize: '11px', textTransform: 'uppercase', margin: '0 0 4px' }}>Total Earned</p>
-                <p style={{ color: 'var(--gold)', fontSize: '40px', fontWeight: '800', margin: 0 }}>${Math.round(selectedEarningsConcert.totalEarned)}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 20px' }}>
+              {new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              <span style={{ color: 'var(--gold)', fontWeight: 700 }}> · {selectedEarningsConcert.capturedCount + selectedEarningsConcert.releasedCount} contributions</span>
+            </p>
+            <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
+              <div style={{ flex: '1.4', background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.28)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
+                <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Total Earned</p>
+                <p style={{ fontSize: '32px', fontWeight: 800, color: 'var(--success)', margin: 0 }}>${Math.round(selectedEarningsConcert.totalEarned)}</p>
               </div>
-              <div>
-                <p style={{ color: 'var(--text-faint)', fontSize: '11px', textTransform: 'uppercase', margin: '0 0 4px' }}>Total Released</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '32px', fontWeight: '700', margin: 0 }}>${Math.round(selectedEarningsConcert.totalReleased)}</p>
+              <div style={{ flex: 1, background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
+                <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Released</p>
+                <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--gold)', margin: 0 }}>${Math.round(selectedEarningsConcert.totalReleased)}</p>
               </div>
             </div>
             {selectedEarningsConcert.acceptedSongs.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <p style={sectionLabelStyle}>Accepted Songs</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ background: 'rgba(22,163,74,0.055)', border: '1px solid rgba(22,163,74,0.22)', borderLeft: '3px solid var(--success)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <p style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800, color: 'var(--success)', margin: 0 }}>Accepted &amp; Earned</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0 }}>{selectedEarningsConcert.acceptedSongs.length} {selectedEarningsConcert.acceptedSongs.length === 1 ? 'song' : 'songs'}</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedEarningsConcert.acceptedSongs.map((song: any, idx: number) => (
-                    <div key={idx} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.songName}</p>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist}</p>
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', background: 'var(--bg-tile)', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.songName}</p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist} · {formatSongTime(song.timestamp)}</p>
                       </div>
-                      <p style={{ color: 'var(--gold)', fontSize: '14px', fontWeight: '700', margin: 0, flexShrink: 0 }}>${Math.round(song.amount)}</p>
+                      <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--success)', margin: 0, flexShrink: 0 }}>${Math.round(song.amount)}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            <div>
-              <p style={sectionLabelStyle}>Declined / Not Played Songs</p>
-              {selectedEarningsConcert.declinedSongs.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {selectedEarningsConcert.declinedSongs.length > 0 && (
+              <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderLeft: '3px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <p style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-faint)', margin: 0 }}>Declined / Not Played</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0 }}>{selectedEarningsConcert.declinedSongs.length} {selectedEarningsConcert.declinedSongs.length === 1 ? 'song' : 'songs'}</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedEarningsConcert.declinedSongs.map((song: any, idx: number) => (
-                    <div key={idx} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.songName}</p>
-                        <p style={{ color: 'var(--text-faint)', fontSize: '12px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist}</p>
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', background: 'var(--bg-primary)', opacity: 0.8, borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.songName}</p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist} · {formatSongTime(song.timestamp)}</p>
                       </div>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, flexShrink: 0 }}>${Math.round(song.amount)}</p>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-faint)', margin: 0, flexShrink: 0 }}>${Math.round(song.amount)}</p>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p style={{ color: 'var(--text-faint)', textAlign: 'center', padding: '24px 0', margin: 0 }}>No declined songs</p>
-              )}
-            </div>
+              </div>
+            )}
+            <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'var(--text-faint)', marginTop: '18px' }}>Raw totals — platform fees are deducted before payout.</p>
           </div>
         </div>
       )}
