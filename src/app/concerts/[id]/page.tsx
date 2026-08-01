@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import GutterBackground from '@/components/GutterBackground';
 import '../../../../tokens/tokens.css';
 
 type Concert = {
@@ -941,7 +942,8 @@ export default function ConcertPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
+      <GutterBackground columnWidth={1000} />
       <style>{`
         .concert-input::placeholder { color: var(--text-faint); }
         .pill-disabled {
