@@ -7,6 +7,10 @@ export default function Home() {
       <div className="landing-hero" style={{ position: 'relative', overflow: 'hidden', padding: '80px 24px 64px' }}>
         <div className="landing-vignette" />
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <span style={{ fontWeight: 900, fontSize: 'clamp(52px,7vw,96px)', letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1 }}>Set</span>
+            <span style={{ fontWeight: 900, fontSize: 'clamp(52px,7vw,96px)', letterSpacing: '-0.02em', color: 'var(--accent)', lineHeight: 1 }}>Tuner</span>
+          </div>
           <h1 style={{ fontWeight: 900, fontSize: 'clamp(32px,5vw,56px)', letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: '20px' }}>
             You help tune the set.
           </h1>
