@@ -605,7 +605,13 @@ function ProfilePageInner() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        {/* Top glow */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(70% 55% at 50% -8%, rgba(255,90,31,0.14), rgba(10,8,6,0) 62%)' }} />
+        {/* Edge vignette */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(120% 90% at 50% 45%, rgba(10,8,6,0) 46%, rgba(5,4,3,0.62) 100%)' }} />
+      </div>
       <style>{`
         .profile-input::placeholder { color: var(--text-faint); }
         .profile-input:focus { border-color: var(--accent); outline: none; }
@@ -686,10 +692,10 @@ function ProfilePageInner() {
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px', background: 'linear-gradient(to right, var(--accent), var(--gold))' }} />
       </header>
 
-      <div style={{ width: '100%', padding: '32px 24px', display: 'flex', gap: '32px', alignItems: 'flex-start', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', padding: '32px 24px', display: 'flex', gap: '56px', alignItems: 'flex-start', boxSizing: 'border-box' }}>
 
         {/* LEFT COLUMN */}
-        <div style={{ flex: 55, display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
         {/* Account Info */}
         <section>
@@ -833,7 +839,7 @@ function ProfilePageInner() {
         </div>
 
         {/* RIGHT COLUMN */}
-        <div style={{ flex: 45, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
         {/* QR Code */}
         <section>
@@ -846,11 +852,14 @@ function ProfilePageInner() {
 
           {qrDataUrl && (
             <>
-              <img
-                src={qrDataUrl}
-                alt="QR Code"
-                style={{ width: '100%', maxWidth: '280px', margin: '0 auto 12px', display: 'block', background: 'white', borderRadius: 'var(--radius-lg)', padding: '16px', boxSizing: 'border-box' }}
-              />
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: '-48px', zIndex: 0, background: 'radial-gradient(circle, rgba(255,90,31,0.28), rgba(10,8,6,0) 65%)', pointerEvents: 'none' }} />
+                <img
+                  src={qrDataUrl}
+                  alt="QR Code"
+                  style={{ width: '100%', maxWidth: '280px', margin: '0 auto 12px', display: 'block', background: 'white', borderRadius: 'var(--radius-lg)', padding: '16px', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}
+                />
+              </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   onClick={() => setShowQRModal(true)}
