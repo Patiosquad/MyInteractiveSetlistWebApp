@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import GutterBackground from '@/components/GutterBackground';
 import '../../../../tokens/tokens.css';
 
 type VenueSuggestion = {
@@ -247,7 +248,8 @@ export default function NewConcertPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
+      <GutterBackground columnWidth={700} />
       <style>{`
         .new-concert-input::placeholder { color: var(--text-faint); }
         .new-concert-input:focus { border-color: var(--accent); outline: none; }
