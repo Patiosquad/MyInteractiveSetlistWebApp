@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import GutterBackground from '@/components/GutterBackground';
 import '../../../tokens/tokens.css';
 
 type Concert = {
@@ -276,7 +277,8 @@ export default function DashboardPage() {
         .dash-input::placeholder { color: var(--text-faint); }
       `}</style>
 
-      <div style={{ minHeight: '100vh' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
+        <GutterBackground columnWidth={1000} />
         {/* Header */}
         <header style={{
           position: 'sticky',
