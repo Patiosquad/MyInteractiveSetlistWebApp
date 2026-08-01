@@ -8,3 +8,16 @@ body {
   background: #0a0a0a;
   color: #ffffff;
 }
+
+@keyframes ringBreathe {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+@keyframes emberSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes emberTwinkle {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+}
