@@ -66,7 +66,7 @@ export default function TermsPage() {
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Contribution Limits</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          Each individual contribution is subject to a minimum of $1 and a maximum of $99. This cap applies per contribution, not per song or per concert: you may make multiple contributions, including multiple contributions toward the same song request, each subject to the $1–$99 range.
+          Each individual contribution is subject to a minimum of $1 and a maximum of $99. This cap applies per contribution, not per song or per concert: you may make multiple contributions, including multiple contributions toward the same song request, each subject to the $1–$99 range. Total contributions from a single Fan toward a single song at a single concert may not exceed $999.
         </p>
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Platform Fee</h3>

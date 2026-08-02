@@ -66,7 +66,7 @@ export default function Home() {
           <div>
             <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '17px', marginBottom: '6px' }}>Contributions combine to power the leaderboard.</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-              Back a song once, or contribute again and again — there&apos;s no limit. Every contribution combines with other fans backing the same song, raising it on the real-time leaderboard. Every fan sees the leaderboard in the app, and performers can broadcast it on the venue&apos;s screens for the whole audience.
+              Back a song once, or contribute again and again — contributions to the same song can add up to $999 per show. Every contribution combines with other fans backing the same song, raising it on the real-time leaderboard. Every fan sees the leaderboard in the app, and performers can broadcast it on the venue&apos;s screens for the whole audience.
             </p>
           </div>
         </div>
