@@ -48,12 +48,36 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
+      setLoading(false);
       setError('Invalid email or password. Please try again.');
       return;
     }
+    const userId = signInData.user?.id ?? signInData.session?.user.id;
+    if (!userId) {
+      setLoading(false);
+      setError('Authentication failed. Please try again.');
+      return;
+    }
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    if (userError || !userData) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      setError('Account setup incomplete. Please contact support.');
+      return;
+    }
+    if (userData.role !== 'performer') {
+      await supabase.auth.signOut();
+      setLoading(false);
+      setError('This is a performer account login. Fan accounts are supported in the SetTuner mobile app.');
+      return;
+    }
+    setLoading(false);
     router.replace('/dashboard');
   }
 
