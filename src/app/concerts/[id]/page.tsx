@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import GutterBackground from '@/components/GutterBackground';
+import { useVenueAutocomplete } from '@/hooks/useVenueAutocomplete';
 import '../../../../tokens/tokens.css';
 
 type Concert = {
@@ -169,6 +170,21 @@ export default function ConcertPage() {
   const [showEditConcertModal, setShowEditConcertModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editVenue, setEditVenue] = useState('');
+  const {
+    venueSuggestions: editVenueSuggestions,
+    showVenueSuggestions: showEditVenueSuggestions,
+    venueWrapperRef: editVenueWrapperRef,
+    handleSelectVenue: handleSelectEditVenue,
+    onVenueFocus: onEditVenueFocus,
+  } = useVenueAutocomplete({
+    venueName: editVenue,
+    onVenueNameChange: setEditVenue,
+    onDetailsSelected: ({ city, country, state }) => {
+      if (city) setEditCity(city);
+      if (country) setEditCountry(country);
+      if (state) setEditState(state);
+    },
+  });
   const [editCity, setEditCity] = useState('');
   const [editState, setEditState] = useState('');
   const [editCountry, setEditCountry] = useState('');
@@ -1856,7 +1872,26 @@ export default function ConcertPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Venue Name *</label>
-                <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <div ref={editVenueWrapperRef} style={{ position: 'relative' }}>
+                  <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} onFocus={onEditVenueFocus} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} autoComplete="off" />
+                  {showEditVenueSuggestions && editVenueSuggestions.length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, zIndex: 50, overflow: 'hidden' }}>
+                      {editVenueSuggestions.map((suggestion, idx) => (
+                        <button
+                          key={suggestion.placePrediction.placeId}
+                          type="button"
+                          onClick={() => handleSelectEditVenue(suggestion)}
+                          style={{ display: 'block', width: '100%', padding: '0.75rem 1rem', cursor: 'pointer', background: 'transparent', border: 'none', borderTop: idx === 0 ? 'none' : '1px solid #3f3f46', color: '#ffffff', textAlign: 'left' }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#27272a'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
+                        >
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.mainText.text}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#a1a1aa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.secondaryText.text}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>City *</label>
