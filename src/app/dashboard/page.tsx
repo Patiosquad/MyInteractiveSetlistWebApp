@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import GutterBackground from '@/components/GutterBackground';
+import { useVenueAutocomplete } from '@/hooks/useVenueAutocomplete';
 import '../../../tokens/tokens.css';
 
 type Concert = {
@@ -90,6 +91,22 @@ export default function DashboardPage() {
   const [newConcertName, setNewConcertName] = useState('');
   const [duplicateNameError, setDuplicateNameError] = useState('');
   const [duplicating, setDuplicating] = useState(false);
+  const {
+    venueSuggestions: duplicateVenueSuggestions,
+    showVenueSuggestions: showDuplicateVenueSuggestions,
+    venueWrapperRef: duplicateVenueWrapperRef,
+    handleSelectVenue: handleSelectDuplicateVenue,
+    onVenueFocus: onDuplicateVenueFocus,
+  } = useVenueAutocomplete({
+    venueName: duplicateFormData?.venue_name ?? '',
+    onVenueNameChange: (name) => setDuplicateFormData(prev => prev ? { ...prev, venue_name: name } : prev),
+    onDetailsSelected: ({ city, country, state }) => {
+      setDuplicateFormData(prev => {
+        if (!prev) return prev;
+        return { ...prev, city: city || prev.city, country: country || prev.country, state: state || prev.state };
+      });
+    },
+  });
   const [urgentPreviewCountdowns, setUrgentPreviewCountdowns] = useState<Record<string, string>>({});
   const [pendingAutoCloseNotification, setPendingAutoCloseNotification] = useState<{ id: string; name: string; reason: string } | null>(null);
 
@@ -647,13 +664,34 @@ export default function DashboardPage() {
 
               <div>
                 <label style={labelStyle}>Venue Name</label>
-                <input
-                  type="text"
-                  value={duplicateFormData.venue_name ?? ''}
-                  onChange={(e) => setDuplicateFormData(prev => prev ? { ...prev, venue_name: e.target.value } : prev)}
-                  className="dash-input"
-                  style={inputStyle}
-                />
+                <div ref={duplicateVenueWrapperRef} style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={duplicateFormData.venue_name ?? ''}
+                    onChange={(e) => setDuplicateFormData(prev => prev ? { ...prev, venue_name: e.target.value } : prev)}
+                    onFocus={onDuplicateVenueFocus}
+                    className="dash-input"
+                    style={inputStyle}
+                    autoComplete="off"
+                  />
+                  {showDuplicateVenueSuggestions && duplicateVenueSuggestions.length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, zIndex: 50, overflow: 'hidden' }}>
+                      {duplicateVenueSuggestions.map((suggestion, idx) => (
+                        <button
+                          key={suggestion.placePrediction.placeId}
+                          type="button"
+                          onClick={() => handleSelectDuplicateVenue(suggestion)}
+                          style={{ display: 'block', width: '100%', padding: '0.75rem 1rem', cursor: 'pointer', background: 'transparent', border: 'none', borderTop: idx === 0 ? 'none' : '1px solid #3f3f46', color: '#ffffff', textAlign: 'left' }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#27272a'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
+                        >
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.mainText.text}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#a1a1aa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.secondaryText.text}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem' }}>
