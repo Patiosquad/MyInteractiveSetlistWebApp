@@ -5,13 +5,13 @@ export async function GET(request: Request) {
   const input = searchParams.get('input');
 
   console.log('[places/autocomplete] input:', input);
-  console.log('[places/autocomplete] key defined:', !!process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY);
+  console.log('[places/autocomplete] key defined:', !!process.env.GOOGLE_PLACES_API_KEY);
 
   if (!input || input.trim().length < 2) {
     return Response.json({ suggestions: [] });
   }
 
-  const key = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+  const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) {
     console.log('[places/autocomplete] ERROR: API key is undefined');
     return Response.json({ suggestions: [] }, { status: 500 });

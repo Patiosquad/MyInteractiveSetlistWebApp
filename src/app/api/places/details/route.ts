@@ -5,13 +5,13 @@ export async function GET(request: Request) {
   const placeId = searchParams.get('place_id');
 
   console.log('[places/details] place_id:', placeId);
-  console.log('[places/details] key defined:', !!process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY);
+  console.log('[places/details] key defined:', !!process.env.GOOGLE_PLACES_API_KEY);
 
   if (!placeId) {
     return Response.json({});
   }
 
-  const key = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+  const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) {
     console.log('[places/details] ERROR: API key is undefined');
     return Response.json({}, { status: 500 });
