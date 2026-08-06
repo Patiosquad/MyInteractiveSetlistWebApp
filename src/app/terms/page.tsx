@@ -23,7 +23,7 @@ export default function TermsPage() {
           TERMS OF SERVICE
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '36px' }}>
-          Last updated: [DATE TO BE SET AT PUBLICATION]
+          Last updated: August 6, 2026
         </p>
 
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>

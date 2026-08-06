@@ -23,7 +23,7 @@ export default function PrivacyPage() {
           PRIVACY POLICY
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '36px' }}>
-          Last updated: [DATE TO BE SET AT PUBLICATION]
+          Last updated: August 6, 2026
         </p>
 
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
@@ -100,17 +100,17 @@ export default function PrivacyPage() {
           4. DATA RETENTION
         </h2>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
-          We retain account information for as long as your account remains active. Concert and contribution records are retained as needed to maintain accurate financial and audit records, including for tax and payment dispute purposes.
+          We retain account information for as long as your account remains active. When you delete your account, your profile information and sign-in credentials are permanently removed. Concert and contribution records are retained in anonymized form, no longer linked to your name or contact information, because these records are also part of the financial history of the performers and fans you interacted with, and are needed for accurate financial, tax, and payment dispute purposes.
         </p>
 
         <h2 style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '19px', marginTop: '32px', marginBottom: '14px' }}>
           5. YOUR RIGHTS AND CHOICES
         </h2>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          You may request to access, correct, or delete your personal information by contacting us at business@settuner.com.
+          You can delete your account at any time from the Profile screen in the SetTuner mobile app, or from your Profile page at settuner.com. Deleting your account permanently removes your profile and sign-in credentials, and you will no longer be able to sign in. Concert and contribution records are retained in anonymized form as described in Section 4.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          Currently, account deletion is handled by request through this contact address. We are building an in-app account deletion feature; once available, you will also be able to delete your account directly within the app.
+          If you have contributions or payments that are still settling, account deletion is temporarily unavailable until they finish processing, and the app will tell you what needs to resolve first. Performers who have connected a Stripe account should note that deleting a SetTuner account does not close or delete that Stripe account, which remains subject to Stripe&apos;s own terms and processes. You may also request access to or correction of your personal information by contacting us at business@settuner.com.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
           If you are a resident of a jurisdiction that grants additional data rights (such as the right to data portability or to opt out of certain processing), contact us and we will respond consistent with applicable law.
