@@ -102,6 +102,12 @@ function ProfilePageInner() {
   const [expandedEarningsMonths, setExpandedEarningsMonths] = useState<Set<string>>(new Set());
   const [selectedEarningsConcert, setSelectedEarningsConcert] = useState<any | null>(null);
 
+  // Delete Account
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState('');
+
   useEffect(() => {
     if (!userId) return;
     QRCode.toDataURL(userId, {
@@ -304,6 +310,46 @@ function ProfilePageInner() {
   async function handleLogout() {
     await supabase.auth.signOut();
     router.replace('/login');
+  }
+
+  async function handleDeleteAccountConfirmed() {
+    setDeletingAccount(true);
+    setDeleteAccountError('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setDeleteAccountError('Your session has expired. Please log in again.');
+        setDeletingAccount(false);
+        return;
+      }
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        setDeleteAccountError(result.message ?? result.error ?? 'Something went wrong. Please try again.');
+        setDeletingAccount(false);
+        return;
+      }
+
+      await supabase.auth.signOut();
+      router.replace('/login');
+    } catch (err: any) {
+      console.error('Delete account failed:', err);
+      setDeleteAccountError('Something went wrong. Please try again.');
+      setDeletingAccount(false);
+    }
   }
 
   async function loadPreviewConcerts() {
@@ -836,6 +882,39 @@ function ProfilePageInner() {
           )}
         </section>
 
+        {/* Delete Account */}
+        <section>
+          <p style={sectionLabelStyle}>
+            Delete Account
+          </p>
+          <p style={{ fontSize: '13px', color: 'var(--text-faint)', lineHeight: 1.6, marginBottom: '12px' }}>
+            Deleting your account removes your profile and signs you out permanently.
+            Your past concert and payment records are kept in anonymized form for
+            financial and audit purposes.
+          </p>
+          <button
+            onClick={() => {
+              setShowDeleteAccountModal(true);
+              setDeleteConfirmText('');
+              setDeleteAccountError('');
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-tile)'; e.currentTarget.style.color = 'var(--danger)'; }}
+            style={{
+              background: 'var(--bg-tile)',
+              border: '1px solid var(--danger)',
+              color: 'var(--danger)',
+              borderRadius: 'var(--radius-md)',
+              padding: '8px 16px',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+            }}
+          >
+            Delete Account
+          </button>
+        </section>
+
         </div>
 
         {/* RIGHT COLUMN */}
@@ -1217,6 +1296,86 @@ function ProfilePageInner() {
               </div>
             )}
             <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'var(--text-faint)', marginTop: '18px' }}>Raw totals — platform fees are deducted before payout.</p>
+          </div>
+        </div>
+      )}
+
+      {showDeleteAccountModal && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'var(--bg-overlay-heavy)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 70,
+        }}>
+          <div style={{
+            background: 'var(--bg-tile)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '2rem',
+            maxWidth: '420px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            boxSizing: 'border-box',
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Delete Account
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              <span style={{ color: 'var(--danger)' }}>This cannot be undone.</span> Your profile will be permanently deleted and you will be signed out. Past concert and payment records are retained in anonymized form.
+            </p>
+            <div>
+              <label style={labelStyle}>Type DELETE to confirm</label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="profile-input"
+                style={inputStyle}
+                autoComplete="off"
+              />
+            </div>
+            {deleteAccountError && (
+              <p style={{ color: 'var(--danger)', fontSize: '13px', margin: 0 }}>{deleteAccountError}</p>
+            )}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => {
+                  setShowDeleteAccountModal(false);
+                  setDeleteConfirmText('');
+                  setDeleteAccountError('');
+                }}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccountConfirmed}
+                disabled={deletingAccount || deleteConfirmText !== 'DELETE'}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: 'var(--radius-pill)',
+                  border: 'none',
+                  background: (deletingAccount || deleteConfirmText !== 'DELETE') ? 'var(--border)' : 'var(--danger)',
+                  color: (deletingAccount || deleteConfirmText !== 'DELETE') ? 'var(--text-faint)' : 'var(--text-primary)',
+                  fontSize: '0.9375rem',
+                  fontWeight: 700,
+                  cursor: (deletingAccount || deleteConfirmText !== 'DELETE') ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {deletingAccount ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
           </div>
         </div>
       )}
