@@ -116,6 +116,8 @@ export default function LivePage() {
   const [pendingAccept, setPendingAccept] = useState<SongWithTotal | null>(null);
   const [manageStep, setManageStep] = useState<'none' | 'choice' | 'confirmPlayed'>('none');
   const [managingSong, setManagingSong] = useState<SongWithTotal | null>(null);
+  const [editingNote, setEditingNote] = useState<{ id: string, name: string, comments: string } | null>(null);
+  const [savingNote, setSavingNote] = useState(false);
   const [bandName, setBandName] = useState('');
   const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top10grid' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
@@ -470,6 +472,23 @@ export default function LivePage() {
     setProcessingId(null);
   }
 
+  async function handleSaveNote() {
+    if (!editingNote) return;
+    setSavingNote(true);
+    const { error } = await supabase
+      .from('songs')
+      .update({ comments: editingNote.comments.trim() || null })
+      .eq('id', editingNote.id);
+    setSavingNote(false);
+    if (error) {
+      console.error('[live/page.tsx handleSaveNote] failed to save note:', error);
+      return;
+    }
+    setSongs(prev => prev.map(s => s.id === editingNote.id ? { ...s, comments: editingNote.comments.trim() || null } : s));
+    setCatalog(prev => prev.map(s => s.id === editingNote.id ? { ...s, comments: editingNote.comments.trim() || null } : s));
+    setEditingNote(null);
+  }
+
   function closeEmergencyModal() {
     setShowEmergencyAddModal(false);
     setEmergencyQuery('');
@@ -817,7 +836,9 @@ export default function LivePage() {
                               {song.artist}
                             </p>
                             {song.comments && (
-                              <span style={{ fontSize: '0.875rem' }}>📝</span>
+                              <button onClick={() => setEditingNote({ id: song.id, name: song.name, comments: song.comments ?? '' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', alignSelf: 'flex-start', textAlign: 'left' as const }}>
+                                <span style={{ fontSize: '0.875rem' }}>📝</span>
+                              </button>
                             )}
                           </div>
                           <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '3.5rem' }}>
@@ -951,7 +972,9 @@ export default function LivePage() {
                               {song.artist}
                             </p>
                             {song.comments && (
-                              <span style={{ fontSize: '0.875rem' }}>📝</span>
+                              <button onClick={() => setEditingNote({ id: song.id, name: song.name, comments: song.comments ?? '' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', alignSelf: 'flex-start', textAlign: 'left' as const }}>
+                                <span style={{ fontSize: '0.875rem' }}>📝</span>
+                              </button>
                             )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
@@ -1294,6 +1317,30 @@ export default function LivePage() {
               </button>
               <button onClick={handleMarkAsPlayed} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#991b1b', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
                 Mark as Played
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingNote && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>Performer Notes</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.875rem', margin: 0 }}>{editingNote.name}</p>
+            <input
+              type="text"
+              value={editingNote.comments}
+              onChange={(e) => setEditingNote(prev => prev ? { ...prev, comments: e.target.value } : null)}
+              placeholder="e.g. Play in drop D, slow tempo"
+              style={{ padding: '0.625rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#0a0a0a', color: '#e4e4e7', fontSize: '0.9375rem', outline: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingNote(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={handleSaveNote} disabled={savingNote} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#3f3f46', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>
+                {savingNote ? 'Saving…' : 'Save'}
               </button>
             </div>
           </div>
