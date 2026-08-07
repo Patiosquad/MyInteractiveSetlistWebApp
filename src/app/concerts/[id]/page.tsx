@@ -164,6 +164,7 @@ export default function ConcertPage() {
   const [showEndPreviewModal, setShowEndPreviewModal] = useState(false);
   const [endingPreview, setEndingPreview] = useState(false);
   const [showPreviewToLiveModal, setShowPreviewToLiveModal] = useState(false);
+  const [showTakeRequestsConfirmModal, setShowTakeRequestsConfirmModal] = useState(false);
   const [bandName, setBandName] = useState('');
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
   const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
@@ -1121,7 +1122,7 @@ export default function ConcertPage() {
                 {goingLive ? 'Going Live…' : '🎤 Go Live'}
               </button>
               <button
-                onClick={handleGoToPreview}
+                onClick={() => setShowTakeRequestsConfirmModal(true)}
                 disabled={goingToPreview}
                 onMouseEnter={(e) => { if (!goingToPreview) { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent)'; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -2138,6 +2139,21 @@ export default function ConcertPage() {
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowPreviewToLiveModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => { setShowPreviewToLiveModal(false); handleGoLive(); }} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-pill)', border: 'none', background: 'var(--success)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer' }}>Go Live</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTakeRequestsConfirmModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Take Requests?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              This opens Taking Requests for this concert. You'll set your Taking Requests code next, and fans will be able to find this concert and start contributing once it's saved.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowTakeRequestsConfirmModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { setShowTakeRequestsConfirmModal(false); handleGoToPreview(); }} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-pill)', border: 'none', background: 'var(--success)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer' }}>Take Requests</button>
             </div>
           </div>
         </div>
