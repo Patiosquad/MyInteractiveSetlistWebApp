@@ -955,6 +955,7 @@ export default function ConcertPage() {
   const c = concert!;
   const badge = STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
   const isBuilding = c.status === 'new' || c.status === 'preview' || c.status === 'closed';
+  const canEditExistingSongMetadata = c.status === 'new' || c.status === 'closed';
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -1524,7 +1525,7 @@ export default function ConcertPage() {
                       </div>
                     )}
                   </div>
-                  {isBuilding ? (
+                  {canEditExistingSongMetadata ? (
                     <>
                       <button
                         onClick={() => setEditingSong({ id: song.id, name: song.name, artist: song.artist, album: song.album ?? '', comments: song.comments ?? '' })}
