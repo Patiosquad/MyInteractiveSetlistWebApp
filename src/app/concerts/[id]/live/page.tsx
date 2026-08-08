@@ -1075,10 +1075,7 @@ export default function LivePage() {
             {emergencyPendingTrack ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <button onClick={() => setEmergencyPendingTrack(null)} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1rem', cursor: 'pointer', padding: '0.25rem' }}>←</button>
-                    <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Add to Catalog</h2>
-                  </div>
+                  <button onClick={() => setEmergencyPendingTrack(null)} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1rem', cursor: 'pointer', padding: '0.25rem' }}>← Back</button>
                   <button onClick={closeEmergencyModal} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
                 </div>
                 {emergencyPendingTrack.album_art_url && (
@@ -1328,12 +1325,12 @@ export default function LivePage() {
           <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>Performer Notes</h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.875rem', margin: 0 }}>{editingNote.name}</p>
-            <input
-              type="text"
+            <textarea
               value={editingNote.comments}
               onChange={(e) => setEditingNote(prev => prev ? { ...prev, comments: e.target.value } : null)}
               placeholder="e.g. Play in drop D, slow tempo"
-              style={{ padding: '0.625rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#0a0a0a', color: '#e4e4e7', fontSize: '0.9375rem', outline: 'none' }}
+              rows={3}
+              style={{ padding: '0.625rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: '#0a0a0a', color: '#e4e4e7', fontSize: '0.9375rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
             />
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingNote(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', color: '#a1a1aa', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>
