@@ -1516,6 +1516,11 @@ export default function ConcertPage() {
                     <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {song.artist}{song.album ? ` · ${song.album}` : ''}
                     </p>
+                    {!canEditExistingSongMetadata && song.comments && (
+                      <button onClick={() => setEditingComments({ id: song.id, name: song.name, comments: song.comments ?? '' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', alignSelf: 'flex-start', textAlign: 'left' as const, marginTop: '4px' }}>
+                        <span style={{ fontSize: '0.875rem' }}>📝</span>
+                      </button>
+                    )}
                     {contributedSongIds.has(song.id) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)' }} />
@@ -1534,7 +1539,7 @@ export default function ConcertPage() {
                         onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
                         style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: 'var(--accent)', fontSize: '1rem', lineHeight: 1, flexShrink: 0 }}
                       >
-                        ✏️
+                        {song.comments ? '📝' : '✏️'}
                       </button>
                       <button
                         onClick={() => handleRemoveSong(song.id, song.name)}
@@ -2077,7 +2082,7 @@ export default function ConcertPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Performer Notes</label>
-                <input type="text" value={editingSong.comments} onChange={(e) => setEditingSong(prev => prev ? { ...prev, comments: e.target.value } : null)} placeholder="e.g. Play in drop D, slow tempo" className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} />
+                <textarea value={editingSong.comments} onChange={(e) => setEditingSong(prev => prev ? { ...prev, comments: e.target.value } : null)} placeholder="e.g. Play in drop D, slow tempo" rows={3} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -2165,12 +2170,12 @@ export default function ConcertPage() {
           <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>Performer Notes</h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.875rem', margin: 0 }}>{editingComments.name}</p>
-            <input
-              type="text"
+            <textarea
               value={editingComments.comments}
               onChange={(e) => setEditingComments(prev => prev ? { ...prev, comments: e.target.value } : null)}
               placeholder="e.g. Play in drop D, slow tempo"
-              className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+              rows={3}
+              className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
             />
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingComments(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
