@@ -81,6 +81,7 @@ export default function DashboardPage() {
   const [bandName, setBandName] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Duplicate state
   const [duplicateMode, setDuplicateMode] = useState(false);
@@ -284,6 +285,16 @@ export default function DashboardPage() {
     setTimeout(() => setSuccessMessage(''), 4000);
   }
 
+  const filteredConcerts = concerts.filter((concert) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      concert.name.toLowerCase().includes(q) ||
+      concert.venue_name.toLowerCase().includes(q) ||
+      concert.city.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <>
       <style>{`
@@ -463,14 +474,29 @@ export default function DashboardPage() {
             </p>
           )}
 
+          {!loading && concerts.length > 0 && (
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, venue, or city..."
+              className="dash-input"
+              style={{ width: '100%', padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box', marginBottom: '1rem' }}
+            />
+          )}
+
           {/* Concert list */}
           {loading ? null : concerts.length === 0 ? (
             <p style={{ color: '#71717a', textAlign: 'center', marginTop: '4rem' }}>
               No concerts yet. Create your first concert to get started!
             </p>
+          ) : filteredConcerts.length === 0 ? (
+            <p style={{ color: '#71717a', textAlign: 'center', marginTop: '4rem' }}>
+              No concerts match your search.
+            </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {concerts.map((concert) => {
+              {filteredConcerts.map((concert) => {
                 const badge = STATUS_STYLES[concert.status] ?? STATUS_STYLES.closed;
                 return (
                   <div
