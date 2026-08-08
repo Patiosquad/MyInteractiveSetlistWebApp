@@ -1388,8 +1388,8 @@ export default function ConcertPage() {
               });
 
             const sortedSongs = (() => {
-              const deactivated = filteredSongs.filter(s => s.status === 'deactivated');
-              const rest = filteredSongs.filter(s => s.status !== 'deactivated');
+              const deactivated = filteredSongs.filter(s => ['declined', 'deactivated'].includes(s.status));
+              const rest = filteredSongs.filter(s => !['declined', 'deactivated'].includes(s.status));
 
               if (groupMode === 'contributed') {
                 const withContribs = rest.filter(s => contributedSongIds.has(s.id));

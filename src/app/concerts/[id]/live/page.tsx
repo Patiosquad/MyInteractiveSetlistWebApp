@@ -17,6 +17,8 @@ type SongWithTotal = {
   status: 'active' | 'played' | 'accepted' | 'declined' | 'deactivated';
 };
 
+const INACTIVE_CATALOG_STATUSES: SongWithTotal['status'][] = ['declined', 'deactivated'];
+
 type SpotifyTrack = {
   spotify_track_id: string;
   name: string;
@@ -123,7 +125,8 @@ export default function LivePage() {
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
   const [showConcertOptionsDropdown, setShowConcertOptionsDropdown] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
-  const [catalogSortMode, setCatalogSortMode] = useState<'default' | 'song' | 'artist'>('default');
+  const [catalogSortMode, setCatalogSortMode] = useState<'default' | 'song' | 'song-desc' | 'artist' | 'artist-desc'>('default');
+  const [catalogGroupMode, setCatalogGroupMode] = useState<'none' | 'contributed' | 'active'>('none');
   const [showEmergencyAddModal, setShowEmergencyAddModal] = useState(false);
   const [emergencyAddMode, setEmergencyAddMode] = useState<'spotify' | 'manual'>('spotify');
   const [emergencyQuery, setEmergencyQuery] = useState('');
@@ -636,11 +639,34 @@ export default function LivePage() {
     s.artist.toLowerCase().includes(catalogSearch.toLowerCase())
   );
 
-  const sortedCatalogSongs = [...filteredCatalogSongs].sort((a, b) => {
-    if (catalogSortMode === 'song') return a.name.localeCompare(b.name);
-    if (catalogSortMode === 'artist') return a.artist.localeCompare(b.artist);
-    return 0;
-  });
+  const applyCatalogAlphaSort = (arr: typeof filteredCatalogSongs) =>
+    [...arr].sort((a, b) => {
+      if (catalogSortMode === 'song') return a.name.localeCompare(b.name);
+      if (catalogSortMode === 'song-desc') return b.name.localeCompare(a.name);
+      if (catalogSortMode === 'artist') return a.artist.localeCompare(b.artist);
+      if (catalogSortMode === 'artist-desc') return b.artist.localeCompare(a.artist);
+      return 0;
+    });
+
+  const sortedCatalogSongs = (() => {
+    const deactivated = filteredCatalogSongs.filter(s => INACTIVE_CATALOG_STATUSES.includes(s.status));
+    const rest = filteredCatalogSongs.filter(s => !INACTIVE_CATALOG_STATUSES.includes(s.status));
+
+    if (catalogGroupMode === 'contributed') {
+      const withContribs = rest.filter(s => s.total > 0);
+      const withoutContribs = rest.filter(s => !(s.total > 0));
+      return [...applyCatalogAlphaSort(withContribs), ...applyCatalogAlphaSort(withoutContribs), ...applyCatalogAlphaSort(deactivated)];
+    }
+
+    if (catalogGroupMode === 'active') {
+      const notPlayed = rest.filter(s => s.status !== 'played');
+      const played = rest.filter(s => s.status === 'played');
+      return [...applyCatalogAlphaSort(notPlayed), ...applyCatalogAlphaSort(played), ...applyCatalogAlphaSort(deactivated)];
+    }
+
+    // catalogGroupMode === 'none'
+    return [...applyCatalogAlphaSort(rest), ...applyCatalogAlphaSort(deactivated)];
+  })();
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -898,23 +924,68 @@ export default function LivePage() {
                   + Add Song
                 </button>
               </div>
-              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexShrink: 0 }}>
-                {(['default', 'song', 'artist'] as const).map((mode) => (
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexShrink: 0, overflowX: 'auto' }}>
+                {(['default', 'song', 'artist'] as const).map((mode) => {
+                  const isActive =
+                    mode === 'default'
+                      ? catalogSortMode === 'default' && catalogGroupMode === 'none'
+                      : mode === 'song'
+                      ? catalogSortMode === 'song' || catalogSortMode === 'song-desc'
+                      : catalogSortMode === 'artist' || catalogSortMode === 'artist-desc';
+                  const label =
+                    mode === 'default'
+                      ? 'Default'
+                      : mode === 'song'
+                      ? (catalogSortMode === 'song-desc' ? 'Song Z-A' : 'Song A-Z')
+                      : (catalogSortMode === 'artist-desc' ? 'Artist Z-A' : 'Artist A-Z');
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => {
+                        if (mode === 'default') {
+                          setCatalogSortMode('default');
+                          setCatalogGroupMode('none');
+                        } else if (mode === 'song') {
+                          setCatalogSortMode(prev => prev === 'song' ? 'song-desc' : 'song');
+                        } else {
+                          setCatalogSortMode(prev => prev === 'artist' ? 'artist-desc' : 'artist');
+                        }
+                      }}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: 'var(--radius-pill)',
+                        border: isActive ? 'none' : '1px solid var(--border)',
+                        cursor: 'pointer',
+                        background: isActive ? 'var(--accent)' : 'var(--bg-tile)',
+                        color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+                {(['contributed', 'active'] as const).map((mode) => (
                   <button
                     key={mode}
-                    onClick={() => setCatalogSortMode(mode)}
+                    onClick={() => setCatalogGroupMode(prev => prev === mode ? 'none' : mode)}
                     style={{
                       padding: '3px 10px',
                       borderRadius: 'var(--radius-pill)',
-                      border: catalogSortMode === mode ? 'none' : '1px solid var(--border)',
+                      border: catalogGroupMode === mode ? 'none' : '1px solid var(--border)',
                       cursor: 'pointer',
-                      background: catalogSortMode === mode ? 'var(--accent)' : 'var(--bg-tile)',
-                      color: catalogSortMode === mode ? 'var(--text-primary)' : 'var(--text-muted)',
+                      background: catalogGroupMode === mode ? 'var(--accent)' : 'var(--bg-tile)',
+                      color: catalogGroupMode === mode ? 'var(--text-primary)' : 'var(--text-muted)',
                       fontSize: '0.7rem',
                       fontWeight: 600,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {mode === 'default' ? 'Default' : mode === 'song' ? 'Song A-Z' : 'Artist A-Z'}
+                    {mode === 'contributed' ? 'Contributed' : 'Active'}
                   </button>
                 ))}
               </div>
@@ -941,7 +1012,7 @@ export default function LivePage() {
                     {sortedCatalogSongs.map((song) => {
                       const onLeaderboard = song.status === 'active' && song.total > 0;
                       const activeNoContrib = song.status === 'active' && song.total === 0;
-                      const isInactive = ['declined', 'deactivated'].includes(song.status);
+                      const isInactive = INACTIVE_CATALOG_STATUSES.includes(song.status);
                       const isPlayed = song.status === 'played';
                       const isReactivating = reactivatingId === song.id;
                       const isProcessing = processingId === song.id;
