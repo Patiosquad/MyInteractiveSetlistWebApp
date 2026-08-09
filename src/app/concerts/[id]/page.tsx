@@ -17,7 +17,7 @@ type Concert = {
   estimated_start: string | null;
   estimated_length: string | null;
   show_date: string | null;
-  status: 'new' | 'preview' | 'live' | 'closed';
+  status: 'new' | 'preview' | 'live' | 'closing' | 'closed';
   preview_started_at: string | null;
   performer_id: string;
   comments: string | null;
@@ -48,6 +48,7 @@ const STATUS_BADGE: Record<Concert['status'], { background: string; color: strin
   live:     { background: '#3a120c', color: '#ff3b2e' },
   preview:  { background: '#2a150a', color: '#ffcf6b' },
   new:      { background: '#3a2408', color: '#ffb703' },
+  closing:  { background: '#221a16', color: '#8a7566' },
   closed:   { background: '#221a16', color: '#8a7566' },
 };
 
@@ -493,6 +494,15 @@ export default function ConcertPage() {
   }
 
   async function handleDeleteConcertConfirmed() {
+    // Only 'new' (provably zero contributions) and 'closed' (provably resolved by
+    // end-concert) are safe. Deleting during 'live', 'closing', or 'preview' would
+    // orphan live Stripe holds with no database record left to track or release them.
+    const currentStatus = concert?.status;
+    if (currentStatus === 'live' || currentStatus === 'closing' || currentStatus === 'preview') {
+      alert('Cannot delete: this concert has an active or unresolved session.');
+      return;
+    }
+
     try {
       if (concert?.status === 'live') {
         await fetch(
@@ -504,8 +514,34 @@ export default function ConcertPage() {
           }
         ).catch(() => {});
       }
-      await supabase.from('songs').delete().eq('concert_id', concertId);
-      await supabase.from('concerts').delete().eq('id', concertId);
+      const { error: songsError } = await supabase.from('songs').delete().eq('concert_id', concertId);
+      if (songsError) {
+        console.error('Delete concert failed at step 1 (songs):', songsError);
+        alert('Delete failed: ' + songsError.message);
+        return;
+      }
+
+      const { error: bucketsError } = await supabase.from('fan_concert_buckets').delete().eq('concert_id', concertId);
+      if (bucketsError) {
+        console.error('Delete concert failed at step 2 (fan_concert_buckets):', bucketsError);
+        alert('Delete failed: ' + bucketsError.message);
+        return;
+      }
+
+      const { error: cyclesError } = await supabase.from('concert_cycles').delete().eq('concert_id', concertId);
+      if (cyclesError) {
+        console.error('Delete concert failed at step 3 (concert_cycles):', cyclesError);
+        alert('Delete failed: ' + cyclesError.message);
+        return;
+      }
+
+      const { error: concertError } = await supabase.from('concerts').delete().eq('id', concertId);
+      if (concertError) {
+        console.error('Delete concert failed at step 4 (concerts):', concertError);
+        alert('Delete failed: ' + concertError.message);
+        return;
+      }
+
       router.push('/dashboard');
     } catch (err) {
       console.error('Delete concert failed:', err);
