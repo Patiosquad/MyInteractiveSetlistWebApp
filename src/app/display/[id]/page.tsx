@@ -466,8 +466,10 @@ export default function DisplayPage() {
                 lineHeight: 1.1,
                 minWidth: 0,
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical' as const,
+                overflowWrap: 'break-word',
               }}>
                 {concertName}
               </h1>

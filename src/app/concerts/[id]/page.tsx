@@ -1008,7 +1008,7 @@ export default function ConcertPage() {
           {/* RIGHT ZONE — Concert identity */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              <h1 style={{ fontSize: 'clamp(18px, 2vw, 28px)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <h1 style={{ fontSize: 'clamp(18px, 2vw, 28px)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, minWidth: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', overflowWrap: 'break-word' }}>
                 {c.name}
               </h1>
               <span style={{
@@ -1023,7 +1023,7 @@ export default function ConcertPage() {
                 {c.status === 'preview' ? 'Taking Requests!' : c.status.toUpperCase()}
               </span>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '2px 0 0', textAlign: 'right' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '2px 0 0', textAlign: 'right', overflowWrap: 'break-word', maxWidth: '100%' }}>
               {concertSubtitle(c)}
               {previewCountdown && (
                 <span style={{ color: previewCountdown.urgent ? 'var(--danger)' : 'var(--text-secondary)', fontWeight: 600, marginLeft: '8px' }}>

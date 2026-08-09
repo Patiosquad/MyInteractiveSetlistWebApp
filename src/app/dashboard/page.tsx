@@ -558,10 +558,10 @@ export default function DashboardPage() {
                           {urgentPreviewCountdowns[concert.id]}
                         </span>
                       )}
-                    <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.375rem', paddingRight: '6rem' }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.375rem', paddingRight: '6rem', overflowWrap: 'break-word' }}>
                       {concert.name}
                     </h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', overflowWrap: 'break-word' }}>
                       {concert.venue_name}
                       {concert.city || concert.state ? ` · ${[concert.city, concert.state].filter(Boolean).join(', ')}` : ''}
                       {concert.show_date ? ` · ${new Date(concert.show_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}` : ''}

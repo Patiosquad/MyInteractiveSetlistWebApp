@@ -684,8 +684,8 @@ export default function LivePage() {
       {/* Header */}
       <header style={{ borderBottom: '1px solid var(--border-subtle)', padding: '1rem 2rem', flexShrink: 0 }}>
         <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{concert?.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', minWidth: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', overflowWrap: 'break-word' }}>{concert?.name}</h1>
             {isPreview ? (
               <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-preview-bg)', color: 'var(--status-preview-text)' }}>
                 Taking Requests!
