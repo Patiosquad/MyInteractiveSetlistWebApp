@@ -745,33 +745,54 @@ export default function ConcertPage() {
     }
 
     if (concert.status !== 'preview') {
-      await supabase
+      const { error: contribError } = await supabase
         .from('contributions')
         .delete()
         .eq('concert_id', concertId)
         .eq('status', 'active');
+      if (contribError) {
+        console.error('[go-live] step 1 (clear active contributions) failed:', contribError);
+        setGoingLive(false);
+        setGoLiveError('Go Live failed: ' + contribError.message);
+        return;
+      }
     }
 
-    await supabase
+    const { error: songsError } = await supabase
       .from('songs')
       .update({ status: 'active' })
       .eq('concert_id', concertId)
       .in('status', ['declined', 'played', 'accepted', 'deactivated']);
+    if (songsError) {
+      console.error('[go-live] step 2 (reset song statuses) failed:', songsError);
+      setGoingLive(false);
+      setGoLiveError('Go Live failed: ' + songsError.message);
+      return;
+    }
 
     const goLiveUpdatePayload: any = { status: 'live', started_at: new Date().toISOString(), taking_requests_code: null };
     if (concert?.status !== 'preview') {
       goLiveUpdatePayload.preview_started_at = null;
     }
 
-    const { data } = await supabase
+    const { data, error: concertError } = await supabase
       .from('concerts')
       .update(goLiveUpdatePayload)
       .eq('id', concertId)
       .select('*')
       .single();
+    if (concertError) {
+      console.error('[go-live] step 3 (set concert status to live) failed:', concertError);
+      setGoingLive(false);
+      setGoLiveError('Go Live failed: ' + concertError.message);
+      return;
+    }
 
     if (data) {
-      await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
+      const { error: activityError } = await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
+      if (activityError) {
+        console.error('[go-live] step 4 (last_activity_at touch) failed, non-blocking:', activityError);
+      }
       setConcert(data);
     }
     setGoingLive(false);
@@ -913,29 +934,47 @@ export default function ConcertPage() {
     }
 
     if (pendingPreviewTransition) {
-      await supabase
+      const { error: previewSongsError } = await supabase
         .from('songs')
         .update({ status: 'active' })
         .eq('concert_id', concertId)
         .in('status', ['declined', 'played', 'accepted', 'deactivated']);
-      const { data } = await supabase
+      if (previewSongsError) {
+        console.error('[go-to-preview] step 1 (reset song statuses) failed:', previewSongsError);
+        setTakingRequestsCodeError('Could not start Taking Requests: ' + previewSongsError.message);
+        setSavingTakingRequestsCode(false);
+        return;
+      }
+      const { data, error: previewConcertError } = await supabase
         .from('concerts')
         .update({ status: 'preview', preview_started_at: new Date().toISOString(), taking_requests_code: trimmed })
         .eq('id', concertId)
         .select('*')
         .single();
+      if (previewConcertError) {
+        console.error('[go-to-preview] step 2 (set concert status to preview) failed:', previewConcertError);
+        setTakingRequestsCodeError('Could not start Taking Requests: ' + previewConcertError.message);
+        setSavingTakingRequestsCode(false);
+        return;
+      }
       if (data && pendingMultiplePreviewReminder) {
         setShowMultiplePreviewReminder(true);
       }
       if (data) setConcert(data);
       setPendingPreviewTransition(false);
     } else {
-      const { data } = await supabase
+      const { data, error: codeUpdateError } = await supabase
         .from('concerts')
         .update({ taking_requests_code: trimmed })
         .eq('id', concertId)
         .select('*')
         .single();
+      if (codeUpdateError) {
+        console.error('[taking-requests-code] code update failed:', codeUpdateError);
+        setTakingRequestsCodeError('Could not save code: ' + codeUpdateError.message);
+        setSavingTakingRequestsCode(false);
+        return;
+      }
       if (data) setConcert(data);
     }
 
