@@ -49,7 +49,7 @@ const saveButtonStyle = (saving: boolean): React.CSSProperties => ({
   cursor: saving ? 'not-allowed' : 'pointer',
 });
 
-type PayoutsState = 'not_connected' | 'setup_in_progress' | 'active';
+type PayoutsState = 'unknown' | 'not_connected' | 'setup_in_progress' | 'active';
 
 export default function ProfilePage() {
   return (
@@ -78,7 +78,7 @@ function ProfilePageInner() {
   const [previewConcerts, setPreviewConcerts] = useState<{ id: string; name: string; taking_requests_code: string | null }[]>([]);
 
   // Payouts
-  const [payoutsState, setPayoutsState] = useState<PayoutsState>('not_connected');
+  const [payoutsState, setPayoutsState] = useState<PayoutsState>('unknown');
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -93,6 +93,7 @@ function ProfilePageInner() {
 
   const [connectLoading, setConnectLoading] = useState(false);
   const [connectError, setConnectError] = useState('');
+  const [payoutsChecking, setPayoutsChecking] = useState(false);
 
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [showQRModal, setShowQRModal] = useState(false);
@@ -146,31 +147,7 @@ function ProfilePageInner() {
         setBandName(data.username ?? '');
         setConcertCode(data.concert_code ?? '');
 
-        if (data.stripe_connect_account_id) {
-          try {
-            const statusRes = await fetch(
-              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-connect-account`,
-              {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId: session.user.id }),
-              }
-            );
-            const statusResult = await statusRes.json();
-            if (statusRes.ok && statusResult.success && statusResult.chargesEnabled && statusResult.payoutsEnabled) {
-              setPayoutsState('active');
-            } else {
-              setPayoutsState('setup_in_progress');
-            }
-          } catch {
-            setPayoutsState('setup_in_progress');
-          }
-        } else {
-          setPayoutsState('not_connected');
-        }
+        await refreshPayoutsStatus();
       }
 
       await loadEarningsHistory();
@@ -296,12 +273,18 @@ function ProfilePageInner() {
           body: JSON.stringify({ userId, returnUrl: `${window.location.origin}/profile` }),
         }
       );
-      if (!res.ok) {
-        throw new Error('Failed to start onboarding.');
+      const result = await res.json();
+
+      if (!res.ok || !result.success || !result.onboardingUrl) {
+        console.error(`[web-profile] handleConnectBank: onboarding link unavailable | ok=${res.ok} | status=${res.status} | success=${result?.success} | hasUrl=${!!result?.onboardingUrl} | error=${result?.error ?? 'none'}`);
+        setConnectLoading(false);
+        setConnectError(result?.error ?? 'Failed to start onboarding. Please try again.');
+        return;
       }
-      const { onboardingUrl } = await res.json();
-      window.location.href = onboardingUrl;
-    } catch {
+
+      window.location.href = result.onboardingUrl;
+    } catch (err: any) {
+      console.error(`[web-profile] handleConnectBank: threw | message=${err?.message ?? 'unknown'}`);
       setConnectLoading(false);
       setConnectError('Failed to connect. Please try again.');
     }
@@ -362,6 +345,64 @@ function ProfilePageInner() {
       .eq('performer_id', id)
       .eq('status', 'preview');
     setPreviewConcerts(data ?? []);
+  }
+
+  // Resolves the full payouts state machine and is safe to call from anywhere:
+  // it fetches its own session rather than reading accessToken/userId component
+  // state, which are still null inside the mount effect that first calls this.
+  // Every exit path sets a state, so no caller can leave the section blank.
+  async function refreshPayoutsStatus() {
+    setPayoutsChecking(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setPayoutsState('unknown');
+        return;
+      }
+
+      const { data: userRow, error: userRowError } = await supabase
+        .from('users')
+        .select('stripe_connect_account_id')
+        .eq('id', session.user.id)
+        .single();
+
+      if (userRowError || !userRow) {
+        console.error(`[web-profile] refreshPayoutsStatus: users read failed | message=${userRowError?.message ?? 'no row returned'} | code=${userRowError?.code ?? 'none'} | details=${userRowError?.details ?? 'none'}`);
+        setPayoutsState('unknown');
+        return;
+      }
+
+      if (!userRow.stripe_connect_account_id) {
+        setPayoutsState('not_connected');
+        return;
+      }
+
+      const statusRes = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-connect-account`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: session.user.id }),
+        }
+      );
+      const statusResult = await statusRes.json();
+
+      if (!statusRes.ok || !statusResult.success) {
+        console.error(`[web-profile] refreshPayoutsStatus: status check did not complete | ok=${statusRes.ok} | status=${statusRes.status} | success=${statusResult?.success} | error=${statusResult?.error ?? 'none'}`);
+        setPayoutsState('unknown');
+        return;
+      }
+
+      setPayoutsState(statusResult.chargesEnabled && statusResult.payoutsEnabled ? 'active' : 'setup_in_progress');
+    } catch (err: any) {
+      console.error(`[web-profile] refreshPayoutsStatus: threw | message=${err?.message ?? 'unknown'}`);
+      setPayoutsState('unknown');
+    } finally {
+      setPayoutsChecking(false);
+    }
   }
 
   async function loadEarningsHistory() {
@@ -1082,6 +1123,47 @@ function ProfilePageInner() {
                 }}
               >
                 {connectLoading ? 'Redirecting...' : 'Manage Payout Account Settings'}
+              </button>
+            </div>
+          )}
+
+          {payoutsState === 'unknown' && (
+            <div style={{
+              background: 'var(--bg-tile)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '16px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ color: 'var(--text-faint)', fontSize: '10px', marginRight: '6px' }}>●</span>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Payout Status Unavailable
+                </span>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
+                We could not check your payout status right now. This does not change any setup you have already completed.
+              </p>
+              {connectError && (
+                <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
+              )}
+              <button
+                onClick={refreshPayoutsStatus}
+                disabled={payoutsChecking}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  backgroundColor: 'var(--bg-tile-deep)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: payoutsChecking ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {payoutsChecking ? 'Checking...' : 'Refresh Status'}
               </button>
             </div>
           )}
