@@ -65,7 +65,6 @@ function ProfilePageInner() {
   const returnTo = searchParams.get('returnTo');
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   // Profile fields
   const [firstName, setFirstName] = useState('');
@@ -132,7 +131,6 @@ function ProfilePageInner() {
         return;
       }
       setUserId(session.user.id);
-      setAccessToken(session.access_token);
 
       const { data } = await supabase
         .from('users')
@@ -258,19 +256,25 @@ function ProfilePageInner() {
   }
 
   async function handleConnectBank() {
-    if (!accessToken) return;
     setConnectError('');
     setConnectLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('[web-profile] handleConnectBank: no active session');
+        setConnectLoading(false);
+        setConnectError('Your session has expired. Please log in again.');
+        return;
+      }
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-connect-account`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId, returnUrl: `${window.location.origin}/profile` }),
+          body: JSON.stringify({ userId: session.user.id, returnUrl: `${window.location.origin}/profile` }),
         }
       );
       const result = await res.json();
@@ -348,8 +352,8 @@ function ProfilePageInner() {
   }
 
   // Resolves the full payouts state machine and is safe to call from anywhere:
-  // it fetches its own session rather than reading accessToken/userId component
-  // state, which are still null inside the mount effect that first calls this.
+  // it fetches its own session at call time rather than closing over component
+  // state, which is not yet populated when the mount effect first calls this.
   // Every exit path sets a state, so no caller can leave the section blank.
   async function refreshPayoutsStatus() {
     setPayoutsChecking(true);
