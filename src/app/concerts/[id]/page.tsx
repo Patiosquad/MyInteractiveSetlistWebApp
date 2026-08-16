@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import GutterBackground from '@/components/GutterBackground';
 import { useVenueAutocomplete } from '@/hooks/useVenueAutocomplete';
+import { checkPayoutReadiness } from '@/lib/payoutReadiness';
 import '../../../../tokens/tokens.css';
 
 type Concert = {
@@ -724,6 +725,16 @@ export default function ConcertPage() {
     setGoLiveError('');
     setGoingLive(true);
 
+    // Payout readiness is a fact about the performer, not this concert, so it
+    // is checked before any concert-specific rule. Fails open by design -- see
+    // the comment block in src/lib/payoutReadiness.ts.
+    const readiness = await checkPayoutReadiness();
+    if (!readiness.allowed) {
+      setGoLiveError(readiness.message);
+      setGoingLive(false);
+      return;
+    }
+
     const { data: liveCheck } = await supabase
       .from('concerts')
       .select('id')
@@ -802,6 +813,18 @@ export default function ConcertPage() {
     if (!concert) return;
     setPreviewError('');
     setGoingToPreview(true);
+
+    // Gated here rather than in handleSaveTakingRequestsCode: the preview
+    // status write in that function is fenced behind pendingPreviewTransition,
+    // and this function is the only place that flag is ever set true. Gating
+    // both would cost a second redundant status round trip on one user action.
+    const readiness = await checkPayoutReadiness();
+    if (!readiness.allowed) {
+      setPreviewError(readiness.message);
+      setGoingToPreview(false);
+      return;
+    }
+
     const { data: previewCheck } = await supabase
       .from('concerts')
       .select('id')
