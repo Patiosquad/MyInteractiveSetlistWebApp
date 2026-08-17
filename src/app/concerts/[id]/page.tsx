@@ -167,6 +167,11 @@ export default function ConcertPage() {
   const [endingPreview, setEndingPreview] = useState(false);
   const [showPreviewToLiveModal, setShowPreviewToLiveModal] = useState(false);
   const [showTakeRequestsConfirmModal, setShowTakeRequestsConfirmModal] = useState(false);
+
+  // Object-with-null rather than a boolean plus separate message state, matching
+  // the four object-shaped modals already in this file. flow tells the confirm
+  // button which transition to resume.
+  const [payoutWarn, setPayoutWarn] = useState<{ title: string; message: string; flow: 'golive' | 'preview' } | null>(null);
   const [bandName, setBandName] = useState('');
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
   const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
@@ -729,11 +734,36 @@ export default function ConcertPage() {
     // is checked before any concert-specific rule. Fails open by design -- see
     // the comment block in src/lib/payoutReadiness.ts.
     const readiness = await checkPayoutReadiness();
-    if (!readiness.allowed) {
+    if (readiness.action === 'block') {
       setGoLiveError(readiness.message);
       setGoingLive(false);
       return;
     }
+    if (readiness.action === 'confirm') {
+      // The warn tier opens a modal rather than setting goLiveError, because a
+      // performer whose payouts broke needs a decision, not a dead end. Note
+      // this fires AFTER the Go Live confirmation modal on web, whereas on iOS
+      // the gate runs first and chains into it -- the existing confirm button
+      // calls handleGoLive(), so the order is inverted between platforms.
+      setPayoutWarn({ title: readiness.title, message: readiness.message, flow: 'golive' });
+      setGoingLive(false);
+      return;
+    }
+
+    await proceedWithGoLive();
+  }
+
+  // Everything after the payout gate. Extracted so the warn tier's Continue
+  // Anyway button can resume the transition without calling handleGoLive
+  // again, which would re-run the gate and reopen the modal in a loop.
+  //
+  // Sets its own goingLive / goLiveError state because the gate resets
+  // goingLive to false before opening the modal, so this re-entry starts from
+  // a clean slate rather than inheriting the first pass's flags.
+  async function proceedWithGoLive() {
+    if (!concert) return;
+    setGoLiveError('');
+    setGoingLive(true);
 
     const { data: liveCheck } = await supabase
       .from('concerts')
@@ -819,11 +849,26 @@ export default function ConcertPage() {
     // and this function is the only place that flag is ever set true. Gating
     // both would cost a second redundant status round trip on one user action.
     const readiness = await checkPayoutReadiness();
-    if (!readiness.allowed) {
+    if (readiness.action === 'block') {
       setPreviewError(readiness.message);
       setGoingToPreview(false);
       return;
     }
+    if (readiness.action === 'confirm') {
+      setPayoutWarn({ title: readiness.title, message: readiness.message, flow: 'preview' });
+      setGoingToPreview(false);
+      return;
+    }
+
+    await proceedWithGoToPreview();
+  }
+
+  // Everything after the payout gate, extracted for the warn tier's Continue
+  // Anyway button. Same reasoning as proceedWithGoLive above.
+  async function proceedWithGoToPreview() {
+    if (!concert) return;
+    setPreviewError('');
+    setGoingToPreview(true);
 
     const { data: previewCheck } = await supabase
       .from('concerts')
@@ -2258,6 +2303,21 @@ export default function ConcertPage() {
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowTakeRequestsConfirmModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => { setShowTakeRequestsConfirmModal(false); handleGoToPreview(); }} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-pill)', border: 'none', background: 'var(--success)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer' }}>Take Requests</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {payoutWarn && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{payoutWarn.title}</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              {payoutWarn.message}
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setPayoutWarn(null)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { const flow = payoutWarn.flow; setPayoutWarn(null); if (flow === 'golive') { proceedWithGoLive(); } else { proceedWithGoToPreview(); } }} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-pill)', border: 'none', background: 'var(--gold)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 700, cursor: 'pointer' }}>Continue Anyway</button>
             </div>
           </div>
         </div>

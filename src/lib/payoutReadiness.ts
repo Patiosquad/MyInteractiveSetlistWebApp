@@ -1,47 +1,73 @@
 import { supabase } from '@/lib/supabase';
 
-export type PayoutVerdict = 'ready' | 'no_account' | 'restricted' | 'check_failed';
+export type PayoutVerdict = 'ready' | 'no_account' | 'never_verified' | 'previously_verified' | 'check_failed';
+
+export type PayoutAction = 'allow' | 'block' | 'confirm';
 
 export type PayoutReadiness = {
-  allowed: boolean;
+  action: PayoutAction;
   verdict: PayoutVerdict;
+  title: string;
   message: string;
 };
 
+const NO_ACCOUNT_TITLE = 'Bank Account Required';
 const NO_ACCOUNT_MESSAGE =
   'Connect a bank account before going live. Fans can contribute during your show, but without a connected account there is no way to send you the money. Set this up under Payouts on your Profile.';
 
-const RESTRICTED_MESSAGE =
-  'Your payout account needs attention before you can go live. Stripe has restricted it, so fans cannot be charged for their contributions. Open Payouts on your Profile to resolve it, then try again.';
+const NEVER_VERIFIED_TITLE = 'Finish Setting Up Payouts';
+const NEVER_VERIFIED_MESSAGE =
+  'Your payout account is not finished. Stripe has never confirmed it can accept charges, so fans cannot be charged for their contributions. Open Payouts on your Profile to complete setup, then try again.';
 
-// Single source of truth for whether a performer can be paid.
+const PREVIOUSLY_VERIFIED_TITLE = 'Payouts Not Working';
+const PREVIOUSLY_VERIFIED_MESSAGE =
+  'Stripe cannot currently accept charges for your account. Fans can still contribute during your show, but if this is not resolved you may not be paid for this performance. You can continue, or set this up under Payouts on your Profile first.';
+
+// Single source of truth for whether a performer can be paid. Mirrors
+// lib/payoutReadiness.ts in the iOS repo; keep the two in step.
 //
-// Fetches its own session at call time rather than closing over component
-// state -- callers may invoke this from a mount effect where state is not
-// yet populated.
+// THREE TIERS, keyed on two independent facts.
+//
+// chargesEnabled, read live from Stripe on every call, answers "can this
+// performer be charged RIGHT NOW". Never cached in the database, because a
+// cached copy of Stripe state goes stale silently.
+//
+// payoutsVerifiedAt, a timestamp on public.users, answers "has Stripe EVER
+// confirmed this performer could be charged". Written only by the
+// create-connect-account Edge Function running as service_role, because the
+// UPDATE policy on public.users is row-scoped with no column scoping and a
+// trust assertion the subject can forge asserts nothing.
+//
+// The tiers:
+//   no account at all            -> BLOCK, nothing to warn about
+//   never verified               -> BLOCK, payouts have never worked
+//   verified once, broken now    -> CONFIRM, a real performer whose account
+//                                   broke gets to decide whether to play
+//   working now                  -> ALLOW
+//
+// The middle distinction matters. detailsSubmitted is NOT a usable proxy for
+// "has worked before": fleet2 in the sandbox fleet has detailsSubmitted true
+// and has never once had chargesEnabled true, because its address failed at
+// submission. Only payoutsVerifiedAt separates a broken veteran from someone
+// whose setup never completed.
 //
 // FAILS OPEN. Every payout failure mode was measured against the Stripe
-// sandbox fleet on 2026-08-15 and every one of them is rejected by Stripe
-// BEFORE a card is charged: a null destination fails with parameter_missing
-// on application_fee_amount, an inactive transfers capability fails with
-// insufficient_capabilities_for_transfer, and an inactive card_payments
-// capability fails at confirm. No fan is ever charged for a performer who
-// cannot receive the money. This gate therefore exists to move that failure
-// forward in time -- telling the performer at Go Live instead of hours after
-// the show -- not to protect the money path, which Stripe already protects.
-// Blocking a real performance because a status call flaked is the worse
-// outcome, so a failed check allows the transition.
+// sandbox fleet on 2026-08-15 and every one is rejected by Stripe BEFORE a
+// card is charged. No fan is ever charged for a performer who cannot receive
+// the money. This gate exists to move that failure forward in time, not to
+// protect the money path, which Stripe already protects.
 //
-// The verdict keys off chargesEnabled, which predicted the correct outcome
-// on all seven accounts measured. accountId separates "never connected"
-// from "connected but restricted" so the two get different copy.
+// Note the status endpoint has two response shapes. When the performer has no
+// Connect account it returns five keys and OMITS payoutsVerifiedAt entirely,
+// so the client reads undefined rather than null. accountId is therefore
+// checked before payoutsVerifiedAt is consulted at all.
 export async function checkPayoutReadiness(): Promise<PayoutReadiness> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
       console.error('[payout-readiness] no session at call time; failing open');
-      return { allowed: true, verdict: 'check_failed', message: '' };
+      return { action: 'allow', verdict: 'check_failed', title: '', message: '' };
     }
 
     const res = await fetch(
@@ -63,20 +89,24 @@ export async function checkPayoutReadiness(): Promise<PayoutReadiness> {
     // success: false.
     if (!res.ok || !result.success) {
       console.error(`[payout-readiness] status check did not complete | ok=${res.ok} | status=${res.status} | success=${result?.success} | error=${result?.error ?? 'none'}`);
-      return { allowed: true, verdict: 'check_failed', message: '' };
+      return { action: 'allow', verdict: 'check_failed', title: '', message: '' };
+    }
+
+    if (result.chargesEnabled === true) {
+      return { action: 'allow', verdict: 'ready', title: '', message: '' };
     }
 
     if (!result.accountId) {
-      return { allowed: false, verdict: 'no_account', message: NO_ACCOUNT_MESSAGE };
+      return { action: 'block', verdict: 'no_account', title: NO_ACCOUNT_TITLE, message: NO_ACCOUNT_MESSAGE };
     }
 
-    if (result.chargesEnabled !== true) {
-      return { allowed: false, verdict: 'restricted', message: RESTRICTED_MESSAGE };
+    if (!result.payoutsVerifiedAt) {
+      return { action: 'block', verdict: 'never_verified', title: NEVER_VERIFIED_TITLE, message: NEVER_VERIFIED_MESSAGE };
     }
 
-    return { allowed: true, verdict: 'ready', message: '' };
+    return { action: 'confirm', verdict: 'previously_verified', title: PREVIOUSLY_VERIFIED_TITLE, message: PREVIOUSLY_VERIFIED_MESSAGE };
   } catch (err: any) {
     console.error(`[payout-readiness] threw | message=${err?.message ?? 'unknown'}`);
-    return { allowed: true, verdict: 'check_failed', message: '' };
+    return { action: 'allow', verdict: 'check_failed', title: '', message: '' };
   }
 }
