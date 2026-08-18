@@ -1,3 +1,8 @@
+// HAND-SYNCED COPY. The iOS twin is MyApp/lib/payoutRequirements.ts.
+// There is no shared package between the repos, so these two files are kept in
+// step by hand, exactly as src/lib/payoutReadiness.ts is. If you change one,
+// change the other in the same session.
+
 export type PayoutSetupState =
   | 'no_account'
   | 'active'
