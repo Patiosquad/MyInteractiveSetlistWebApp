@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import QRCode from 'qrcode';
+import { resolvePayoutSetup, UNKNOWN_PAYOUT_SETUP, type PayoutSetupDetail } from '@/lib/payoutRequirements';
 import '../../../tokens/tokens.css';
 
 const labelStyle: React.CSSProperties = {
@@ -49,8 +50,6 @@ const saveButtonStyle = (saving: boolean): React.CSSProperties => ({
   cursor: saving ? 'not-allowed' : 'pointer',
 });
 
-type PayoutsState = 'unknown' | 'not_connected' | 'setup_in_progress' | 'active';
-
 export default function ProfilePage() {
   return (
     <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: '#0d0d0d' }} />}>
@@ -77,7 +76,13 @@ function ProfilePageInner() {
   const [previewConcerts, setPreviewConcerts] = useState<{ id: string; name: string; taking_requests_code: string | null }[]>([]);
 
   // Payouts
-  const [payoutsState, setPayoutsState] = useState<PayoutsState>('unknown');
+  // Initialized to the unknown detail rather than null so the section can never
+  // render empty. The mount effect only calls refreshPayoutsStatus inside its
+  // users-read success branch, so a failed read would otherwise clear loading
+  // with payoutSetup still null - leaving no heading, no card, and no Refresh
+  // button to recover from. The old four-branch markup could not reach that
+  // state because its state defaulted to 'unknown'.
+  const [payoutSetup, setPayoutSetup] = useState<PayoutSetupDetail>(UNKNOWN_PAYOUT_SETUP);
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -351,33 +356,23 @@ function ProfilePageInner() {
     setPreviewConcerts(data ?? []);
   }
 
-  // Resolves the full payouts state machine and is safe to call from anywhere:
-  // it fetches its own session at call time rather than closing over component
+  // Resolves the full payouts picture and is safe to call from anywhere: it
+  // fetches its own session at call time rather than closing over component
   // state, which is not yet populated when the mount effect first calls this.
   // Every exit path sets a state, so no caller can leave the section blank.
+  //
+  // The users table read that used to short-circuit here has been removed. It
+  // existed to detect a null stripe_connect_account_id before calling the
+  // endpoint, but the endpoint now answers that itself: its no-account path
+  // returns accountId null without touching Stripe, and resolvePayoutSetup
+  // maps that to the no_account state. Two sources of truth for one question
+  // is how the two platforms drifted apart in the first place.
   async function refreshPayoutsStatus() {
     setPayoutsChecking(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setPayoutsState('unknown');
-        return;
-      }
-
-      const { data: userRow, error: userRowError } = await supabase
-        .from('users')
-        .select('stripe_connect_account_id')
-        .eq('id', session.user.id)
-        .single();
-
-      if (userRowError || !userRow) {
-        console.error(`[web-profile] refreshPayoutsStatus: users read failed | message=${userRowError?.message ?? 'no row returned'} | code=${userRowError?.code ?? 'none'} | details=${userRowError?.details ?? 'none'}`);
-        setPayoutsState('unknown');
-        return;
-      }
-
-      if (!userRow.stripe_connect_account_id) {
-        setPayoutsState('not_connected');
+        setPayoutSetup(UNKNOWN_PAYOUT_SETUP);
         return;
       }
 
@@ -396,14 +391,14 @@ function ProfilePageInner() {
 
       if (!statusRes.ok || !statusResult.success) {
         console.error(`[web-profile] refreshPayoutsStatus: status check did not complete | ok=${statusRes.ok} | status=${statusRes.status} | success=${statusResult?.success} | error=${statusResult?.error ?? 'none'}`);
-        setPayoutsState('unknown');
+        setPayoutSetup(UNKNOWN_PAYOUT_SETUP);
         return;
       }
 
-      setPayoutsState(statusResult.chargesEnabled && statusResult.payoutsEnabled ? 'active' : 'setup_in_progress');
+      setPayoutSetup(resolvePayoutSetup(statusResult));
     } catch (err: any) {
       console.error(`[web-profile] refreshPayoutsStatus: threw | message=${err?.message ?? 'unknown'}`);
-      setPayoutsState('unknown');
+      setPayoutSetup(UNKNOWN_PAYOUT_SETUP);
     } finally {
       setPayoutsChecking(false);
     }
@@ -1017,144 +1012,86 @@ function ProfilePageInner() {
             Payouts
           </p>
 
-          {payoutsState === 'not_connected' && (
-            <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-                Connect a bank account to receive payouts from fan song requests.
-              </p>
-              {connectError && (
-                <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
-              )}
-              <button
-                onClick={handleConnectBank}
-                disabled={connectLoading}
-                style={{
-                  width: '100%',
-                  padding: '13px 0',
-                  backgroundColor: connectLoading ? 'var(--border)' : 'var(--accent)',
-                  color: connectLoading ? 'var(--text-faint)' : 'var(--text-primary)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: connectLoading ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {connectLoading ? 'Redirecting...' : 'Connect Bank Account'}
-              </button>
-            </div>
-          )}
-
-          {payoutsState === 'setup_in_progress' && (
+          {payoutSetup && (
             <div style={{
               background: 'var(--bg-tile)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-lg)',
               padding: '16px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--gold)',
-                  flexShrink: 0,
-                }} />
-                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--gold)' }}>
-                  Setup In Progress
-                </span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
-                Your Stripe account is connected but setup is not complete. Finish adding your bank account to start receiving payouts.
-              </p>
-              {connectError && (
-                <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
+              {payoutSetup.state !== 'no_account' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{
+                    color: payoutSetup.state === 'active' ? 'var(--success)'
+                      : payoutSetup.state === 'under_review' ? 'var(--gold)'
+                      : payoutSetup.state === 'unknown' ? 'var(--text-faint)'
+                      : 'var(--danger)',
+                    fontSize: '10px',
+                  }}>●</span>
+                  <span style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: payoutSetup.state === 'active' ? 'var(--success)'
+                      : payoutSetup.state === 'under_review' ? 'var(--gold)'
+                      : payoutSetup.state === 'unknown' ? 'var(--text-primary)'
+                      : 'var(--danger)',
+                  }}>
+                    {payoutSetup.heading}
+                  </span>
+                </div>
               )}
-              <button
-                onClick={handleConnectBank}
-                disabled={connectLoading}
-                style={{
-                  width: '100%',
-                  padding: '11px 0',
-                  backgroundColor: connectLoading ? 'var(--border)' : 'var(--accent)',
-                  color: connectLoading ? 'var(--text-faint)' : 'var(--text-primary)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: connectLoading ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {connectLoading ? 'Redirecting...' : 'Continue Setup'}
-              </button>
-            </div>
-          )}
 
-          {payoutsState === 'active' && (
-            <div style={{
-              background: 'var(--bg-tile)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '16px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--success)', fontSize: '10px', marginRight: '6px' }}>●</span>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--success)' }}>
-                  Payouts Active
-                </span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
-                Your bank account is connected and ready to receive payouts from fan song requests.
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: payoutSetup.items.length > 0 ? '10px' : '16px' }}>
+                {payoutSetup.body}
               </p>
-              {connectError && (
-                <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
-              )}
-              <button
-                onClick={handleConnectBank}
-                disabled={connectLoading}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  backgroundColor: 'var(--bg-tile-deep)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: connectLoading ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {connectLoading ? 'Redirecting...' : 'Manage Payout Account Settings'}
-              </button>
-            </div>
-          )}
 
-          {payoutsState === 'unknown' && (
-            <div style={{
-              background: 'var(--bg-tile)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '16px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-faint)', fontSize: '10px', marginRight: '6px' }}>●</span>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                  Payout Status Unavailable
-                </span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
-                We could not check your payout status right now. This does not change any setup you have already completed.
-              </p>
+              {payoutSetup.items.length > 0 && (
+                <ul style={{ margin: '0 0 16px', paddingLeft: '18px' }}>
+                  {payoutSetup.items.map((item, i) => (
+                    <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '4px' }}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
               {connectError && (
                 <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>{connectError}</p>
               )}
+
+              {payoutSetup.state !== 'unknown' && (
+                <button
+                  onClick={handleConnectBank}
+                  disabled={connectLoading}
+                  style={{
+                    width: '100%',
+                    padding: '12px 0',
+                    backgroundColor: connectLoading ? 'var(--border)'
+                      : payoutSetup.state === 'active' ? 'var(--bg-tile-deep)'
+                      : 'var(--accent)',
+                    color: connectLoading ? 'var(--text-faint)' : 'var(--text-primary)',
+                    border: payoutSetup.state === 'active' ? '1px solid var(--border)' : 'none',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: connectLoading ? 'not-allowed' : 'pointer',
+                    marginBottom: '8px',
+                  }}
+                >
+                  {connectLoading ? 'Redirecting...'
+                    : payoutSetup.state === 'no_account' ? 'Connect Bank Account'
+                    : payoutSetup.state === 'active' ? 'Manage Payout Account Settings'
+                    : 'Continue Setup'}
+                </button>
+              )}
+
+              {/* Available in every state, unlike the old markup which offered it
+                  only in the unknown branch - the one branch where nothing is
+                  fixable. A performer who resolves a requirement in Stripe needs
+                  to re-poll from the card they are actually looking at. */}
               <button
                 onClick={refreshPayoutsStatus}
                 disabled={payoutsChecking}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
                 style={{
                   width: '100%',
                   padding: '10px',
