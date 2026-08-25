@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     async function checkSession() {
@@ -34,11 +35,31 @@ export default function LoginPage() {
   function switchMode(newMode: 'login' | 'signup') {
     setMode(newMode);
     setError('');
+    setResetSent(false);
     setEmail('');
     setPassword('');
     setFirstName('');
     setLastName('');
     setBandName('');
+  }
+
+  async function handleForgotPassword() {
+    setError('');
+    setResetSent(false);
+    if (!email) {
+      setError('Enter your email address above to reset your password.');
+      return;
+    }
+    setLoading(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://settuner.com/reset-password',
+    });
+    setLoading(false);
+    if (resetError) {
+      setError(resetError.message);
+      return;
+    }
+    setResetSent(true);
   }
 
   async function handleLogin() {
@@ -271,6 +292,25 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+
+        {mode === 'login' && (
+          <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: '16px' }}>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={loading}
+              style={{background:'none',border:'none',padding:0,cursor:'pointer',color:'var(--text-muted)',fontSize:'13px'}}
+            >
+              Forgot Password?
+            </button>
+          </div>
+        )}
+
+        {resetSent && (
+          <p style={{color:'var(--text-secondary)',fontSize:'13px',marginBottom:'16px',textAlign:'center',lineHeight:1.5}}>
+            If an account exists for that email, a password reset link has been sent. Check your inbox.
+          </p>
+        )}
 
         {/* Error */}
         {error && (
