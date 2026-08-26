@@ -18,6 +18,9 @@ export type VenueDetailsResult = {
   state: string;
 };
 
+const VENUE_LOOKUP_UNAVAILABLE =
+  'Venue lookup is unavailable right now. You can type the venue name manually.';
+
 interface UseVenueAutocompleteOptions {
   venueName: string;
   onVenueNameChange: (name: string) => void;
@@ -27,6 +30,7 @@ interface UseVenueAutocompleteOptions {
 export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSelected }: UseVenueAutocompleteOptions) {
   const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
   const [showVenueSuggestions, setShowVenueSuggestions] = useState(false);
+  const [venueError, setVenueError] = useState<string | null>(null);
 
   const venueWrapperRef = useRef<HTMLDivElement>(null);
   const venueDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,6 +44,7 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
     if (venueName.trim().length < 2) {
       setVenueSuggestions([]);
       setShowVenueSuggestions(false);
+      setVenueError(null);
       return;
     }
     if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current);
@@ -47,15 +52,23 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
       console.log('[venue autocomplete] debounce fired, venueName:', venueName.trim());
       try {
         const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(venueName.trim())}`);
-        const data = await res.json();
-        console.log('[venue autocomplete] response:', data);
-        const suggestions: VenueSuggestion[] = data.suggestions ?? [];
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          console.error(`[venue-autocomplete] route returned non-ok | http=${res.status} | error=${data?.error ?? 'none'} | upstreamStatus=${data?.upstreamStatus ?? 'none'}`);
+          setVenueSuggestions([]);
+          setShowVenueSuggestions(false);
+          setVenueError(VENUE_LOOKUP_UNAVAILABLE);
+          return;
+        }
+        const suggestions: VenueSuggestion[] = data?.suggestions ?? [];
         setVenueSuggestions(suggestions);
         setShowVenueSuggestions(suggestions.length > 0);
+        setVenueError(null);
       } catch (err) {
-        console.log('[venue autocomplete] fetch error:', err);
+        console.error('[venue-autocomplete] fetch threw:', err);
         setVenueSuggestions([]);
         setShowVenueSuggestions(false);
+        setVenueError(VENUE_LOOKUP_UNAVAILABLE);
       }
     }, 300);
     return () => { if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current); };
@@ -82,10 +95,15 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
 
     try {
       const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(pred.placeId)}`);
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        console.error(`[venue-details] route returned non-ok | http=${res.status} | error=${data?.error ?? 'none'} | upstreamStatus=${data?.upstreamStatus ?? 'none'}`);
+        setVenueError(VENUE_LOOKUP_UNAVAILABLE);
+        return;
+      }
 
-      const components: Array<{ types: string[]; longText: string; shortText: string }> = data.addressComponents ?? [];
-      const placeName: string | undefined = data.displayName?.text;
+      const components: Array<{ types?: string[]; longText?: string; shortText?: string }> = data?.addressComponents ?? [];
+      const placeName: string | undefined = data?.displayName?.text;
 
       if (placeName && placeName !== mainText) {
         venueJustSelectedRef.current = true;
@@ -93,7 +111,7 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
       }
 
       const get = (type: string, key: 'longText' | 'shortText' = 'longText') =>
-        components.find((c) => c.types.includes(type))?.[key] ?? '';
+        components.find((c) => (c.types ?? []).includes(type))?.[key] ?? '';
 
       const cityValue = get('locality') || get('postal_town') || get('sublocality_level_1');
       const countryLong = get('country', 'longText');
@@ -101,13 +119,15 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
 
       onDetailsSelected({ city: cityValue, country: countryLong, state: stateLong });
     } catch (err) {
-      console.log('[venue details] fetch error:', err);
+      console.error('[venue-details] threw while parsing response:', err);
+      setVenueError(VENUE_LOOKUP_UNAVAILABLE);
     }
   }
 
   return {
     venueSuggestions,
     showVenueSuggestions,
+    venueError,
     venueWrapperRef,
     handleSelectVenue,
     onVenueFocus: () => { if (venueSuggestions.length > 0) setShowVenueSuggestions(true); },

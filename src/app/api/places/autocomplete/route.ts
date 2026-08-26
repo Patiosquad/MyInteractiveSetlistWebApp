@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     if (!res.ok) {
       const errText = await res.text();
       console.log('[places/autocomplete] fetch error:', res.status, errText);
-      return Response.json({ suggestions: [] });
+      return Response.json({ error: 'Places autocomplete request failed', upstreamStatus: res.status }, { status: 502 });
     }
 
     const data = await res.json();
@@ -44,6 +44,6 @@ export async function GET(request: Request) {
     return Response.json(data);
   } catch (err) {
     console.log('[places/autocomplete] fetch threw:', err);
-    return Response.json({ suggestions: [] });
+    return Response.json({ error: 'Places autocomplete request threw' }, { status: 502 });
   }
 }

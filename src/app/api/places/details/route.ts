@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     if (!res.ok) {
       const errText = await res.text();
       console.log('[places/details] fetch error:', res.status, errText);
-      return Response.json({});
+      return Response.json({ error: 'Places details request failed', upstreamStatus: res.status }, { status: 502 });
     }
 
     const data = await res.json();
@@ -39,6 +39,6 @@ export async function GET(request: Request) {
     return Response.json(data);
   } catch (err) {
     console.log('[places/details] fetch threw:', err);
-    return Response.json({});
+    return Response.json({ error: 'Places details request threw' }, { status: 502 });
   }
 }
