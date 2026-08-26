@@ -102,8 +102,8 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
         return;
       }
 
-      const components: Array<{ types: string[]; longText: string; shortText: string }> = data.addressComponents ?? [];
-      const placeName: string | undefined = data.displayName?.text;
+      const components: Array<{ types?: string[]; longText?: string; shortText?: string }> = data?.addressComponents ?? [];
+      const placeName: string | undefined = data?.displayName?.text;
 
       if (placeName && placeName !== mainText) {
         venueJustSelectedRef.current = true;
@@ -111,7 +111,7 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
       }
 
       const get = (type: string, key: 'longText' | 'shortText' = 'longText') =>
-        components.find((c) => c.types.includes(type))?.[key] ?? '';
+        components.find((c) => (c.types ?? []).includes(type))?.[key] ?? '';
 
       const cityValue = get('locality') || get('postal_town') || get('sublocality_level_1');
       const countryLong = get('country', 'longText');
@@ -119,7 +119,8 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
 
       onDetailsSelected({ city: cityValue, country: countryLong, state: stateLong });
     } catch (err) {
-      console.log('[venue details] fetch error:', err);
+      console.error('[venue-details] threw while parsing response:', err);
+      setVenueError(VENUE_LOOKUP_UNAVAILABLE);
     }
   }
 
