@@ -181,6 +181,7 @@ export default function ConcertPage() {
   const {
     venueSuggestions: editVenueSuggestions,
     showVenueSuggestions: showEditVenueSuggestions,
+    venueError: editVenueError,
     venueWrapperRef: editVenueWrapperRef,
     handleSelectVenue: handleSelectEditVenue,
     onVenueFocus: onEditVenueFocus,
@@ -2024,6 +2025,9 @@ export default function ConcertPage() {
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem' }}>Venue Name *</label>
                 <div ref={editVenueWrapperRef} style={{ position: 'relative' }}>
                   <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} onFocus={onEditVenueFocus} className="concert-input" style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }} autoComplete="off" />
+                  {editVenueError && (
+                    <p style={{ margin: '0.375rem 0 0', fontSize: '0.8125rem', color: 'var(--danger)' }}>{editVenueError}</p>
+                  )}
                   {showEditVenueSuggestions && editVenueSuggestions.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, zIndex: 50, overflow: 'hidden' }}>
                       {editVenueSuggestions.map((suggestion, idx) => (

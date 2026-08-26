@@ -97,7 +97,7 @@ export default function NewConcertPage() {
 
   const isUS = country === 'United States';
 
-  const { venueSuggestions, showVenueSuggestions, venueWrapperRef, handleSelectVenue, onVenueFocus } = useVenueAutocomplete({
+  const { venueSuggestions, showVenueSuggestions, venueError, venueWrapperRef, handleSelectVenue, onVenueFocus } = useVenueAutocomplete({
     venueName,
     onVenueNameChange: setVenueName,
     onDetailsSelected: ({ city: cityValue, country: countryLong, state: stateLong }) => {
@@ -259,6 +259,9 @@ export default function NewConcertPage() {
                 className="new-concert-input" style={inputStyle}
                 autoComplete="off"
               />
+              {venueError && (
+                <p style={{ margin: '0.375rem 0 0', fontSize: '0.8125rem', color: 'var(--danger)' }}>{venueError}</p>
+              )}
               {showVenueSuggestions && venueSuggestions.length > 0 && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, zIndex: 50, overflow: 'hidden' }}>
                   {venueSuggestions.map((suggestion, idx) => (
