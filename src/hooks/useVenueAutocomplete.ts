@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
-export type VenueSuggestion = {
-  placePrediction: {
-    placeId: string;
-    structuredFormat: {
-      mainText: { text: string };
-      secondaryText: { text: string };
-    };
+export type VenuePrediction = {
+  place_id: string;
+  description: string;
+  structured_formatting?: {
+    main_text: string;
+    secondary_text?: string;
   };
 };
 
@@ -21,6 +21,21 @@ export type VenueDetailsResult = {
 const VENUE_LOOKUP_UNAVAILABLE =
   'Venue lookup is unavailable right now. You can type the venue name manually.';
 
+async function callPlacesProxy(payload: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const res = await fetch(`${supabaseUrl}/functions/v1/places-proxy`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session?.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, json };
+}
+
 interface UseVenueAutocompleteOptions {
   venueName: string;
   onVenueNameChange: (name: string) => void;
@@ -28,7 +43,7 @@ interface UseVenueAutocompleteOptions {
 }
 
 export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSelected }: UseVenueAutocompleteOptions) {
-  const [venueSuggestions, setVenueSuggestions] = useState<VenueSuggestion[]>([]);
+  const [venuePredictions, setVenuePredictions] = useState<VenuePrediction[]>([]);
   const [showVenueSuggestions, setShowVenueSuggestions] = useState(false);
   const [venueError, setVenueError] = useState<string | null>(null);
 
@@ -41,32 +56,30 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
       venueJustSelectedRef.current = false;
       return;
     }
-    if (venueName.trim().length < 2) {
-      setVenueSuggestions([]);
+    if (venueName.trim().length < 3) {
+      setVenuePredictions([]);
       setShowVenueSuggestions(false);
       setVenueError(null);
       return;
     }
     if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current);
     venueDebounceRef.current = setTimeout(async () => {
-      console.log('[venue autocomplete] debounce fired, venueName:', venueName.trim());
       try {
-        const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(venueName.trim())}`);
-        const data = await res.json().catch(() => null);
-        if (!res.ok) {
-          console.error(`[venue-autocomplete] route returned non-ok | http=${res.status} | error=${data?.error ?? 'none'} | upstreamStatus=${data?.upstreamStatus ?? 'none'}`);
-          setVenueSuggestions([]);
+        const { ok, status, json } = await callPlacesProxy({ operation: 'autocomplete', input: venueName.trim() });
+        if (!ok) {
+          console.error(`[venue-autocomplete] proxy returned non-ok | http=${status} | error=${json?.error ?? 'none'} | googleStatus=${json?.status ?? 'none'} | detail=${json?.detail ?? 'none'}`);
+          setVenuePredictions([]);
           setShowVenueSuggestions(false);
           setVenueError(VENUE_LOOKUP_UNAVAILABLE);
           return;
         }
-        const suggestions: VenueSuggestion[] = data?.suggestions ?? [];
-        setVenueSuggestions(suggestions);
-        setShowVenueSuggestions(suggestions.length > 0);
+        const predictions: VenuePrediction[] = json?.predictions ?? [];
+        setVenuePredictions(predictions);
+        setShowVenueSuggestions(predictions.length > 0);
         setVenueError(null);
       } catch (err) {
-        console.error('[venue-autocomplete] fetch threw:', err);
-        setVenueSuggestions([]);
+        console.error('[venue-autocomplete] proxy call threw:', err);
+        setVenuePredictions([]);
         setShowVenueSuggestions(false);
         setVenueError(VENUE_LOOKUP_UNAVAILABLE);
       }
@@ -84,38 +97,37 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  async function handleSelectVenue(suggestion: VenueSuggestion) {
-    const pred = suggestion.placePrediction;
-    const mainText = pred.structuredFormat.mainText.text;
+  async function handleSelectVenue(prediction: VenuePrediction) {
+    const mainText = prediction.structured_formatting?.main_text ?? prediction.description;
 
     venueJustSelectedRef.current = true;
     onVenueNameChange(mainText);
     setShowVenueSuggestions(false);
-    setVenueSuggestions([]);
+    setVenuePredictions([]);
+    setVenueError(null);
 
     try {
-      const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(pred.placeId)}`);
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        console.error(`[venue-details] route returned non-ok | http=${res.status} | error=${data?.error ?? 'none'} | upstreamStatus=${data?.upstreamStatus ?? 'none'}`);
+      const { ok, status, json } = await callPlacesProxy({ operation: 'details', place_id: prediction.place_id });
+      if (!ok) {
+        console.error(`[venue-details] proxy returned non-ok | http=${status} | error=${json?.error ?? 'none'} | googleStatus=${json?.status ?? 'none'} | detail=${json?.detail ?? 'none'}`);
         setVenueError(VENUE_LOOKUP_UNAVAILABLE);
         return;
       }
 
-      const components: Array<{ types?: string[]; longText?: string; shortText?: string }> = data?.addressComponents ?? [];
-      const placeName: string | undefined = data?.displayName?.text;
-
+      const placeName: string | undefined = json?.result?.name;
       if (placeName && placeName !== mainText) {
         venueJustSelectedRef.current = true;
         onVenueNameChange(placeName);
       }
 
-      const get = (type: string, key: 'longText' | 'shortText' = 'longText') =>
+      const components: Array<{ types?: string[]; long_name?: string; short_name?: string }> = json?.result?.address_components ?? [];
+
+      const get = (type: string, key: 'long_name' | 'short_name' = 'long_name') =>
         components.find((c) => (c.types ?? []).includes(type))?.[key] ?? '';
 
       const cityValue = get('locality') || get('postal_town') || get('sublocality_level_1');
-      const countryLong = get('country', 'longText');
-      const stateLong = get('administrative_area_level_1', 'longText');
+      const countryLong = get('country', 'long_name');
+      const stateLong = get('administrative_area_level_1', 'long_name');
 
       onDetailsSelected({ city: cityValue, country: countryLong, state: stateLong });
     } catch (err) {
@@ -125,11 +137,11 @@ export function useVenueAutocomplete({ venueName, onVenueNameChange, onDetailsSe
   }
 
   return {
-    venueSuggestions,
+    venuePredictions,
     showVenueSuggestions,
     venueError,
     venueWrapperRef,
     handleSelectVenue,
-    onVenueFocus: () => { if (venueSuggestions.length > 0) setShowVenueSuggestions(true); },
+    onVenueFocus: () => { if (venuePredictions.length > 0) setShowVenueSuggestions(true); },
   };
 }
