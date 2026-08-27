@@ -179,7 +179,7 @@ export default function ConcertPage() {
   const [editName, setEditName] = useState('');
   const [editVenue, setEditVenue] = useState('');
   const {
-    venueSuggestions: editVenueSuggestions,
+    venuePredictions: editVenuePredictions,
     showVenueSuggestions: showEditVenueSuggestions,
     venueError: editVenueError,
     venueWrapperRef: editVenueWrapperRef,
@@ -2028,19 +2028,19 @@ export default function ConcertPage() {
                   {editVenueError && (
                     <p style={{ margin: '0.375rem 0 0', fontSize: '0.8125rem', color: 'var(--danger)' }}>{editVenueError}</p>
                   )}
-                  {showEditVenueSuggestions && editVenueSuggestions.length > 0 && (
+                  {showEditVenueSuggestions && editVenuePredictions.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, backgroundColor: '#1c1c1e', border: '1px solid #3f3f46', borderRadius: 8, zIndex: 50, overflow: 'hidden' }}>
-                      {editVenueSuggestions.map((suggestion, idx) => (
+                      {editVenuePredictions.map((prediction, idx) => (
                         <button
-                          key={suggestion.placePrediction.placeId}
+                          key={prediction.place_id}
                           type="button"
-                          onClick={() => handleSelectEditVenue(suggestion)}
+                          onClick={() => handleSelectEditVenue(prediction)}
                           style={{ display: 'block', width: '100%', padding: '0.75rem 1rem', cursor: 'pointer', background: 'transparent', border: 'none', borderTop: idx === 0 ? 'none' : '1px solid #3f3f46', color: '#ffffff', textAlign: 'left' }}
                           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#27272a'; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
                         >
-                          <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.mainText.text}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#a1a1aa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion.placePrediction.structuredFormat.secondaryText.text}</p>
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prediction.structured_formatting?.main_text ?? prediction.description}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#a1a1aa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prediction.structured_formatting?.secondary_text ?? ''}</p>
                         </button>
                       ))}
                     </div>
