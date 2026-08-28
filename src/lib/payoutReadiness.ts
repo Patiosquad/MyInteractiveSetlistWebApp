@@ -82,13 +82,26 @@ export async function checkPayoutReadiness(): Promise<PayoutReadiness> {
       }
     );
 
-    const result = await res.json();
+    // Read the body as text and parse it here rather than calling json() on
+    // the response directly. json() throws on a non-JSON body, and a gateway
+    // or platform error page is HTML, so parsing before checking res.ok sent
+    // every infrastructure failure to the catch below carrying a parse
+    // message and NO STATUS CODE - which made the diagnostic on this branch
+    // unreachable for exactly the failures it was written to explain.
+    const bodyText = await res.text();
+
+    let result: any = null;
+    try {
+      result = JSON.parse(bodyText);
+    } catch {
+      result = null;
+    }
 
     // Early-exit responses from the Edge Function carry only { error } and no
     // success key at all, so this test covers them as well as an explicit
-    // success: false.
-    if (!res.ok || !result.success) {
-      console.error(`[payout-readiness] status check did not complete | ok=${res.ok} | status=${res.status} | success=${result?.success} | error=${result?.error ?? 'none'}`);
+    // success: false. A null result means the body was not JSON at all.
+    if (!res.ok || !result || !result.success) {
+      console.error(`[payout-readiness] status check did not complete | ok=${res.ok} | status=${res.status} | parsed=${result !== null} | success=${result?.success} | error=${result?.error ?? 'none'} | body=${bodyText.slice(0, 120)}`);
       return { action: 'allow', verdict: 'check_failed', title: '', message: '' };
     }
 
