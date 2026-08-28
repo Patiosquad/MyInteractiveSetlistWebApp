@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { UNKNOWN_PAYOUT_SETUP } from '@/lib/payoutRequirements';
 import '../../../../../tokens/tokens.css';
 
 type SongWithTotal = {
@@ -113,7 +114,7 @@ export default function LivePage() {
   const [endConcertStep, setEndConcertStep] = useState<'none' | 'summary' | 'confirm' | 'processing' | 'outcome'>('none');
   const endConcertStepRef = useRef<'none' | 'summary' | 'confirm' | 'processing' | 'outcome'>('none');
   useEffect(() => { endConcertStepRef.current = endConcertStep; }, [endConcertStep]);
-  const [endConcertOutcome, setEndConcertOutcome] = useState<{ kind: 'success' | 'partial' | 'error'; message: string } | null>(null);
+  const [endConcertOutcome, setEndConcertOutcome] = useState<{ kind: 'success' | 'partial' | 'error' | 'blocked' | 'unavailable' | 'pending'; message: string } | null>(null);
   const [pendingDecline, setPendingDecline] = useState<SongWithTotal | null>(null);
   const [pendingAccept, setPendingAccept] = useState<SongWithTotal | null>(null);
   const [manageStep, setManageStep] = useState<'none' | 'choice' | 'confirmPlayed'>('none');
@@ -576,6 +577,35 @@ export default function LivePage() {
           kind: 'error',
           message: (result.message || result.error || 'Failed to end concert.') + ' Please check the concert status, and try again or contact support if it persists.',
         });
+        setEndConcertStep('outcome');
+        return;
+      }
+
+      // A 202 carries incomplete: true and leaves the concert in 'closing'.
+      // Without this the guard's 202 fell through to the success message and
+      // told the performer their payments were processed while the concert
+      // was still open with live authorization holds on fans' cards. There is
+      // no banner or badge on the web that reports close_blocked_reason, so
+      // this modal is the ONLY place the performer will ever see this - the
+      // message has to stand alone.
+      if (result.incomplete) {
+        if (result.reason === 'performer_payout_not_ready') {
+          setEndConcertOutcome({
+            kind: 'blocked',
+            message: "Your concert can't finish closing until your payout account is ready. Open Payouts on your Profile to finish setup. Once that's done the concert closes on its own within about twenty minutes - you do not need to end it again.",
+          });
+        } else if (result.reason === 'payout_check_unavailable') {
+          setEndConcertOutcome({
+            kind: 'unavailable',
+            message: UNKNOWN_PAYOUT_SETUP.body + ' The concert will finish closing automatically within about twenty minutes.',
+          });
+        } else {
+          setEndConcertOutcome({
+            kind: 'pending',
+            message: 'Your concert is being closed out, but a few payments are still settling. This will finish automatically - no action needed. Your earnings will update once it completes.'
+              + ((result.failedCaptures ?? 0) > 0 ? ` ${result.failedCaptures} fan payment(s) could not be processed and will need manual follow-up.` : ''),
+          });
+        }
         setEndConcertStep('outcome');
         return;
       }
@@ -1475,9 +1505,9 @@ export default function LivePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7' }}>
-              {endConcertOutcome.kind === 'error' ? 'Something Went Wrong' : endConcertOutcome.kind === 'partial' ? 'Concert Ended — Some Payments Failed' : 'Concert Ended'}
+              {endConcertOutcome.kind === 'error' ? 'Something Went Wrong' : endConcertOutcome.kind === 'partial' ? 'Concert Ended — Some Payments Failed' : endConcertOutcome.kind === 'blocked' ? 'Payout Setup Needed' : endConcertOutcome.kind === 'unavailable' ? UNKNOWN_PAYOUT_SETUP.heading : endConcertOutcome.kind === 'pending' ? 'Still Finishing Up' : 'Concert Ended'}
             </h2>
-            <p style={{ color: endConcertOutcome.kind === 'error' ? 'var(--danger)' : 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: endConcertOutcome.kind === 'error' || endConcertOutcome.kind === 'blocked' ? 'var(--danger)' : 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
               {endConcertOutcome.message}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
