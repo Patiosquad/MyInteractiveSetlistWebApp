@@ -37,6 +37,7 @@ type Concert = {
   started_at: string | null;
   preview_started_at: string | null;
   last_activity_at: string | null;
+  close_blocked_reason: string | null;
 };
 
 function ordinal(n: number): string {
@@ -233,7 +234,7 @@ export default function LivePage() {
 
       const { data: concertData } = await supabase
         .from('concerts')
-        .select('id, name, status, performer_id, started_at, preview_started_at, last_activity_at')
+        .select('id, name, status, performer_id, started_at, preview_started_at, last_activity_at, close_blocked_reason')
         .eq('id', concertId)
         .eq('performer_id', user.id)
         .single();
@@ -656,7 +657,11 @@ export default function LivePage() {
   if (notLive) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-        <p style={{ color: '#a1a1aa' }}>This concert is not live.</p>
+        <p style={{ color: '#a1a1aa' }}>
+          {concert?.status === 'closing'
+            ? 'This concert is closing out. Payments are being processed and no further changes can be made.'
+            : 'This concert is not live.'}
+        </p>
         <button onClick={() => router.push(`/concerts/${concertId}`)} style={backBtnStyle}>
           Back to Catalog
         </button>
@@ -701,6 +706,12 @@ export default function LivePage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   const isPreview = concert?.status === 'preview';
+  // Once end-concert has been invoked the show is over and payments are being
+  // captured. Accepting, declining, deactivating or reactivating a song from
+  // here has no meaning and could only interfere with the close, so every
+  // action control is withheld. Adding songs to the catalog stays available -
+  // it touches no money and cannot affect the close.
+  const isClosing = concert?.status === 'closing';
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' }}>
@@ -900,7 +911,7 @@ export default function LivePage() {
                           <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '3.5rem' }}>
                             <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--gold)' }}>${Math.round(song.total)}</span>
                           </div>
-                          {!isPreview && (
+                          {!isPreview && !isClosing && (
                           <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
                             <button
                               onClick={() => handleAccept(song)}
@@ -1084,7 +1095,7 @@ export default function LivePage() {
                                 ${Math.round(song.total)}
                               </span>
                             )}
-                            {activeNoContrib && (
+                            {activeNoContrib && !isClosing && (
                               <button
                                 onClick={() => { setManagingSong(song); setManageStep('choice'); }}
                                 disabled={isProcessing}
@@ -1115,7 +1126,7 @@ export default function LivePage() {
                                 Song<br />Deactivated
                               </span>
                             )}
-                            {isInactive && (
+                            {isInactive && !isClosing && (
                               <button
                                 onClick={() => handleReactivate(song)}
                                 disabled={isReactivating}

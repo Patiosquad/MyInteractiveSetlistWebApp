@@ -1109,8 +1109,8 @@ export default function ConcertPage() {
   const badge: React.CSSProperties = isBlocked
     ? { background: 'var(--bg-tile-deep)', color: '#ef3524', border: '1px solid #ef3524' }
     : STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
-  const isBuilding = c.status === 'new' || c.status === 'preview' || c.status === 'closed';
-  const canEditExistingSongMetadata = c.status === 'new' || c.status === 'closed';
+  const isBuilding = c.status === 'new' || c.status === 'preview' || c.status === 'closed' || c.status === 'closing';
+  const canEditExistingSongMetadata = c.status === 'new' || c.status === 'closed' || c.status === 'closing';
 
   // ── Render ────────────────────────────────────────────────────────────────
 
