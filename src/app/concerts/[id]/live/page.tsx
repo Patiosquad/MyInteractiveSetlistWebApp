@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { UNKNOWN_PAYOUT_SETUP } from '@/lib/payoutRequirements';
+import type { ConcertStatus } from '@/lib/concertStatus';
 import '../../../../../tokens/tokens.css';
 
 type SongWithTotal = {
@@ -32,7 +33,7 @@ type SpotifyTrack = {
 type Concert = {
   id: string;
   name: string;
-  status: string;
+  status: ConcertStatus;
   performer_id: string;
   started_at: string | null;
   preview_started_at: string | null;

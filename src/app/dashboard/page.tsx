@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { ConcertStatus } from '@/lib/concertStatus';
 import GutterBackground from '@/components/GutterBackground';
 import { useVenueAutocomplete } from '@/hooks/useVenueAutocomplete';
 import '../../../tokens/tokens.css';
@@ -13,7 +14,7 @@ type Concert = {
   venue_name: string;
   city: string;
   state: string;
-  status: 'new' | 'preview' | 'live' | 'closing' | 'closed';
+  status: ConcertStatus;
   created_at: string;
   last_activity_at: string | null;
   show_date: string | null;

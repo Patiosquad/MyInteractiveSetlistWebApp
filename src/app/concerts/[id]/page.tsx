@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { ConcertStatus } from '@/lib/concertStatus';
 import { UNKNOWN_PAYOUT_SETUP } from '@/lib/payoutRequirements';
 import GutterBackground from '@/components/GutterBackground';
 import { useVenueAutocomplete } from '@/hooks/useVenueAutocomplete';
@@ -19,7 +20,7 @@ type Concert = {
   estimated_start: string | null;
   estimated_length: string | null;
   show_date: string | null;
-  status: 'new' | 'preview' | 'live' | 'closing' | 'closed';
+  status: ConcertStatus;
   preview_started_at: string | null;
   performer_id: string;
   comments: string | null;
