@@ -13,7 +13,7 @@ type Concert = {
   venue_name: string;
   city: string;
   state: string;
-  status: 'new' | 'preview' | 'live' | 'closed';
+  status: 'new' | 'preview' | 'live' | 'closing' | 'closed';
   created_at: string;
   last_activity_at: string | null;
   show_date: string | null;
@@ -21,6 +21,7 @@ type Concert = {
   preview_started_at: string | null;
   auto_close_reason: string | null;
   auto_close_notification_seen: boolean | null;
+  close_blocked_reason: string | null;
 };
 
 type FullConcert = {
@@ -40,6 +41,7 @@ const STATUS_STYLES: Record<Concert['status'], { background: string; color: stri
   live:     { background: '#3a120c', color: '#ff3b2e' },
   preview:  { background: '#2a150a', color: '#ffcf6b' },
   new:      { background: '#3a2408', color: '#ffb703' },
+  closing:  { background: '#1c2430', color: '#7dd3fc' },
   closed:   { background: '#221a16', color: '#8a7566' },
 };
 
@@ -117,10 +119,10 @@ export default function DashboardPage() {
   async function fetchConcerts(uid: string) {
     const { data } = await supabase
       .from('concerts')
-      .select('id, name, venue_name, city, state, status, created_at, last_activity_at, show_date, estimated_start, preview_started_at, auto_close_reason, auto_close_notification_seen')
+      .select('id, name, venue_name, city, state, status, created_at, last_activity_at, show_date, estimated_start, preview_started_at, auto_close_reason, auto_close_notification_seen, close_blocked_reason')
       .eq('performer_id', uid);
 
-    const STATUS_ORDER: Record<string, number> = { live: 0, preview: 1, new: 2, closed: 3 };
+    const STATUS_ORDER: Record<string, number> = { live: 0, closing: 0, preview: 1, new: 2, closed: 3 };
     const sorted = (data ?? []).sort((a, b) => {
       const aRank = STATUS_ORDER[a.status] ?? 2;
       const bRank = STATUS_ORDER[b.status] ?? 2;
@@ -498,7 +500,15 @@ export default function DashboardPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {filteredConcerts.map((concert) => {
-                const badge = STATUS_STYLES[concert.status] ?? STATUS_STYLES.closed;
+                // A concert the payout guard refused to close is NOT the same as a
+                // finished one. Without this it renders in the grey closed palette
+                // while reading CLOSING, which is how it looked before 2026-08-28.
+                const isBlocked =
+                  concert.status === 'closing' &&
+                  concert.close_blocked_reason === 'performer_payout_not_ready';
+                const badge: React.CSSProperties = isBlocked
+                  ? { background: 'var(--bg-tile-deep)', color: '#ef3524', border: '1px solid #ef3524' }
+                  : STATUS_STYLES[concert.status] ?? STATUS_STYLES.closed;
                 return (
                   <div
                     key={concert.id}
@@ -545,7 +555,7 @@ export default function DashboardPage() {
                       textTransform: 'capitalize',
                       ...badge,
                     }}>
-                      {concert.status === 'preview' ? 'Taking Requests!' : concert.status.toUpperCase()}
+                      {concert.status === 'preview' ? 'Taking Requests!' : isBlocked ? 'ACTION NEEDED' : concert.status.toUpperCase()}
                     </span>
                       {concert.status === 'preview' && urgentPreviewCountdowns[concert.id] && (
                         <span style={{

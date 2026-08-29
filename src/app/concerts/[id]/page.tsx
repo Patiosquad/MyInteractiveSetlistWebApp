@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { UNKNOWN_PAYOUT_SETUP } from '@/lib/payoutRequirements';
 import GutterBackground from '@/components/GutterBackground';
 import { useVenueAutocomplete } from '@/hooks/useVenueAutocomplete';
 import { checkPayoutReadiness } from '@/lib/payoutReadiness';
@@ -23,6 +24,7 @@ type Concert = {
   performer_id: string;
   comments: string | null;
   taking_requests_code: string | null;
+  close_blocked_reason: string | null;
 };
 
 type Song = {
@@ -1097,7 +1099,16 @@ export default function ConcertPage() {
   }
 
   const c = concert!;
-  const badge = STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
+  // A concert the payout guard refused to close is NOT the same as a finished
+  // one. STATUS_BADGE gives closing the identical grey as closed, so before
+  // 2026-08-28 a blocked concert was visually indistinguishable from a
+  // completed one on this page.
+  const isBlocked =
+    c.status === 'closing' &&
+    c.close_blocked_reason === 'performer_payout_not_ready';
+  const badge: React.CSSProperties = isBlocked
+    ? { background: 'var(--bg-tile-deep)', color: '#ef3524', border: '1px solid #ef3524' }
+    : STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
   const isBuilding = c.status === 'new' || c.status === 'preview' || c.status === 'closed';
   const canEditExistingSongMetadata = c.status === 'new' || c.status === 'closed';
 
@@ -1164,7 +1175,7 @@ export default function ConcertPage() {
                 textTransform: 'capitalize',
                 ...badge,
               }}>
-                {c.status === 'preview' ? 'Taking Requests!' : c.status.toUpperCase()}
+                {c.status === 'preview' ? 'Taking Requests!' : isBlocked ? 'ACTION NEEDED' : c.status.toUpperCase()}
               </span>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '2px 0 0', textAlign: 'right', overflowWrap: 'break-word', maxWidth: '100%' }}>
@@ -1250,6 +1261,42 @@ export default function ConcertPage() {
       </header>
 
       <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+        {/* BLOCKED CLOSE — the only persistent surface on the web that reports
+            close_blocked_reason. The End Concert outcome modal says this once
+            and vanishes on dismiss; this stays until the concert closes. */}
+        {isBlocked && (
+          <div style={{
+            padding: '11px 14px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid #ef3524',
+            background: 'var(--bg-tile-deep)',
+          }}>
+            <p style={{ color: '#ef3524', fontWeight: 800, fontSize: '14px', margin: '0 0 4px' }}>
+              Payout setup needs attention
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
+              This concert can&apos;t finish closing until your payout account is ready. Open Payouts on your Profile to finish setup. Once that&apos;s done the concert closes on its own within about twenty minutes &mdash; you do not need to end it again.
+            </p>
+          </div>
+        )}
+
+        {c.status === 'closing' && c.close_blocked_reason === 'payout_check_unavailable' && (
+          <div style={{
+            padding: '11px 14px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)',
+            background: 'var(--bg-tile-deep)',
+          }}>
+            <p style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '14px', margin: '0 0 4px' }}>
+              {UNKNOWN_PAYOUT_SETUP.heading}
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
+              {UNKNOWN_PAYOUT_SETUP.body} The concert will finish closing automatically within about twenty minutes.
+            </p>
+          </div>
+        )}
+
 
         {/* Go Live button */}
         {(c.status === 'new' || c.status === 'closed') && songs.length > 0 && (
