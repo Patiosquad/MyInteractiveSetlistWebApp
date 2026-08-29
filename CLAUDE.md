@@ -33,7 +33,8 @@ deprecation notices.
 
 ## TypeScript Baseline
 
-- **Baseline is ZERO.** Any `error TS` line at all is a regression — there is no pre-existing exception list in this repo.
+- **Baseline is ZERO for `src/`.** Any `error TS` line naming a file under `src/` is a regression.
+- **Two errors in `.next/` are expected** as of 2026-08-29: `.next/types/validator.ts` references `src/app/api/places/autocomplete/route.js` and `.../details/route.js`, both deleted in 23c87bd when the web moved to `places-proxy`. These are generated build artifacts, not source. Deleting `.next` and rebuilding clears them; do not do that mid-task to make a number look right.
 - There is no `typecheck` script in `package.json`. Run it directly:
 ```powershell
   npx tsc --noEmit -p tsconfig.json
@@ -54,7 +55,11 @@ deprecation notices.
 
 ## Line Endings — Do Not "Fix" This
 
-This repo is LF-only on disk but has `core.autocrlf = true` and no `.gitattributes`. Git will warn `LF will be replaced by CRLF` on every diff. **This is cosmetic and tracked separately — do not attempt to resolve it mid-task.** Files remain LF on disk regardless of the warning.
+**Line endings are MIXED in this repo and must be measured per file, never assumed.** Measured 2026-08-29: `src/app/dashboard/page.tsx` is CRLF, `src/app/concerts/[id]/page.tsx` is CRLF, `src/app/concerts/[id]/live/page.tsx` is LF, `tokens/tokens.css` is LF. A previous version of this file claimed the repo was LF-only. It is not.
+
+Probe every file by raw byte count immediately before editing it — count `\r\n` and bare `\n` separately. If both are non-zero the file is genuinely mixed: STOP and report rather than guessing. Convert the newlines in every anchor and replacement to match what was measured, and preserve the trailing-newline state exactly as found — some files here end with a newline and some do not.
+
+`core.autocrlf = true` and there is no `.gitattributes`, so git warns `LF will be replaced by CRLF` on LF files. **That warning is cosmetic. Do not attempt to resolve it mid-task.** It also means a file's endings can change on the next checkout — which is why they are measured per session, not carried forward.
 
 ---
 
@@ -175,12 +180,30 @@ Two byte-identical fetch URL lines to `create-connect-account` exist: one in `ha
 
 ---
 
+## Schema Changes Are Never Self-Contained
+
+Before proposing any migration that ADDS, RENAMES or DROPS a column the client reads, enumerate and report:
+
+1. Every type declaration describing that row, in BOTH repos.
+2. Every `.select(` on that table. **An enumerated `select('a, b, c')` will NOT pick up a new column; `select('*')` will.** This distinction is the whole rule.
+3. Whether a hand-synced twin of the touched file exists in the other repo.
+
+State which need changing and which do not. A migration committed without that enumeration is incomplete work, not a finished step.
+
+**Worked example, `close_blocked_reason`.** Added by migration `20260827010000` on 2026-08-27. The iOS screens use `select('*')` and received it for free. The web dashboard query enumerates its columns and would NEVER have fetched it — the badge could not have worked no matter what the UI code said. That gap sat undetected for a full day and took three commits across two days to finish, and only surfaced because Chap asked whether the iOS work needed applying to web.
+
+**TypeScript will not help here.** Supabase returns `any`, so no incoming row is validated against any type. A column that is renamed, added, or dropped produces `undefined` at the consumer with a clean typecheck. Runtime validation at query boundaries is tracked separately as a POST-MVP item.
+
+---
+
 ## Lessons Captured from Debugging
 
 - **Two byte-identical `create-connect-account` fetch URLs** in `profile/page.tsx` — disambiguate anchors on the request body, not the URL line.
 - **Mount-effect closure trap** — functions called from a mount effect must re-fetch session rather than read state set in that same effect.
 - **React Strict Mode double-invocation** in dev is expected and is not itself a defect signal.
-- **LF/CRLF git warning is cosmetic** — `core.autocrlf = true`, no `.gitattributes`, tracked separately, do not fix mid-task.
+- **LF/CRLF git warning is cosmetic** — `core.autocrlf = true`, no `.gitattributes`, tracked separately, do not fix mid-task. But the repo is NOT LF-only; see the Line Endings section.
+- **A NEGATIVE status gate silently accepts every status added later; a POSITIVE one does not.** Three instances found in two days, 2026-08-28 and 29. `{(c.status === 'new' || c.status === 'closed') && (` never admitted `closing` when that value arrived. Its iOS counterpart `{!isLive && !isPreview && (` did, and could have taken a closing concert live and deleted its active contributions. The live view badge written as `isPreview ? 'Taking Requests!' : 'LIVE'` claimed LIVE during a close. Same intent, opposite construction, only one safe. **Prefer a positive gate naming the statuses that are allowed.** When a negative gate is genuinely the right shape, name every excluded status explicitly rather than relying on the complement.
+- **`isBuilding` and `canEditExistingSongMetadata` in `concerts/[id]/page.tsx` are the two flags that decide live-mode versus closed-mode rendering** for the whole song list. A status missing from either one produces a screen that is half live and half closed — the symptom that made a closing concert show a Manage button leading to Mark as Played.
 
 ---
 
@@ -192,7 +215,7 @@ Two byte-identical fetch URL lines to `create-connect-account` exist: one in `ha
 | Web repo remote | `Patiosquad/MyInteractiveSetlistWebApp` |
 | iOS repo local path | `C:\Users\chapl\MyApp` |
 | Supabase project ref | `aeghdjuxysiczvypcdfd` |
-| Test Performer | cat@gmail.com |
+| Test Performer | cat@settuner.com |
 | Hosting | Vercel (auto-deploy on push to main = production) |
 | TypeScript baseline | 0 |
 
