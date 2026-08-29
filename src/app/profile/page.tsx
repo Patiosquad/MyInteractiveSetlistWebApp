@@ -473,6 +473,7 @@ function ProfilePageInner() {
           const meta = concertMeta[concertId] ?? {};
           history.push({
             concertId,
+            cycleId: cycle.id,
             concertName: meta.name,
             venue: meta.venue_name ?? '',
             city: meta.city ?? '',
@@ -1162,7 +1163,7 @@ function ProfilePageInner() {
                               const dateLabel = new Date(concert.endedAt ?? concert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
                               const venueLabel = [concert.venue, concert.city].filter(Boolean).join(' — ');
                               return (
-                                <div key={concert.concertId} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 16px', margin: '4px 8px' }}>
+                                <div key={concert.cycleId} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 16px', margin: '4px 8px' }}>
                                   <p style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{concert.concertName}</p>
                                   <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 8px' }}>{venueLabel}{venueLabel ? ' · ' : ''}{dateLabel}</p>
                                   <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--text-muted)' }}>Earned </span><span style={{ color: 'var(--gold)', fontWeight: '700' }}>${Math.round(concert.totalEarned)}</span></p>
