@@ -34,6 +34,11 @@
   --status-closed-text: #8a7566;
   --status-preview-bg: #2a150a;
   --status-preview-text: #ffcf6b;
+  /* closing: a concert whose close is still resolving Stripe holds. Distinct
+     from closed, which is finished. Matches statusClosingBg/Text in the iOS
+     token file. */
+  --status-closing-bg: #1c2430;
+  --status-closing-text: #7dd3fc;
 
   /* Borders */
   --border: #2e211a;

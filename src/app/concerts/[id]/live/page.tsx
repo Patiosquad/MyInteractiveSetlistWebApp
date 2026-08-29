@@ -290,12 +290,20 @@ export default function LivePage() {
           // If we are the one who just closed this concert via the End Concert flow,
           // our own outcome modal and dismissEndConcertOutcome() handle navigation once
           // the performer dismisses it. Don't let this listener race ahead and yank them
-          // away before they've seen the result.
-          if (
-            (payload.new as { status: string }).status === 'closed' &&
-            endConcertStepRef.current === 'none'
-          ) {
-            router.push('/dashboard');
+          // away before they've seen the result. That guard matters even more for the
+          // closing branch below, because the performer's own End Concert tap sets
+          // closing BEFORE the outcome modal renders.
+          const newStatus = (payload.new as { status: string }).status;
+          if (endConcertStepRef.current === 'none') {
+            if (newStatus === 'closed') {
+              router.push('/dashboard');
+            } else if (newStatus === 'closing') {
+              // A closing concert is not accessible from the live view, the same as a
+              // closed one - arriving here during closing already hits the notLive
+              // early return. Send them to the concert page rather than the dashboard:
+              // that is where the payout banner explains why the concert is stuck.
+              router.push(`/concerts/${concertId}`);
+            }
           }
         }
       )
@@ -730,6 +738,10 @@ export default function LivePage() {
             {isPreview ? (
               <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-preview-bg)', color: 'var(--status-preview-text)' }}>
                 Taking Requests!
+              </span>
+            ) : isClosing ? (
+              <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-closing-bg)', color: 'var(--status-closing-text)' }}>
+                CLOSING
               </span>
             ) : (
               <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-live-bg)', color: 'var(--status-live-text)' }}>
