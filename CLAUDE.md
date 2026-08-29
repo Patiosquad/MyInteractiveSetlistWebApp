@@ -59,6 +59,8 @@ deprecation notices.
 
 Probe every file by raw byte count immediately before editing it — count `\r\n` and bare `\n` separately. If both are non-zero the file is genuinely mixed: STOP and report rather than guessing. Convert the newlines in every anchor and replacement to match what was measured, and preserve the trailing-newline state exactly as found — some files here end with a newline and some do not.
 
+**Do NOT make the TOTAL line count a precondition.** State only what actually protects against a whole-file diff: CRLF is zero or bare LF is zero, bare CR is zero, and whether the file ends with a newline. A total line count is a checksum of the PREVIOUS step and goes stale the moment any edit lands — it aborts safely but costs a round trip every time, and it cost two in one session on 2026-08-29. The anchor verification is what guards correctness, and it has never been the thing that failed. Report the totals before and after; do not gate on them.
+
 `core.autocrlf = true` and there is no `.gitattributes`, so git warns `LF will be replaced by CRLF` on LF files. **That warning is cosmetic. Do not attempt to resolve it mid-task.** It also means a file's endings can change on the next checkout — which is why they are measured per session, not carried forward.
 
 ---
