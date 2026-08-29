@@ -223,6 +223,22 @@ State which need changing and which do not. A migration committed without that e
 
 ---
 
+## Who Decides What
+
+Chap owns what SetTuner DOES. What a fan sees, what is allowed, where the money goes, what counts as acceptable friction. Claude owns HOW IT GETS THERE. Schema, queries, file layout, line endings, how a change is verified.
+
+When a technical choice carries a product consequence, name the consequence in Chap's terms and ask about THAT — never about the mechanism. Do not ask him to choose between an error code and a decline code, one column or two, or an embed versus two queries. Ask what should happen to the fan and the money, then decide the mechanism.
+
+Two answers from 2026-08-29 show what this buys, and both are worth reading as examples of the level to ask at:
+- "A closing concert is definitionally closed except payouts haven't finished." One sentence, thirteen code sites resolved.
+- "As long as there are no holds then the fan can remove the card that moment." The question had been framed around concert status; reframing it around money was the correct answer and produced a narrower, better rule.
+
+**WHEN UNSURE ABOUT A FACT, GO MEASURE. DO NOT ASK.** Whether accepted survives a charge, whether a foreign key exists, what a query returns, what line endings a file has — those are answers to be read from the code, the schema or a controlled run, never guessed at and never handed to Chap. He catches wrong guesses during device testing, which is slower than reading would have been. This does NOT extend to product intent: measure facts, ask about intent.
+
+**CONTROLLED RUNS BEAT REASONING.** Suppress one thing, change nothing else, look. On 2026-08-29 every finding that survived came from that method and every one that did not came from being confident about something unchecked.
+
+---
+
 ## Lessons Capture Rule
 
 At the end of any session where a new technical trap, anti-pattern, or hard-won finding is discovered, append it to the "Lessons Captured from Debugging" section above before the session summary is generated — sourced from a verified code read, never from a tracker title or prior prose summary.
