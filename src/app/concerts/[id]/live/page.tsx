@@ -455,7 +455,12 @@ export default function LivePage() {
 
   async function handleReactivate(song: SongWithTotal) {
     setReactivatingId(song.id);
-    const ok = await callEdgeFunction('cancel-payments', { songId: song.id, concertId });
+    // mode: 'reactivate' tells cancel-payments to sweep and release any
+    // stranded hold WITHOUT writing songs.status = 'declined'. See the
+    // comment block in supabase/functions/cancel-payments/index.ts. An
+    // absent or different mode keeps the old behaviour, which is why
+    // handleDeclineConfirmed above is untouched.
+    const ok = await callEdgeFunction('cancel-payments', { songId: song.id, concertId, mode: 'reactivate' });
     if (!ok) { setReactivatingId(null); return; }
     // The delete that stood here removed every contribution row for this
     // song, filtered on song_id alone -- no status filter, no concert bound,
