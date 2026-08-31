@@ -457,7 +457,27 @@ export default function LivePage() {
     setReactivatingId(song.id);
     const ok = await callEdgeFunction('cancel-payments', { songId: song.id, concertId });
     if (!ok) { setReactivatingId(null); return; }
-    await supabase.from('contributions').delete().eq('song_id', song.id);
+    // The delete that stood here removed every contribution row for this
+    // song, filtered on song_id alone -- no status filter, no concert bound,
+    // no cycle bound. Removed 2026-08-31 along with its iOS twin at
+    // app/performer/catalog.tsx.
+    //
+    // A song persists across cycles, so it also reached ACCEPTED rows from
+    // earlier cycles of the same concert. Those are money already captured
+    // and transferred to the performer, and they are what the fan and
+    // performer history screens read.
+    //
+    // It also ran on unreleased holds. cancel-payments returns HTTP 200 with
+    // success true, no error key, and a populated failures array when an
+    // individual Stripe cancel throws, and it writes status only to its
+    // success list -- so a failed row stays active with a live authorization
+    // on the fan's card. callEdgeFunction above checks only res.ok and never
+    // parses the body, so this path could not see that, and the delete
+    // destroyed the only record of the hold.
+    //
+    // Product decision: a released contribution stays as a record. A fan who
+    // contributed and had the hold released still sees it in their history.
+    // Same reasoning as the Go Live delete removed in c97ca68.
     await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
     await fetchLeaderboard();
     setReactivatingId(null);
