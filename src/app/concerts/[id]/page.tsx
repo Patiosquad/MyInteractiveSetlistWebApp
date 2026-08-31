@@ -789,19 +789,36 @@ export default function ConcertPage() {
         .catch((refreshError) => { console.error('refresh-payment-intents failed:', refreshError); });
     }
 
-    if (concert.status !== 'preview') {
-      const { error: contribError } = await supabase
-        .from('contributions')
-        .delete()
-        .eq('concert_id', concertId)
-        .eq('status', 'active');
-      if (contribError) {
-        console.error('[go-live] step 1 (clear active contributions) failed:', contribError);
-        setGoingLive(false);
-        setGoLiveError('Go Live failed: ' + contribError.message);
-        return;
-      }
-    }
+    // STEP 1 REMOVED 2026-08-30. This used to delete every contribution with
+    // status active on the concert whenever it went live from a status other
+    // than preview. It had NO LEGITIMATE TARGET and every row it could reach
+    // was one that must be kept.
+    //
+    // Work the state machine: the gate fired on status !== 'preview'. A closing
+    // concert cannot reach here and a live concert cannot go live again, so it
+    // only ever ran on new or closed.
+    //
+    // On a NEW concert there are no contributions at all, so the delete was a
+    // no-op. Nothing sets an existing concert back to new -- all four writes of
+    // that status across both repos are concert creation.
+    //
+    // On a CLOSED concert every contribution from the finished cycle is accepted
+    // or released. The ONLY way one is still active is that its Stripe cancel
+    // FAILED during the close: end-concert releases by id list at line 535, not
+    // by filter, so a row whose cancel threw stays active -- see
+    // releaseResults.failed and priorCycleFailed at 520-527, neither of which
+    // writes a status. Such a row is the record of a LIVE AUTHORIZATION HOLD on
+    // a fan's card. Deleting it orphaned the hold with nothing left to track it.
+    //
+    // Leaving the row alone lets the mechanism that already exists do its job:
+    // end-concert line 445 fetches active and accepted by concert_id with no
+    // date filter, so the NEXT close picks the stranded row up and retries the
+    // cancel. Stripe's 7-day authorization expiry is the backstop either way, so
+    // the fan's money is never at risk -- what was being destroyed was the record
+    // and the chance to resolve it cleanly.
+    //
+    // Removed on iOS in the same commit. Do not restore it on either platform.
+    // See BUG-GO-LIVE-DELETE-GATE-HAS-NO-CYCLE-BOUNDARY-CHECK.
 
     const { error: songsError } = await supabase
       .from('songs')
