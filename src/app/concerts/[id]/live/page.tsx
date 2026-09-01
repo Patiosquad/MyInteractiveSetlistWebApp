@@ -436,21 +436,67 @@ export default function LivePage() {
     setPendingDecline(null);
     setProcessingId(song.id);
 
-    await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ songId: song.id, concertId }),
+    // WHAT THIS USED TO DO, and why it was wrong. The fetch was terminated
+    // with .catch(() => {}), so a network failure, a 403 from the ownership
+    // check and a 500 were all discarded identically. It never read res.ok
+    // and never parsed the body. Then it wrote songs.status = 'declined'
+    // from the client REGARDLESS, so on any failure the song showed Declined
+    // to the performer, to every fan and on the public display route while
+    // the fans' Stripe authorization holds were still live -- and nobody was
+    // told. The performer had no error surface at all on this path.
+    //
+    // Product decision 2026-08-31: on failure, say so and leave the song on
+    // the leaderboard. No optimistic write, no rollback. The fan is safe
+    // either way, because a song that is never accepted is never charged;
+    // the performer just retries once connectivity is back.
+    //
+    // The client write of songs.status is GONE rather than moved inside the
+    // success branch. cancel-payments writes it server-side, and on a 200
+    // that write provably succeeded -- a failed songs update returns 500
+    // with an error key. handleAcceptConfirmed above already trusts the
+    // server the same way and writes no status locally.
+    //
+    // Not routed through callEdgeFunction deliberately: that helper has no
+    // try/catch, so a network throw would propagate and setProcessingId(null)
+    // would never run, leaving the row disabled forever; and it discards the
+    // 2xx body, so it cannot see a partial Stripe failure.
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songId: song.id, concertId }),
+        }
+      );
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok || result.error) {
+        alert(`Could not decline "${song.name}". The contributions were not released and the song is still on the leaderboard. Please try again.`);
+        return;
       }
-    ).catch(() => {});
-    await supabase.from('songs').update({ status: 'declined' }).eq('id', song.id);
-    await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
-    setSongs((prev) => prev.filter((s) => s.id !== song.id));
-    setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'declined' } : s));
-    setActionMessage(`"${song.name}" declined.`);
-    setTimeout(() => setActionMessage(''), 3000);
-    setProcessingId(null);
+
+      // A 200 can still carry a populated failures array: cancel-payments
+      // writes contributions.status only to its success list, so a row whose
+      // Stripe cancel threw stays active with a live hold on the fan's card.
+      // The standing decision is to leave that hold alone -- end-concert
+      // retries the cancel at the next close and Stripe's seven-day
+      // authorization expiry is the backstop -- but the performer should be
+      // able to see that it happened.
+      if (result.failed > 0) {
+        alert(`"${song.name}" was declined, but ${result.failed} contribution(s) could not be released. Those holds are still on the fans' cards and will be retried when the concert ends.`);
+      }
+
+      await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
+      setSongs((prev) => prev.filter((s) => s.id !== song.id));
+      setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'declined' } : s));
+      setActionMessage(`"${song.name}" declined.`);
+      setTimeout(() => setActionMessage(''), 3000);
+    } catch {
+      alert(`Could not decline "${song.name}". The contributions were not released and the song is still on the leaderboard. Please try again.`);
+    } finally {
+      setProcessingId(null);
+    }
   }
 
   async function handleReactivate(song: SongWithTotal) {
