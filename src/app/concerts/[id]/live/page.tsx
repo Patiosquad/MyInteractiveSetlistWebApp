@@ -501,37 +501,70 @@ export default function LivePage() {
 
   async function handleReactivate(song: SongWithTotal) {
     setReactivatingId(song.id);
+
     // mode: 'reactivate' tells cancel-payments to sweep and release any
     // stranded hold WITHOUT writing songs.status = 'declined'. See the
     // comment block in supabase/functions/cancel-payments/index.ts. An
-    // absent or different mode keeps the old behaviour, which is why
-    // handleDeclineConfirmed above is untouched.
-    const ok = await callEdgeFunction('cancel-payments', { songId: song.id, concertId, mode: 'reactivate' });
-    if (!ok) { setReactivatingId(null); return; }
-    // The delete that stood here removed every contribution row for this
-    // song, filtered on song_id alone -- no status filter, no concert bound,
-    // no cycle bound. Removed 2026-08-31 along with its iOS twin at
-    // app/performer/catalog.tsx.
+    // absent or different mode keeps the old behaviour, which is why the
+    // two decline paths are untouched.
     //
-    // A song persists across cycles, so it also reached ACCEPTED rows from
-    // earlier cycles of the same concert. Those are money already captured
-    // and transferred to the performer, and they are what the fan and
-    // performer history screens read.
-    //
-    // It also ran on unreleased holds. cancel-payments returns HTTP 200 with
-    // success true, no error key, and a populated failures array when an
-    // individual Stripe cancel throws, and it writes status only to its
-    // success list -- so a failed row stays active with a live authorization
-    // on the fan's card. callEdgeFunction above checks only res.ok and never
-    // parses the body, so this path could not see that, and the delete
-    // destroyed the only record of the hold.
-    //
-    // Product decision: a released contribution stays as a record. A fan who
-    // contributed and had the hold released still sees it in their history.
-    // Same reasoning as the Go Live delete removed in c97ca68.
-    await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
-    await fetchLeaderboard();
-    setReactivatingId(null);
+    // Not routed through callEdgeFunction, for the same two reasons
+    // handleDeclineConfirmed above is not: that helper has no try/catch, so
+    // a network throw propagated out of it and past every
+    // setReactivatingId(null), leaving this row's Reactivate button disabled
+    // until a page reload; and it returns a bare boolean, discarding the 2xx
+    // body, so this path could not see a partial Stripe failure at all.
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/cancel-payments`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songId: song.id, concertId, mode: 'reactivate' }),
+        }
+      );
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok || result.error) {
+        alert(`Could not reactivate "${song.name}". It is still unavailable to fans. Please try again.`);
+        return;
+      }
+
+      // A 200 can still carry a populated failures array. On this path that
+      // is rare and specific: reactivate normally finds zero active
+      // contributions, because a declined song's rows are already released
+      // and a deactivated song has none. So a failure here means a hold that
+      // was ALREADY stranded by an earlier failed cancel and has just failed
+      // to release again. Worth naming rather than swallowing -- seeing it
+      // twice on the same song is a real signal about one fan's card.
+      if (result.failed > 0) {
+        alert(`"${song.name}" was reactivated, but ${result.failed} contribution(s) could not be released. Those holds are still on the fans' cards and will be retried when the concert ends.`);
+      }
+
+      // The delete that stood here removed every contribution row for this
+      // song, filtered on song_id alone -- no status filter, no concert bound,
+      // no cycle bound. Removed 2026-08-31 along with its iOS twin at
+      // app/performer/catalog.tsx.
+      //
+      // A song persists across cycles, so it also reached ACCEPTED rows from
+      // earlier cycles of the same concert. Those are money already captured
+      // and transferred to the performer, and they are what the fan and
+      // performer history screens read.
+      //
+      // It also ran on unreleased holds -- the same partial failure the alert
+      // above now surfaces -- and the delete destroyed the only record of the
+      // hold.
+      //
+      // Product decision: a released contribution stays as a record. A fan who
+      // contributed and had the hold released still sees it in their history.
+      // Same reasoning as the Go Live delete removed in c97ca68.
+      await supabase.from('songs').update({ status: 'active' }).eq('id', song.id);
+      await fetchLeaderboard();
+    } catch {
+      alert(`Could not reactivate "${song.name}". It is still unavailable to fans. Please try again.`);
+    } finally {
+      setReactivatingId(null);
+    }
   }
 
   async function handleSetNotAvailable() {
