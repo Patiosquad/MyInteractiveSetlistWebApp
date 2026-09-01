@@ -388,26 +388,6 @@ export default function LivePage() {
     setShownInactivityWarning(false);
   }, [concert?.last_activity_at]);
 
-  async function callEdgeFunction(path: string, body: Record<string, unknown>): Promise<boolean> {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/${path}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      }
-    );
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(`Failed: ${(err as { message?: string }).message ?? res.statusText}`);
-      return false;
-    }
-    return true;
-  }
-
   async function handleAccept(song: SongWithTotal) {
     setPendingAccept(song);
     return;
@@ -419,15 +399,61 @@ export default function LivePage() {
     setPendingAccept(null);
     setProcessingId(song.id);
 
-    const ok = await callEdgeFunction('capture-payments', { songId: song.id, concertId });
-    if (ok) {
+    // Not routed through callEdgeFunction: that helper was deleted in this
+    // same commit, and it had two defects this path inherited. It had
+    // no try/catch, and neither did this function, so a network throw
+    // propagated past setProcessingId(null) and left this row's Accept,
+    // Decline AND catalog Manage controls disabled until a page reload. And
+    // it returned a bare boolean, discarding the 2xx body, so a partial
+    // capture failure was invisible here. handleDeclineConfirmed and
+    // handleReactivate were de-routed for the same two reasons; this was the
+    // last caller.
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/capture-payments`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songId: song.id, concertId }),
+        }
+      );
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok || result.error) {
+        alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
+        return;
+      }
+
+      // A 200 can still carry failures. NOTE WHAT capture-payments ACTUALLY
+      // DOES, because the wording depends on it: it does not call Stripe at
+      // all. It calls the increment_fan_bucket RPC to add each fan's total to
+      // their concert bucket, then marks the contributions accepted and the
+      // song played. The real Stripe capture happens later, at end-concert.
+      // So result.failed counts fans whose BUCKET INCREMENT failed -- those
+      // fans will not be charged for this song -- and result.fansUpdated
+      // counts the ones who will be charged at close. fansUpdated and failed
+      // are both counts (results.updated.length and results.failed.length);
+      // failures is the array. Measured, not assumed.
+      //
+      // The iOS twin at app/performer/catalog.tsx said "payment(s) captured
+      // successfully" and "Please check Stripe dashboard", which is wrong on
+      // both halves -- nothing is captured here and the dashboard shows
+      // nothing. It is corrected to this same wording in the matching iOS
+      // commit.
+      if (result.failed > 0) {
+        alert(`"${song.name}" was accepted. ${result.fansUpdated} fan(s) will be charged when the concert ends, but ${result.failed} could not be processed and will not be charged for this song.`);
+      }
+
       await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
       setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'played' } : s));
       setActionMessage(`✓ "${song.name}" accepted!`);
       setTimeout(() => setActionMessage(''), 3000);
+    } catch {
+      alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
+    } finally {
+      setProcessingId(null);
     }
-    setProcessingId(null);
   }
 
   async function handleDeclineConfirmed() {
