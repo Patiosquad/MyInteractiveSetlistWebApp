@@ -425,11 +425,19 @@ function ProfilePageInner() {
       .order('ended_at', { ascending: true });
     if (!cycles || cycles.length === 0) { setEarningsHistory([]); return; }
 
+    // release_failed is included because it is a hold the concert close
+    // tried to release and could not -- the fan was NOT charged, exactly
+    // as with 'released'. Omitting it would drop the row from the
+    // performer's Released total and from the contribution count in both
+    // the modal and the PDF, understating a figure that is correct.
+    // It is bucketed with the released rows in the filter below, for the
+    // same reason. No line number here on purpose: the six lines of this
+    // comment moved that filter from 466 to 472 the moment they landed.
     const { data: contributions } = await supabase
       .from('contributions')
       .select('total_amount, status, song_id, concert_id, created_at')
       .in('concert_id', concertIds)
-      .in('status', ['accepted', 'released']);
+      .in('status', ['accepted', 'released', 'release_failed']);
 
     const { data: songs } = await supabase
       .from('songs')
@@ -463,7 +471,7 @@ function ProfilePageInner() {
           });
 
           const captured = windowedContribs.filter((c: any) => c.status === 'accepted');
-          const released = windowedContribs.filter((c: any) => c.status === 'released');
+          const released = windowedContribs.filter((c: any) => c.status === 'released' || c.status === 'release_failed');
           const totalReleased = released.reduce((sum: number, c: any) => sum + Number(c.total_amount), 0);
           const capturedSorted = [...captured].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
           const releasedSorted = [...released].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
