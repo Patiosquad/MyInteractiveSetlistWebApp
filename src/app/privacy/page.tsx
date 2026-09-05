@@ -23,7 +23,7 @@ export default function PrivacyPage() {
           PRIVACY POLICY
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '36px' }}>
-          Last updated: August 6, 2026
+          Last updated: September 5, 2026
         </p>
 
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Device Identifiers</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          We collect limited device information (such as device type and a device identifier) to support app functionality, security, and fraud prevention.
+          We collect limited device information (such as device type, operating system version, and a device identifier) to support app functionality, security, and fraud prevention. When the app encounters an error, this device information is also included in the automated error report described in Section 3.
         </p>
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Concert and Venue Information</h3>
@@ -91,6 +91,9 @@ export default function PrivacyPage() {
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
           Google Maps — used by Performers to search for and select a concert venue when creating a concert, so that an accurate venue address can be attached to the concert record. Google&apos;s own privacy policy governs this lookup.
+        </p>
+        <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
+          Sentry — automated error and crash reporting. When the SetTuner app encounters an error, a report is sent to Sentry containing the technical details of the failure, the device type and operating system version, the app build, and the country the report was sent from. These reports do not include your name, email address, or any identifier linking the report to your SetTuner account, and they do not include payment information.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
           We do not sell your personal information to third parties.
