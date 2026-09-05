@@ -419,8 +419,58 @@ export default function LivePage() {
       );
       const result = await res.json().catch(() => ({}));
 
+      // TWO DIFFERENT FAILURES SHARE THIS BRANCH AND MUST NOT SHARE A MESSAGE.
+      // capture-payments returns 500 from three places. The one at its line
+      // 124 fires BEFORE anything is committed, so no fan was accepted and the
+      // original wording is correct. The one at its line 234 fires AFTER
+      // accept_contribution has committed both the status flip and the bucket
+      // increment for every contribution that succeeded -- end-concert WILL
+      // charge those fans -- and only the songs-played write failed. Telling
+      // the performer no fans were charged is false on that path, and if they
+      // believe it and skip the song, their fans are billed at close for a
+      // song never played.
+      //
+      // The two are told apart by the error string, which only the 234 path
+      // emits, built at line 230.
+      //
+      // THE MESSAGE DOES NOT SAY TO RETRY, AND THAT WAS MEASURED RATHER THAN
+      // REASONED. A retry WOULD be self-healing on the server -- the select in
+      // capture-payments filters on status active, the accepted rows no longer
+      // match, so the zero-contributions early return marks the song played and
+      // returns 200. But the performer cannot reach it. Device test 2026-09-04
+      // with a forced failure on the songs UPDATE: the alert fired correctly and
+      // the state matched it, but setSongs below had ALREADY removed the song
+      // from the leaderboard, so there was no Accept button left to tap. An
+      // earlier draft of this message told the performer to tap Accept again and
+      // also said the song was still on the leaderboard. Both were false, and
+      // neither was visible from reading the code.
+      //
+      // It now points at Mark as Played in the catalog Manage menu, which was
+      // confirmed present on a song in this state. That path may ALSO fail if
+      // whatever broke the songs write is still broken -- it is the same table
+      // and the same kind of write -- which is why the wording says "consider"
+      // rather than promising it works. Whether the song should stay on the
+      // leaderboard when only the status write fails is an open product
+      // question and is not decided here.
+      //
+      // The third 500, the catch-all at line 256, returns a bare error.message
+      // carrying no prefix, so a THROW from the songs update still shows the
+      // original wording. Not covered by this branch; it needs a server change.
+      //
+      // Opened as BUG-CAPTURE-PAYMENTS-SONG-PLAYED-500-SAYS-NO-FANS-CHARGED-
+      // WHEN-THEY-WILL-BE in R20, worded and fixed 2026-09-04 (R22). Never
+      // observed: zero occurrences in 164 accepts. Wording is shared verbatim
+      // with app/performer/catalog.tsx per the standing parity rule.
       if (!res.ok || result.error) {
-        alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
+        const songStatusOnly =
+          typeof result.error === 'string' &&
+          result.error.startsWith('Bucket updates completed but failed to mark song as played');
+
+        if (songStatusOnly) {
+          alert(`"${song.name}" was accepted and those fans will be charged when the concert ends, but the song's status didn't update. Consider manually updating the song status as Mark as Played from the manage button on "${song.name}" tile.`);
+        } else {
+          alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
+        }
         return;
       }
 
