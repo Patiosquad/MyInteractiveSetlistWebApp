@@ -461,12 +461,32 @@ export default function LivePage() {
       // WHEN-THEY-WILL-BE in R20, worded and fixed 2026-09-04 (R22). Never
       // observed: zero occurrences in 164 accepts. Wording is shared verbatim
       // with app/performer/catalog.tsx per the standing parity rule.
+      // A THIRD OUTCOME WAS ADDED HERE. capture-payments has a catch-all that
+      // fires on anything that THROWS rather than returning an error, and those
+      // cases sit on both sides of the commit boundary: a malformed body or a
+      // missing env var throws before any fan is accepted, while a thrown songs
+      // UPDATE throws after every accept has committed. The server refuses to
+      // claim either way and returns a Could not confirm prefix; this branch
+      // carries that refusal through to the performer instead of falling to the
+      // no-fans-charged wording, which would be the same defect R22 fixed for
+      // the returned-error path, reached through a different door.
+      //
+      // THE MESSAGE DELIBERATELY SAYS NOTHING ABOUT MONEY. Chap's call,
+      // 2026-09-05: a performer reading this is mid-show, and telling them fans
+      // may be charged at close is both unverifiable and useless to them right
+      // then. What they can act on is whether the song counted, and the catalog
+      // answers that - still active means nothing went through, gone means it
+      // did. The money resolves either way without them doing anything.
       if (!res.ok || result.error) {
+        const errStr = typeof result.error === 'string' ? result.error : '';
         const songStatusOnly =
-          typeof result.error === 'string' &&
-          result.error.startsWith('Bucket updates completed but failed to mark song as played');
+          errStr.startsWith('Bucket updates completed but failed to mark song as played');
+        const unconfirmed =
+          errStr.startsWith('Could not confirm the result of this accept');
 
-        if (songStatusOnly) {
+        if (unconfirmed) {
+          alert(`Could not confirm if "${song.name}" was accepted. Check the catalog. If the song is still active, consider using Mark as Played from the Manage menu.`);
+        } else if (songStatusOnly) {
           alert(`"${song.name}" was accepted and those fans will be charged when the concert ends, but the song's status didn't update. Consider manually updating the song status as Mark as Played from the manage button on "${song.name}" tile.`);
         } else {
           alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
