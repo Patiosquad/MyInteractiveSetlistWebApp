@@ -504,57 +504,52 @@ export default function ConcertPage() {
   }
 
   async function handleDeleteConcertConfirmed() {
-    // Only 'new' (provably zero contributions) and 'closed' (provably resolved by
-    // end-concert) are safe. Deleting during 'live', 'closing', or 'preview' would
-    // orphan live Stripe holds with no database record left to track or release them.
-    const currentStatus = concert?.status;
-    if (currentStatus === 'live' || currentStatus === 'closing' || currentStatus === 'preview') {
-      alert('Cannot delete: this concert has an active or unresolved session.');
-      return;
-    }
-
+    // The status rule -- only 'new' and 'closed' are deletable -- now lives server-side in
+    // delete-concert and comes back as reason 'concert_not_finished'. It is deliberately NOT
+    // duplicated here: two definitions of the same rule are exactly what lets them drift.
     try {
-      if (concert?.status === 'live') {
-        await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/end-concert`,
-          {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ concertId }),
-          }
-        ).catch(() => {});
-      }
-      const { error: songsError } = await supabase.from('songs').delete().eq('concert_id', concertId);
-      if (songsError) {
-        console.error('Delete concert failed at step 1 (songs):', songsError);
-        alert('Delete failed: ' + songsError.message);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-concert`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concertId }),
+        }
+      );
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        router.push('/dashboard');
         return;
       }
 
-      const { error: bucketsError } = await supabase.from('fan_concert_buckets').delete().eq('concert_id', concertId);
-      if (bucketsError) {
-        console.error('Delete concert failed at step 2 (fan_concert_buckets):', bucketsError);
-        alert('Delete failed: ' + bucketsError.message);
+      if (res.status === 409 && result.reason === 'concert_not_finished') {
+        alert("This concert hasn't finished yet. End the concert first, then delete it.");
         return;
       }
 
-      const { error: cyclesError } = await supabase.from('concert_cycles').delete().eq('concert_id', concertId);
-      if (cyclesError) {
-        console.error('Delete concert failed at step 3 (concert_cycles):', cyclesError);
-        alert('Delete failed: ' + cyclesError.message);
+      if (res.status === 409 && result.reason === 'payment_outstanding') {
+        alert("A fan's payment for this concert hasn't gone through yet. You can delete it once that settles.");
         return;
       }
 
-      const { error: concertError } = await supabase.from('concerts').delete().eq('id', concertId);
-      if (concertError) {
-        console.error('Delete concert failed at step 4 (concerts):', concertError);
-        alert('Delete failed: ' + concertError.message);
+      // Checked BEFORE the generic branch below: a partial delete returns 500 and would
+      // otherwise be swallowed by it. There is no background retry for concert deletion,
+      // so the performer's next tap IS the retry -- hence 'Tap Delete again', not a deferral.
+      if (Array.isArray(result.completedSteps) && result.completedSteps.length > 0) {
+        console.error('[delete-concert] partial delete, completed steps:', result.completedSteps);
+        alert("Delete didn't finish. Some of this concert was removed. Tap Delete again to finish.");
         return;
       }
 
-      router.push('/dashboard');
+      console.error('[delete-concert] failed:', { status: res.status, reason: result?.reason, error: result?.error });
+      alert(result.error || 'Could not delete this concert. Please try again.');
     } catch (err) {
       console.error('Delete concert failed:', err);
+      // A throw here is NOT proof that nothing was deleted -- the request may have
+      // reached delete-concert and completed some steps before the connection died.
+      // Silence is the one response that cannot be true, so this says what is known.
+      alert("Couldn't reach the server. Some of this concert may have been removed. Check the concert, and tap Delete again if it's still there.");
     }
   }
 
