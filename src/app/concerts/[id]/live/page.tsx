@@ -510,14 +510,40 @@ export default function LivePage() {
       // both halves -- nothing is captured here and the dashboard shows
       // nothing. It is corrected to this same wording in the matching iOS
       // commit.
-      if (result.failed > 0) {
+      // ZERO ACCEPTED IS NOT A PARTIAL CAPTURE AND MUST NOT READ LIKE ONE.
+      // Chap's call, 2026-09-08. capture-payments marks the song played after
+      // the loop regardless of how many increments succeeded, so a run where
+      // EVERY increment failed still returns 200 with success true, still
+      // removes the song from the leaderboard, and still flips the catalog to
+      // played. The old single message opened with the song was accepted and
+      // then named a zero, which is misleading precisely when it matters most:
+      // nobody is charged, nobody is waiting, and the performer has no reason
+      // to play the song at all.
+      //
+      // The split is on fansUpdated, and the numbers are exact rather than
+      // estimated - results.updated.length counts fans whose accept committed
+      // and results.failed.length counts fans whose accept returned an error,
+      // so a zero is a measured zero. At one of twelve the performer should
+      // still honour it and play the song, which the partial wording already
+      // encourages, so that arm is unchanged.
+      //
+      // The wording says on our end deliberately. A performer reading this did
+      // nothing wrong and should not go looking for their own mistake.
+      if (result.fansUpdated === 0 && result.failed > 0) {
+        alert(`No fans will be charged for "${song.name}" - the contributions didn't go through on our end. You can skip this song safely. It has been marked as played.`);
+      } else if (result.failed > 0) {
         alert(`"${song.name}" was accepted. ${result.fansUpdated} fan(s) will be charged when the concert ends, but ${result.failed} could not be processed and will not be charged for this song.`);
       }
 
       await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
       setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'played' } : s));
-      setActionMessage(`✓ "${song.name}" accepted!`);
+      // The strip is kept on the zero path but drops the checkmark and states
+      // the money fact, so it cannot read as an endorsement next to an alert
+      // saying nobody was charged.
+      setActionMessage(result.fansUpdated === 0 && result.failed > 0
+        ? `"${song.name}" accepted - no fans charged`
+        : `✓ "${song.name}" accepted!`);
       setTimeout(() => setActionMessage(''), 3000);
     } catch {
       alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
