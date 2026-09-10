@@ -504,7 +504,75 @@ function ProfilePageInner() {
       .filter((h: any) => h.endedAt > oneYearAgo)
       .sort((a: any, b: any) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime());
 
-    setEarningsHistory(recent);
+    const receiptRows = await loadReceiptHistory(user.id, oneYearAgo);
+    const byCycle = new Map<string, any>();
+    for (const r of recent) byCycle.set(r.cycleId, r);
+    for (const r of receiptRows) byCycle.set(r.cycleId, r);
+    const merged = [...byCycle.values()].sort(
+      (a: any, b: any) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime()
+    );
+
+    setEarningsHistory(merged);
+  }
+
+  async function loadReceiptHistory(performerId: string, sinceIso: string) {
+    const { data: receipts, error: receiptError } = await supabase
+      .from('cycle_receipts')
+      .select('id, concert_id, cycle_id, concert_name, venue, cycle_number, cycle_closed_at, gross_captured_cents, platform_fee_cents, net_to_performer_cents, released_total_cents, owed_total_cents, contribution_count, fan_count, source')
+      .eq('performer_id', performerId)
+      .gte('cycle_closed_at', sinceIso)
+      .order('cycle_closed_at', { ascending: false });
+
+    if (receiptError || !receipts || receipts.length === 0) return [];
+
+    const receiptIds = receipts.map((r: any) => r.id);
+
+    const { data: lines, error: lineError } = await supabase
+      .from('cycle_receipt_lines')
+      .select('id, receipt_id, fan_label, song_id, song_name, song_artist, amount_cents, status, stripe_payment_intent_id, accepted_at, paid_at')
+      .in('receipt_id', receiptIds);
+
+    if (lineError) return [];
+
+    const linesByReceipt: Record<string, any[]> = {};
+    (lines ?? []).forEach((l: any) => {
+      if (!linesByReceipt[l.receipt_id]) linesByReceipt[l.receipt_id] = [];
+      linesByReceipt[l.receipt_id].push(l);
+    });
+
+    return receipts.map((r: any) => {
+      const own = linesByReceipt[r.id] ?? [];
+      const toSong = (l: any) => ({
+        songName: l.song_name ?? 'Unknown',
+        artist: l.song_artist ?? '',
+        amount: l.amount_cents / 100,
+        timestamp: l.accepted_at,
+      });
+      const paid = own.filter((l: any) => l.status === 'captured');
+      const owed = own.filter((l: any) => l.status === 'owed');
+      const releasedLines = own.filter((l: any) => l.status === 'released');
+
+      return {
+        concertId: r.concert_id,
+        cycleId: r.cycle_id,
+        concertName: r.concert_name ?? 'Untitled Concert',
+        venue: r.venue ?? '',
+        city: '',
+        endedAt: r.cycle_closed_at,
+        createdAt: r.cycle_closed_at,
+        totalEarned: r.gross_captured_cents / 100,
+        totalReleased: r.released_total_cents / 100,
+        capturedCount: paid.length + owed.length,
+        releasedCount: releasedLines.length,
+        acceptedSongs: [...paid, ...owed].map(toSong),
+        declinedSongs: releasedLines.map(toSong),
+        grossCents: r.gross_captured_cents,
+        feeCents: r.platform_fee_cents,
+        netCents: r.net_to_performer_cents,
+        owedCents: r.owed_total_cents,
+        isReceipt: true,
+      };
+    });
   }
 
   function generatePerformerStatementHtml(concert: any) {
@@ -629,6 +697,10 @@ function ProfilePageInner() {
         <div class="tile-label">Total Earned</div>
         <div class="tile-figure-earned">+$${totalEarned}</div>
       </div>
+      ${concert.isReceipt ? `<div class="tile tile-released">
+        <div class="tile-label">Net After Fee</div>
+        <div class="tile-figure-released">${formatCents(concert.netCents)}</div>
+      </div>` : ''}
       <div class="tile tile-released">
         <div class="tile-label">Released</div>
         <div class="tile-figure-released">$${totalReleased}</div>
@@ -653,24 +725,60 @@ function ProfilePageInner() {
       ${renderSongRows(declined, false)}
     </div>` : ''}
 
-    <div class="footer-note">Figures are raw totals. Platform fees are not yet reflected and will be deducted before payout.</div>
+    <div class="footer-note">${concert.isReceipt ? `Net of the ${formatCents(concert.feeCents)} platform fee. Figures recorded at close.` : 'Figures are raw totals. Platform fees are not yet reflected and will be deducted before payout.'}</div>
   </div>
 </body>
 </html>`;
   }
 
   function exportPerformerStatement(concert: any) {
+    // NO CHILD WINDOW. Four attempts established that any separate tab carrying a print
+    // dialog freezes this one until that tab is closed or the dialog dismissed - the
+    // modal would not close and the page would not scroll. Measured in Edge and Chrome
+    // 2026-09-10 across three different child-window mechanisms: a document.write child,
+    // the same child without a parent-side print() call, and an independent Blob URL
+    // document. None of them changed the symptom, so the cause is the child window
+    // itself, not how it is built.
+    //
+    // A same-document iframe has no opener to block. The dialog opens over this page and
+    // the performer never leaves it. Chap's call 2026-09-10: Export means produce the
+    // PDF; there is no longer a statement tab to read.
     const html = generatePerformerStatementHtml(concert);
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow popups to export the statement.');
+
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.position = 'fixed';
+    frame.style.right = '0';
+    frame.style.bottom = '0';
+    frame.style.width = '0';
+    frame.style.height = '0';
+    frame.style.border = '0';
+    document.body.appendChild(frame);
+
+    const doc = frame.contentDocument;
+    if (!doc) {
+      document.body.removeChild(frame);
+      alert('Could not prepare the statement for printing.');
       return;
     }
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.print();
+
+    // srcdoc is not used: it loads asynchronously and the print would race it. Writing
+    // into a same-document frame does not couple this page to anything, because there is
+    // no separate browsing context waiting on a dialog.
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    // Removed on a timer rather than after print() returns: print() resolves when the
+    // dialog closes, but some browsers still need the frame alive briefly afterwards to
+    // finish rendering the output. 60s is far past either.
+    const cleanup = () => {
+      if (frame.parentNode) frame.parentNode.removeChild(frame);
     };
+
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
+    setTimeout(cleanup, 60000);
   }
 
   function toggleEarningsMonth(monthKey: string) {
@@ -679,6 +787,12 @@ function ProfilePageInner() {
       if (next.has(monthKey)) { next.delete(monthKey); } else { next.add(monthKey); }
       return next;
     });
+  }
+
+  function formatCents(cents: number) {
+    const whole = Math.trunc(Math.abs(cents) / 100);
+    const part = Math.abs(cents) % 100;
+    return `${cents < 0 ? '-' : ''}$${whole}.${String(part).padStart(2, '0')}`;
   }
 
   function formatSongTime(ts: string) {
@@ -1175,6 +1289,9 @@ function ProfilePageInner() {
                                   <p style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{concert.concertName}</p>
                                   <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 8px' }}>{venueLabel}{venueLabel ? ' · ' : ''}{dateLabel}</p>
                                   <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--text-muted)' }}>Earned </span><span style={{ color: 'var(--gold)', fontWeight: '700' }}>${Math.round(concert.totalEarned)}</span></p>
+                                  {concert.isReceipt && (
+                                    <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--text-muted)' }}>Gross </span><span style={{ color: 'var(--text-secondary)' }}>{formatCents(concert.grossCents)}</span><span style={{ color: 'var(--text-muted)' }}> · Fee </span><span style={{ color: 'var(--text-secondary)' }}>{formatCents(concert.feeCents)}</span><span style={{ color: 'var(--text-muted)' }}> · Net </span><span style={{ color: 'var(--success)', fontWeight: '700' }}>{formatCents(concert.netCents)}</span></p>
+                                  )}
                                   <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 2px' }}>Released ${Math.round(concert.totalReleased)}</p>
                                   <p style={{ color: 'var(--text-faint)', fontSize: '12px', margin: '0 0 10px' }}>{concert.capturedCount} contribution{concert.capturedCount !== 1 ? 's' : ''} accepted · {concert.releasedCount} released</p>
                                   <button
@@ -1284,6 +1401,13 @@ function ProfilePageInner() {
                 <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Total Earned</p>
                 <p style={{ fontSize: '32px', fontWeight: 800, color: 'var(--success)', margin: 0 }}>${Math.round(selectedEarningsConcert.totalEarned)}</p>
               </div>
+              {selectedEarningsConcert.isReceipt && (
+                <div style={{ flex: 1, background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
+                  <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Net After Fee</p>
+                  <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--success)', margin: 0 }}>{formatCents(selectedEarningsConcert.netCents)}</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '4px 0 0' }}>{formatCents(selectedEarningsConcert.grossCents)} gross · {formatCents(selectedEarningsConcert.feeCents)} fee</p>
+                </div>
+              )}
               <div style={{ flex: 1, background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
                 <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Released</p>
                 <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--gold)', margin: 0 }}>${Math.round(selectedEarningsConcert.totalReleased)}</p>
@@ -1327,7 +1451,7 @@ function ProfilePageInner() {
                 </div>
               </div>
             )}
-            <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'var(--text-faint)', marginTop: '18px' }}>Raw totals — platform fees are deducted before payout.</p>
+            <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'var(--text-faint)', marginTop: '18px' }}>{selectedEarningsConcert.isReceipt ? `Net of the ${formatCents(selectedEarningsConcert.feeCents)} platform fee. Figures recorded at close.` : 'Raw totals — platform fees are deducted before payout.'}</p>
           </div>
         </div>
       )}
