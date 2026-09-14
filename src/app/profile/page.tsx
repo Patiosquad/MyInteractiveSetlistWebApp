@@ -562,10 +562,12 @@ function ProfilePageInner() {
         createdAt: r.cycle_closed_at,
         totalEarned: r.gross_captured_cents / 100,
         totalReleased: r.released_total_cents / 100,
-        capturedCount: paid.length + owed.length,
+        capturedCount: paid.length,
         releasedCount: releasedLines.length,
-        acceptedSongs: [...paid, ...owed].map(toSong),
+        owedCount: owed.length,
+        acceptedSongs: paid.map(toSong),
         declinedSongs: releasedLines.map(toSong),
+        owedSongs: owed.map(toSong),
         grossCents: r.gross_captured_cents,
         feeCents: r.platform_fee_cents,
         netCents: r.net_to_performer_cents,
@@ -578,6 +580,7 @@ function ProfilePageInner() {
   function generatePerformerStatementHtml(concert: any) {
     const accepted = concert.acceptedSongs ?? [];
     const declined = concert.declinedSongs ?? [];
+    const owed = concert.owedSongs ?? [];
 
     const totalEarned = Math.round(Number(concert.totalEarned ?? 0));
     const totalReleased = Math.round(Number(concert.totalReleased ?? 0));
@@ -631,6 +634,12 @@ function ProfilePageInner() {
   .panel { border-radius: 12px; padding: 18px 20px; }
   .panel-accepted { background: rgba(22,163,74,0.055); border: 1px solid rgba(22,163,74,0.22); border-left: 3px solid #16a34a; margin-bottom: 14px; }
   .panel-declined { background: #1c1310; border: 1px solid #2e211a; border-left: 3px solid #2e211a; }
+  .tile-subfigure { font-size: 11px; color: #6b5c50; margin-top: 4px; }
+  .tile-owed { flex: 1; background: rgba(255,183,3,0.06); border: 1px solid rgba(255,183,3,0.25); }
+  .tile-figure-owed { font-size: 26px; font-weight: 800; color: #ffb703; font-variant-numeric: tabular-nums; }
+  .panel-owed { background: rgba(255,183,3,0.055); border: 1px solid rgba(255,183,3,0.22); border-left: 3px solid #ffb703; margin-bottom: 14px; }
+  .panel-title-owed { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #ffb703; font-weight: 800; }
+  .owed-note { font-size: 11px; color: #6b5c50; margin-top: 8px; font-style: italic; }
   .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; break-after: avoid; page-break-after: avoid; }
   .panel-title-accepted { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #16a34a; font-weight: 800; }
   .panel-title-declined { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6b5c50; font-weight: 800; }
@@ -666,6 +675,12 @@ function ProfilePageInner() {
     .tile-figure-released { color: #a9760a; }
     .panel-accepted { background: rgba(21,128,61,0.07); border: 1px solid rgba(21,128,61,0.24); border-left: 3px solid #15803d; }
     .panel-declined { background: #f4efe7; border: 1px solid #e4dacc; border-left: 3px solid #cdbfae; }
+    .tile-subfigure { color: #8a7a6c; }
+    .tile-owed { background: rgba(169,118,10,0.07); border: 1px solid rgba(169,118,10,0.24); }
+    .tile-figure-owed { color: #a9760a; }
+    .panel-owed { background: rgba(169,118,10,0.07); border: 1px solid rgba(169,118,10,0.24); border-left: 3px solid #a9760a; }
+    .panel-title-owed { color: #a9760a; }
+    .owed-note { color: #8a7a6c; }
     .panel-title-accepted { color: #15803d; }
     .panel-title-declined { color: #8a7a6c; }
     .panel-count { color: #8a7a6c; }
@@ -690,16 +705,17 @@ function ProfilePageInner() {
       <div class="doc-label">Earnings Statement</div>
     </div>
     <div class="concert-name">${concert.concertName}</div>
-    <div class="venue-date">${venueLine ? `${venueLine} · ` : ''}${dateLabel}<span class="contrib-count"> · ${concert.capturedCount + concert.releasedCount} contributions</span></div>
+    <div class="venue-date">${venueLine ? `${venueLine} · ` : ''}${dateLabel}<span class="contrib-count"> · ${concert.capturedCount + (concert.owedCount ?? 0) + concert.releasedCount} contributions</span></div>
 
     <div class="summary-bar">
       <div class="tile tile-earned">
-        <div class="tile-label">Total Earned</div>
-        <div class="tile-figure-earned">+$${totalEarned}</div>
+        <div class="tile-label">${concert.isReceipt ? 'Net After Fee' : 'Total Earned'}</div>
+        <div class="tile-figure-earned">${concert.isReceipt ? formatCents(concert.netCents) : `+$${totalEarned}`}</div>
+        ${concert.isReceipt ? `<div class="tile-subfigure">${formatCents(concert.grossCents)} gross &middot; ${formatCents(concert.feeCents)} fee</div>` : ''}
       </div>
-      ${concert.isReceipt ? `<div class="tile tile-released">
-        <div class="tile-label">Net After Fee</div>
-        <div class="tile-figure-released">${formatCents(concert.netCents)}</div>
+      ${concert.isReceipt && concert.owedCents > 0 ? `<div class="tile tile-owed">
+        <div class="tile-label">Owed</div>
+        <div class="tile-figure-owed">${formatCents(concert.owedCents)}</div>
       </div>` : ''}
       <div class="tile tile-released">
         <div class="tile-label">Released</div>
@@ -714,6 +730,16 @@ function ProfilePageInner() {
         <div class="panel-count">${accepted.length} song${accepted.length !== 1 ? 's' : ''}</div>
       </div>
       ${renderSongRows(accepted, true)}
+    </div>` : ''}
+
+    ${owed.length > 0 ? `
+    <div class="panel panel-owed">
+      <div class="panel-header">
+        <div class="panel-title-owed">Owed &mdash; Not Yet Collected</div>
+        <div class="panel-count">${owed.length} song${owed.length !== 1 ? 's' : ''}</div>
+      </div>
+      ${renderSongRows(owed, false)}
+      <div class="owed-note">The fan&rsquo;s card declined at close. We retry the charge automatically; until it succeeds this amount has not been collected and is not included in the net above.</div>
     </div>` : ''}
 
     ${declined.length > 0 ? `
@@ -1288,12 +1314,17 @@ function ProfilePageInner() {
                                 <div key={concert.cycleId} style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 16px', margin: '4px 8px' }}>
                                   <p style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>{concert.concertName}</p>
                                   <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 8px' }}>{venueLabel}{venueLabel ? ' · ' : ''}{dateLabel}</p>
-                                  <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--text-muted)' }}>Earned </span><span style={{ color: 'var(--gold)', fontWeight: '700' }}>${Math.round(concert.totalEarned)}</span></p>
+                                  {!concert.isReceipt && (
+                                    <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--text-muted)' }}>Earned </span><span style={{ color: 'var(--gold)', fontWeight: '700' }}>${Math.round(concert.totalEarned)}</span></p>
+                                  )}
                                   {concert.isReceipt && (
                                     <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--text-muted)' }}>Gross </span><span style={{ color: 'var(--text-secondary)' }}>{formatCents(concert.grossCents)}</span><span style={{ color: 'var(--text-muted)' }}> · Fee </span><span style={{ color: 'var(--text-secondary)' }}>{formatCents(concert.feeCents)}</span><span style={{ color: 'var(--text-muted)' }}> · Net </span><span style={{ color: 'var(--success)', fontWeight: '700' }}>{formatCents(concert.netCents)}</span></p>
                                   )}
+                                  {concert.isReceipt && concert.owedCents > 0 && (
+                                    <p style={{ fontSize: '13px', margin: '0 0 2px' }}><span style={{ color: 'var(--gold)', fontWeight: '700' }}>Owed {formatCents(concert.owedCents)}</span><span style={{ color: 'var(--text-muted)' }}> — not yet collected</span></p>
+                                  )}
                                   <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 2px' }}>Released ${Math.round(concert.totalReleased)}</p>
-                                  <p style={{ color: 'var(--text-faint)', fontSize: '12px', margin: '0 0 10px' }}>{concert.capturedCount} contribution{concert.capturedCount !== 1 ? 's' : ''} accepted · {concert.releasedCount} released</p>
+                                  <p style={{ color: 'var(--text-faint)', fontSize: '12px', margin: '0 0 10px' }}>{concert.capturedCount} paid · {concert.owedCount > 0 ? `${concert.owedCount} owed · ` : ''}{concert.releasedCount} released</p>
                                   <button
                                     onClick={() => setSelectedEarningsConcert(concert)}
                                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
@@ -1394,18 +1425,21 @@ function ProfilePageInner() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 20px' }}>
               {new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-              <span style={{ color: 'var(--gold)', fontWeight: 700 }}> · {selectedEarningsConcert.capturedCount + selectedEarningsConcert.releasedCount} contributions</span>
+              <span style={{ color: 'var(--gold)', fontWeight: 700 }}> · {selectedEarningsConcert.capturedCount + (selectedEarningsConcert.owedCount ?? 0) + selectedEarningsConcert.releasedCount} contributions</span>
             </p>
             <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
               <div style={{ flex: '1.4', background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.28)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
-                <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Total Earned</p>
-                <p style={{ fontSize: '32px', fontWeight: 800, color: 'var(--success)', margin: 0 }}>${Math.round(selectedEarningsConcert.totalEarned)}</p>
-              </div>
-              {selectedEarningsConcert.isReceipt && (
-                <div style={{ flex: 1, background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
-                  <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Net After Fee</p>
-                  <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--success)', margin: 0 }}>{formatCents(selectedEarningsConcert.netCents)}</p>
+                <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>{selectedEarningsConcert.isReceipt ? 'Net After Fee' : 'Total Earned'}</p>
+                <p style={{ fontSize: '32px', fontWeight: 800, color: 'var(--success)', margin: 0 }}>{selectedEarningsConcert.isReceipt ? formatCents(selectedEarningsConcert.netCents) : `$${Math.round(selectedEarningsConcert.totalEarned)}`}</p>
+                {selectedEarningsConcert.isReceipt && (
                   <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '4px 0 0' }}>{formatCents(selectedEarningsConcert.grossCents)} gross · {formatCents(selectedEarningsConcert.feeCents)} fee</p>
+                )}
+              </div>
+              {selectedEarningsConcert.isReceipt && selectedEarningsConcert.owedCents > 0 && (
+                <div style={{ flex: 1, background: 'rgba(255,183,3,0.06)', border: '1px solid rgba(255,183,3,0.25)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
+                  <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Owed</p>
+                  <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--gold)', margin: 0 }}>{formatCents(selectedEarningsConcert.owedCents)}</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '4px 0 0' }}>not yet collected</p>
                 </div>
               )}
               <div style={{ flex: 1, background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
@@ -1430,6 +1464,26 @@ function ProfilePageInner() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+            {(selectedEarningsConcert.owedSongs ?? []).length > 0 && (
+              <div style={{ background: 'rgba(255,183,3,0.06)', border: '1px solid rgba(255,183,3,0.25)', borderLeft: '3px solid var(--gold)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <p style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800, color: 'var(--gold)', margin: 0 }}>Owed — Not Yet Collected</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0 }}>{selectedEarningsConcert.owedSongs.length} {selectedEarningsConcert.owedSongs.length === 1 ? 'song' : 'songs'}</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedEarningsConcert.owedSongs.map((song: any, idx: number) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', background: 'var(--bg-primary)', opacity: 0.8, borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.songName}</p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist} · {formatSongTime(song.timestamp)}</p>
+                      </div>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gold)', margin: 0, flexShrink: 0 }}>${Math.round(song.amount)}</p>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'var(--text-faint)', marginTop: '10px' }}>The fan&rsquo;s card declined at close. We retry the charge automatically; until it succeeds this amount has not been collected.</p>
               </div>
             )}
             {selectedEarningsConcert.declinedSongs.length > 0 && (
