@@ -556,7 +556,7 @@ export default function DashboardPage() {
                       textTransform: 'capitalize',
                       ...badge,
                     }}>
-                      {concert.status === 'preview' ? 'Taking Requests!' : isBlocked ? 'ACTION NEEDED' : concert.status.toUpperCase()}
+                      {concert.status === 'preview' ? 'Taking Requests!' : isBlocked ? 'ACTION NEEDED' : concert.status === 'closing' ? 'ENDING…' : concert.status.toUpperCase()}
                     </span>
                       {concert.status === 'preview' && urgentPreviewCountdowns[concert.id] && (
                         <span style={{

@@ -52,7 +52,12 @@ const STATUS_BADGE: Record<Concert['status'], { background: string; color: strin
   live:     { background: '#3a120c', color: '#ff3b2e' },
   preview:  { background: '#2a150a', color: '#ffcf6b' },
   new:      { background: '#3a2408', color: '#ffb703' },
-  closing:  { background: '#221a16', color: '#8a7566' },
+  // closing now matches iOS and the web dashboard, changed 2026-09-16. It used
+  // to carry the closed grey, which the comment above the isBlocked derivation
+  // has flagged since 2026-08-28: a concert still working through its close was
+  // visually identical to a finished one. These two hex values are the same
+  // statusClosingBg / statusClosingText the iOS tokens use.
+  closing:  { background: '#1c2430', color: '#7dd3fc' },
   closed:   { background: '#221a16', color: '#8a7566' },
 };
 
@@ -177,6 +182,7 @@ export default function ConcertPage() {
   const [payoutWarn, setPayoutWarn] = useState<{ title: string; message: string; flow: 'golive' | 'preview' } | null>(null);
   const [bandName, setBandName] = useState('');
   const [pendingRemoveSong, setPendingRemoveSong] = useState<{ id: string, name: string } | null>(null);
+  const [showStillEndingModal, setShowStillEndingModal] = useState(false);
   const [showDeleteConcertModal, setShowDeleteConcertModal] = useState(false);
   const [showEditConcertModal, setShowEditConcertModal] = useState(false);
   const [editName, setEditName] = useState('');
@@ -226,6 +232,29 @@ export default function ConcertPage() {
 
   const concertStatusRef = useRef<string | null>(null);
   const editCodeTriggeredRef = useRef(false);
+  const stillEndingShownRef = useRef(false);
+
+  // The modal keys on the STATUS, not on the load, because a performer meets a
+  // closing concert two ways and the loading effect only sees one of them: a
+  // concert already closing when the page mounts, and a concert that enters
+  // closing while the page is open, which arrives through the realtime channel
+  // below. The second is the End Concert flow itself -- the live page redirects
+  // here and the status lands by subscription.
+  //
+  // The ref stops it re-firing on unrelated concert updates, of which the
+  // channel delivers many. It resets when the status leaves closing, so a
+  // concert that closes and is later reopened shows it again. Chap's call
+  // 2026-09-16: every time the performer opens a concert still ending.
+  useEffect(() => {
+    if (concert?.status === 'closing') {
+      if (!stillEndingShownRef.current) {
+        stillEndingShownRef.current = true;
+        setShowStillEndingModal(true);
+      }
+    } else {
+      stillEndingShownRef.current = false;
+    }
+  }, [concert?.status]);
 
   useEffect(() => {
     if (
@@ -1122,8 +1151,23 @@ export default function ConcertPage() {
   const badge: React.CSSProperties = isBlocked
     ? { background: 'var(--bg-tile-deep)', color: '#ef3524', border: '1px solid #ef3524' }
     : STATUS_BADGE[c.status] ?? STATUS_BADGE.closed;
-  const isBuilding = c.status === 'new' || c.status === 'preview' || c.status === 'closed' || c.status === 'closing';
-  const canEditExistingSongMetadata = c.status === 'new' || c.status === 'closed' || c.status === 'closing';
+  // 'closing' IS DELIBERATELY ABSENT FROM BOTH, changed 2026-09-16. It used to
+  // be in each, which made every edit control render during a close: Add Song,
+  // Edit Song, and Remove Song. Remove Song was the money one -- deleting a
+  // song cascades away its accepted contributions while end-concert charges the
+  // fan's bucket in full, so the receipt's gross omits money the fan paid while
+  // the fee still includes it. Add and Edit are harmless in themselves, but the
+  // concert is mid-close and nothing on it should move.
+  //
+  // Chap's call 2026-09-16: a concert stuck closing is not editable and cannot
+  // be sent live or to preview until the close completes. Duplicate is the one
+  // action that must keep working, and it does -- it only reads the source and
+  // inserts new rows, so nothing here touches it.
+  //
+  // Go Live and Take Requests were already correct: hidden in the render AND
+  // refused in the handler. This matches that shape.
+  const isBuilding = c.status === 'new' || c.status === 'preview' || c.status === 'closed';
+  const canEditExistingSongMetadata = c.status === 'new' || c.status === 'closed';
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -1188,7 +1232,7 @@ export default function ConcertPage() {
                 textTransform: 'capitalize',
                 ...badge,
               }}>
-                {c.status === 'preview' ? 'Taking Requests!' : isBlocked ? 'ACTION NEEDED' : c.status.toUpperCase()}
+                {c.status === 'preview' ? 'Taking Requests!' : isBlocked ? 'ACTION NEEDED' : c.status === 'closing' ? 'ENDING…' : c.status.toUpperCase()}
               </span>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '2px 0 0', textAlign: 'right', overflowWrap: 'break-word', maxWidth: '100%' }}>
@@ -1223,7 +1267,7 @@ export default function ConcertPage() {
                 Go to Live View
               </button>
             )}
-            {c.status !== 'live' && (
+            {c.status !== 'live' && c.status !== 'closing' && (
               <button
                 onClick={openEditConcertModal}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
@@ -1770,6 +1814,14 @@ export default function ConcertPage() {
                       </button>
                     </>
                   ) : (() => {
+                    // NOTHING DURING A CLOSE, added 2026-09-16. Removing 'closing'
+                    // from canEditExistingSongMetadata correctly hid Edit and Remove,
+                    // but it flipped this arm ON for a closing concert, exposing
+                    // Manage (deactivate, mark played) and Reactivate. Those are bare
+                    // songs-table updates with no concert-status gate, so a performer
+                    // could move song statuses while end-concert was reading them.
+                    // Caught on the browser during device verification.
+                    if (c.status === 'closing') return null;
                     const isProcessing = processingId === song.id;
                     const isReactivating = reactivatingId === song.id;
                     const isInactive = ['declined', 'deactivated'].includes(song.status);
@@ -2201,6 +2253,57 @@ export default function ConcertPage() {
                 style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: 'none', background: (savingTakingRequestsCode || !takingRequestsCodeInput.trim()) ? 'var(--border)' : 'var(--accent)', color: (savingTakingRequestsCode || !takingRequestsCodeInput.trim()) ? 'var(--text-faint)' : 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: (savingTakingRequestsCode || !takingRequestsCodeInput.trim()) ? 'not-allowed' : 'pointer' }}
               >
                 {savingTakingRequestsCode ? 'Saving…' : 'Save Code'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStillEndingModal && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'var(--bg-overlay-heavy)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div style={{
+            background: 'var(--bg-tile)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '2rem',
+            maxWidth: '420px',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              This Concert Is Still Ending
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              Payments are still being processed for this concert, so it can&apos;t be edited or sent live until that finishes.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              If you need this concert&apos;s songs for a show right away, you can duplicate it — that gives you a new concert with the full catalog already in it, so you don&apos;t have to add everything again.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              If it&apos;s still ending after 7 days, please contact SetTuner support.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setShowStillEndingModal(false)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: 'var(--radius-pill)',
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9375rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Got It
               </button>
             </div>
           </div>
