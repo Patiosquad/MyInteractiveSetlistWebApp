@@ -69,6 +69,14 @@ const SONG_STATUS_COLOR: Record<Song['status'], string> = {
   deactivated: '#52525b',
 };
 
+// Shown when a pre-flight check cannot be completed. The iOS performer catalog
+// screen, MyApp app/performer/catalog.tsx, shows the same words for the same
+// checks; change one and change the other.
+const GO_LIVE_CHECK_FAILED_MESSAGE = "We couldn't check whether you already have a concert live. Please try again in a moment.";
+const TAKE_REQUESTS_CHECK_FAILED_MESSAGE = "We couldn't check how many of your concerts are taking requests. Please try again in a moment.";
+const CODE_AVAILABILITY_CHECK_FAILED_MESSAGE = "We couldn't check whether that code is available. Please try again.";
+const CODE_GENERATION_FAILED_MESSAGE = "We couldn't create a code right now. Please try again.";
+
 function concertSubtitle(c: Concert): string {
   const parts: string[] = [c.venue_name];
   const location = [c.city, c.state].filter(Boolean).join(', ');
@@ -793,13 +801,28 @@ export default function ConcertPage() {
     setGoLiveError('');
     setGoingLive(true);
 
-    const { data: liveCheck } = await supabase
+    // FAIL CLOSED, here and at the five other pre-flight checks in this file:
+    // the Taking Requests limit and both code-availability pairs. An unreadable
+    // answer is not a clean one, so the performer is asked to try again. Chap's
+    // call 2026-09-22. The payout check fails open only because Stripe refuses
+    // to charge a fan for a performer who cannot be paid. None of these six has
+    // a backstop like that: this check and the Taking Requests limit have none
+    // at all, and the database refuses a duplicate Taking Requests code but not
+    // one equal to another performer's own concert code.
+    const { data: liveCheck, error: liveCheckError } = await supabase
       .from('concerts')
       .select('id')
       .eq('performer_id', concert.performer_id)
       .eq('status', 'live')
       .neq('id', concertId)
       .limit(1);
+
+    if (liveCheckError) {
+      console.error('[go-live] proceedWithGoLive: liveCheck query failed:', liveCheckError);
+      setGoLiveError(GO_LIVE_CHECK_FAILED_MESSAGE);
+      setGoingLive(false);
+      return;
+    }
 
     if (liveCheck && liveCheck.length > 0) {
       setGoLiveError('You already have a concert in progress. Please end your current live concert before starting a new one.');
@@ -915,13 +938,19 @@ export default function ConcertPage() {
     setPreviewError('');
     setGoingToPreview(true);
 
-    const { data: previewCheck } = await supabase
+    const { data: previewCheck, error: previewCheckError } = await supabase
       .from('concerts')
       .select('id')
       .eq('performer_id', concert.performer_id)
       .eq('status', 'preview')
       .neq('id', concertId)
       .limit(3);
+    if (previewCheckError) {
+      console.error('[go-to-preview] proceedWithGoToPreview: previewCheck query failed:', previewCheckError);
+      setPreviewError(TAKE_REQUESTS_CHECK_FAILED_MESSAGE);
+      setGoingToPreview(false);
+      return;
+    }
     if (previewCheck && previewCheck.length >= 3) {
       setPreviewError('You already have 3 concerts in Taking Requests. Please end one before starting another.');
       setGoingToPreview(false);
@@ -995,17 +1024,29 @@ export default function ConcertPage() {
       const num = Math.floor(Math.random() * 90) + 10;
       candidate = attempts < 5 ? `${adj}${noun}${num}` : `${adj}${noun}${num}${Math.floor(Math.random() * 9)}`;
 
-      const { data: concertMatch } = await supabase
+      const { data: concertMatch, error: concertMatchError } = await supabase
         .from('concerts')
         .select('id')
         .eq('taking_requests_code', candidate)
         .neq('id', concertId)
         .maybeSingle();
-      const { data: userMatch } = await supabase
+      if (concertMatchError) {
+        console.error('[taking-requests-code] handleGenerateTakingRequestsCode: concertMatch query failed:', concertMatchError);
+        setTakingRequestsCodeError(CODE_GENERATION_FAILED_MESSAGE);
+        setGeneratingTakingRequestsCode(false);
+        return;
+      }
+      const { data: userMatch, error: userMatchError } = await supabase
         .from('users')
         .select('id')
         .eq('concert_code', candidate)
         .maybeSingle();
+      if (userMatchError) {
+        console.error('[taking-requests-code] handleGenerateTakingRequestsCode: userMatch query failed:', userMatchError);
+        setTakingRequestsCodeError(CODE_GENERATION_FAILED_MESSAGE);
+        setGeneratingTakingRequestsCode(false);
+        return;
+      }
 
       if (!concertMatch && !userMatch) {
         isUnique = true;
@@ -1024,22 +1065,34 @@ export default function ConcertPage() {
     setSavingTakingRequestsCode(true);
     setTakingRequestsCodeError('');
 
-    const { data: concertMatch } = await supabase
+    const { data: concertMatch, error: concertMatchError } = await supabase
       .from('concerts')
       .select('id')
       .eq('taking_requests_code', trimmed)
       .neq('id', concertId)
       .maybeSingle();
+    if (concertMatchError) {
+      console.error('[taking-requests-code] handleSaveTakingRequestsCode: concertMatch query failed:', concertMatchError);
+      setTakingRequestsCodeError(CODE_AVAILABILITY_CHECK_FAILED_MESSAGE);
+      setSavingTakingRequestsCode(false);
+      return;
+    }
     if (concertMatch) {
       setTakingRequestsCodeError('That code is already in use — try another.');
       setSavingTakingRequestsCode(false);
       return;
     }
-    const { data: userMatch } = await supabase
+    const { data: userMatch, error: userMatchError } = await supabase
       .from('users')
       .select('id')
       .eq('concert_code', trimmed)
       .maybeSingle();
+    if (userMatchError) {
+      console.error('[taking-requests-code] handleSaveTakingRequestsCode: userMatch query failed:', userMatchError);
+      setTakingRequestsCodeError(CODE_AVAILABILITY_CHECK_FAILED_MESSAGE);
+      setSavingTakingRequestsCode(false);
+      return;
+    }
     if (userMatch) {
       setTakingRequestsCodeError('That code is already in use — try another.');
       setSavingTakingRequestsCode(false);
