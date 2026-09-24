@@ -1024,10 +1024,18 @@ export default function ConcertPage() {
       const num = Math.floor(Math.random() * 90) + 10;
       candidate = attempts < 5 ? `${adj}${noun}${num}` : `${adj}${noun}${num}${Math.floor(Math.random() * 9)}`;
 
+      // Codes match ignoring capitals, on the database's lowercase copies
+      // concerts.taking_requests_code_lower and users.concert_code_lower
+      // (migration 21 in the MyApp repo). Only the comparison is lowercased; the
+      // candidate keeps its own capitals. This loop only proposes a code -- the
+      // database refuses a clash on its own with 23505 when
+      // handleSaveTakingRequestsCode writes it, which is why that code gets the
+      // friendly in-use message there rather than raw database text.
+      const candidateLower = candidate.toLowerCase();
       const { data: concertMatch, error: concertMatchError } = await supabase
         .from('concerts')
         .select('id')
-        .eq('taking_requests_code', candidate)
+        .eq('taking_requests_code_lower', candidateLower)
         .neq('id', concertId)
         .maybeSingle();
       if (concertMatchError) {
@@ -1039,7 +1047,7 @@ export default function ConcertPage() {
       const { data: userMatch, error: userMatchError } = await supabase
         .from('users')
         .select('id')
-        .eq('concert_code', candidate)
+        .eq('concert_code_lower', candidateLower)
         .maybeSingle();
       if (userMatchError) {
         console.error('[taking-requests-code] handleGenerateTakingRequestsCode: userMatch query failed:', userMatchError);
@@ -1065,10 +1073,18 @@ export default function ConcertPage() {
     setSavingTakingRequestsCode(true);
     setTakingRequestsCodeError('');
 
+    // Codes match ignoring capitals, on the database's lowercase copies
+    // concerts.taking_requests_code_lower and users.concert_code_lower
+    // (migration 21 in the MyApp repo). Only the comparison is lowercased; the
+    // code is written with the capitals the performer typed. These two reads are
+    // a courtesy, not the guarantee: the database refuses a clash on its own with
+    // 23505, which is why the writes below turn that code into the same friendly
+    // in-use message rather than raw database text.
+    const trimmedLower = trimmed.toLowerCase();
     const { data: concertMatch, error: concertMatchError } = await supabase
       .from('concerts')
       .select('id')
-      .eq('taking_requests_code', trimmed)
+      .eq('taking_requests_code_lower', trimmedLower)
       .neq('id', concertId)
       .maybeSingle();
     if (concertMatchError) {
@@ -1085,7 +1101,7 @@ export default function ConcertPage() {
     const { data: userMatch, error: userMatchError } = await supabase
       .from('users')
       .select('id')
-      .eq('concert_code', trimmed)
+      .eq('concert_code_lower', trimmedLower)
       .maybeSingle();
     if (userMatchError) {
       console.error('[taking-requests-code] handleSaveTakingRequestsCode: userMatch query failed:', userMatchError);
@@ -1119,7 +1135,9 @@ export default function ConcertPage() {
         .single();
       if (previewConcertError) {
         console.error('[go-to-preview] step 2 (set concert status to preview) failed:', previewConcertError);
-        setTakingRequestsCodeError('Could not start Taking Requests: ' + previewConcertError.message);
+        setTakingRequestsCodeError(previewConcertError.code === '23505'
+          ? 'That code is already in use — try another.'
+          : 'Could not start Taking Requests: ' + previewConcertError.message);
         setSavingTakingRequestsCode(false);
         return;
       }
@@ -1137,7 +1155,9 @@ export default function ConcertPage() {
         .single();
       if (codeUpdateError) {
         console.error('[taking-requests-code] code update failed:', codeUpdateError);
-        setTakingRequestsCodeError('Could not save code: ' + codeUpdateError.message);
+        setTakingRequestsCodeError(codeUpdateError.code === '23505'
+          ? 'That code is already in use — try another.'
+          : 'Could not save code: ' + codeUpdateError.message);
         setSavingTakingRequestsCode(false);
         return;
       }

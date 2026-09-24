@@ -233,14 +233,45 @@ function ProfilePageInner() {
 
     setCodeSaving(true);
 
-    const { data: existing } = await supabase
+    // Codes match ignoring capitals, on the database's lowercase copies
+    // users.concert_code_lower and concerts.taking_requests_code_lower
+    // (migration 21 in the MyApp repo). The concerts side carries no performer
+    // filter, because a Taking Requests code held by anyone -- this performer's
+    // own concert included -- is still taken. Only the comparison is lowercased;
+    // the code is saved with the capitals the performer typed. These reads are a
+    // courtesy, not the guarantee: the database refuses a clash on its own with
+    // 23505, which is why that code gets the same friendly in-use message below
+    // rather than raw database text.
+    const codeLower = concertCode.toLowerCase();
+
+    const { data: existingUser, error: existingUserError } = await supabase
       .from('users')
       .select('id')
-      .eq('concert_code', concertCode)
+      .eq('concert_code_lower', codeLower)
       .neq('id', userId)
       .maybeSingle();
 
-    if (existing) {
+    if (existingUserError) {
+      console.error(`[web-profile] handleSaveCode: users concert_code_lower lookup failed | message=${existingUserError.message} | code=${existingUserError.code} | details=${existingUserError.details} | hint=${existingUserError.hint}`);
+      setCodeError('Failed to save code. Please try again.');
+      setCodeSaving(false);
+      return;
+    }
+
+    const { data: existingConcert, error: existingConcertError } = await supabase
+      .from('concerts')
+      .select('id')
+      .eq('taking_requests_code_lower', codeLower)
+      .maybeSingle();
+
+    if (existingConcertError) {
+      console.error(`[web-profile] handleSaveCode: concerts taking_requests_code_lower lookup failed | message=${existingConcertError.message} | code=${existingConcertError.code} | details=${existingConcertError.details} | hint=${existingConcertError.hint}`);
+      setCodeError('Failed to save code. Please try again.');
+      setCodeSaving(false);
+      return;
+    }
+
+    if (existingUser || existingConcert) {
       setCodeError('This code is already in use. Please choose a different one.');
       setCodeSaving(false);
       return;
@@ -253,7 +284,9 @@ function ProfilePageInner() {
 
     setCodeSaving(false);
     if (error) {
-      setCodeError('Failed to save code. Please try again.');
+      setCodeError(error.code === '23505'
+        ? 'This code is already in use. Please choose a different one.'
+        : 'Failed to save code. Please try again.');
     } else {
       setCodeSuccess('Concert code saved.');
       setTimeout(() => setCodeSuccess(''), 3000);
@@ -1022,7 +1055,7 @@ function ProfilePageInner() {
           </div>
 
           <p style={{ fontSize: '13px', color: 'var(--text-faint)', lineHeight: 1.6, marginBottom: '20px' }}>
-            Fans enter this code in the Join Concert tab to go straight into your live show. No spaces. Max 15 characters. Case sensitive.
+            Fans enter this code in the Join Concert tab to go straight into your live show. No spaces. Max 15 characters. Fans can type it in any capitals.
           </p>
 
           {codeError && (
