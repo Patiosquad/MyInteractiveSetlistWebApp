@@ -446,7 +446,7 @@ function ProfilePageInner() {
       .from('concerts')
       .select('id, name, venue_name, city, created_at')
       .eq('performer_id', user.id);
-    if (!concerts || concerts.length === 0) { setEarningsHistory([]); return; }
+    if (!concerts || concerts.length === 0) { await finishEarningsHistory(user.id, oneYearAgo, []); return; }
     const concertIds = concerts.map((c: any) => c.id);
     const concertMeta: Record<string, any> = {};
     concerts.forEach((c: any) => { concertMeta[c.id] = c; });
@@ -456,7 +456,7 @@ function ProfilePageInner() {
       .select('id, concert_id, started_at, ended_at, total_earned')
       .in('concert_id', concertIds)
       .order('ended_at', { ascending: true });
-    if (!cycles || cycles.length === 0) { setEarningsHistory([]); return; }
+    if (!cycles || cycles.length === 0) { await finishEarningsHistory(user.id, oneYearAgo, []); return; }
 
     // release_failed is included because it is a hold the concert close
     // tried to release and could not -- the fan was NOT charged, exactly
@@ -537,14 +537,20 @@ function ProfilePageInner() {
       .filter((h: any) => h.endedAt > oneYearAgo)
       .sort((a: any, b: any) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime());
 
-    const receiptRows = await loadReceiptHistory(user.id, oneYearAgo);
+    await finishEarningsHistory(user.id, oneYearAgo, recent);
+  }
+
+  // Receipts outlive the concerts they came from, so they are read even when
+  // the performer has no concerts or no cycles left. Every path through
+  // loadEarningsHistory that has a signed-in performer ends here.
+  async function finishEarningsHistory(performerId: string, sinceIso: string, liveRows: any[]) {
+    const receiptRows = await loadReceiptHistory(performerId, sinceIso);
     const byCycle = new Map<string, any>();
-    for (const r of recent) byCycle.set(r.cycleId, r);
+    for (const r of liveRows) byCycle.set(r.cycleId, r);
     for (const r of receiptRows) byCycle.set(r.cycleId, r);
     const merged = [...byCycle.values()].sort(
       (a: any, b: any) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime()
     );
-
     setEarningsHistory(merged);
   }
 
