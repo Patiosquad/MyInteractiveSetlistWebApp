@@ -65,18 +65,18 @@ Probe every file by raw byte count immediately before editing it — count `\r\n
 
 ---
 
-## Vocabulary Discipline
+## Visible Wording
 
-These words are banned from all UI strings, log messages, and code comments:
+Decided 2026-09-23 to 2026-09-28 for Apple App Review. Applies to everything a fan or performer reads: screen text, alerts, generated documents, and server messages the apps show. Internal names (tables, columns, statuses, functions, audit events, log lines, comments, test ids) keep "contribution" and are never renamed for wording.
 
-| Banned | Use instead |
-|--------|-------------|
-| purchase | contribute |
-| tip | contribute |
-| refund | (describe the action explicitly) |
-| crowdfunding | (never use) |
-
-"Charged" and "contribute" are the only money-action words.
+- The promise: fans are charged for requests the performer accepts, and anything not accepted is released. Never say or imply that a fan pays only if a song is played, and never say money is captured.
+- The noun is "request": request a song, add to your request, your requests. Never contribute, contribution or contributed.
+- The ranked list is "Requests" (the tab) or "the request list". Never leaderboard.
+- A song with accepted requests shows "Accepted". "Played" is only for a song closed with Mark as Played, and that button keeps its name.
+- The tagline says "Fan tuned", never "Fan powered".
+- Never: tip, gift, donate, support (as in support the artist; the support@settuner.com address stays), boost, crowd-, bid, auction, win, unlock, capture, or back/backing as the verb for putting money on a song. Avoid buy and purchase. "Refund" only for a real refund of a charge made in error.
+- No exclamation marks on anything about requests or money.
+- Existing visible text is changed only by a prompt that names the exact text (the tracker's SUBMISSION rows). Do not change or "fix" wording a prompt does not name.
 
 ---
 
