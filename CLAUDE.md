@@ -70,6 +70,7 @@ Probe every file by raw byte count immediately before editing it — count `\r\n
 Decided 2026-09-23 to 2026-09-28 for Apple App Review. Applies to everything a fan or performer reads: screen text, alerts, generated documents, and server messages the apps show. Internal names (tables, columns, statuses, functions, audit events, log lines, comments, test ids) keep "contribution" and are never renamed for wording.
 
 - The promise: fans are charged for requests the performer accepts, and anything not accepted is released. Never say or imply that a fan pays only if a song is played, and never say money is captured.
+- Keep the payment design private (decided 2026-10-13): say only that a hold is placed on the card when a fan requests, the fan is charged only if the performer accepts, and anything not accepted is released. Never say when the charge happens (for example when the show ends) or that accepted requests are combined into one charge.
 - The noun is "request": request a song, add to your request, your requests. Never contribute, contribution or contributed.
 - The ranked list is "Requests" (the tab) or "the request list". Never leaderboard.
 - A song with accepted requests shows "Accepted". "Played" is only for a song closed with Mark as Played, and that button keeps its name.
