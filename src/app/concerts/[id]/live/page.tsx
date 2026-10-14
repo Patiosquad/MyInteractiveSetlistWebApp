@@ -113,6 +113,13 @@ export default function LivePage() {
   const [trackerAccepted, setTrackerAccepted] = useState(0);
   const [trackerPending, setTrackerPending] = useState(0);
   const [trackerTotal, setTrackerTotal] = useState(0);
+  // Songs with accepted requests in this round of the show, so a song
+  // accepted this round says Accepted and one closed with Mark as Played
+  // says Played. The same read as the fan show screen's.
+  const [songsAcceptedThisRound, setSongsAcceptedThisRound] = useState<Set<string>>(new Set());
+  // Each read of the accepted songs takes the next number, so an older read
+  // never lands over a newer one.
+  const acceptedReadSeqRef = useRef(0);
   const [endConcertStep, setEndConcertStep] = useState<'none' | 'summary' | 'confirm' | 'processing' | 'outcome'>('none');
   const endConcertStepRef = useRef<'none' | 'summary' | 'confirm' | 'processing' | 'outcome'>('none');
   useEffect(() => { endConcertStepRef.current = endConcertStep; }, [endConcertStep]);
@@ -153,7 +160,42 @@ export default function LivePage() {
   const concertOptionsDropdownRef = useRef<HTMLDivElement>(null);
   const emergencyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // The songs with accepted requests in this round of the show, from every
+  // fan. The round start is read fresh; without one there is nothing to
+  // read. A failed read keeps the set as it is, so a song may say Played
+  // until the next load.
+  const fetchSongsAcceptedThisRound = useCallback(async () => {
+    const seq = ++acceptedReadSeqRef.current;
+    const { data: concertRow, error: boundaryError } = await supabase
+      .from('concerts')
+      .select('started_at, preview_started_at')
+      .eq('id', concertId)
+      .single();
+    if (seq !== acceptedReadSeqRef.current) return;
+    if (boundaryError) {
+      console.error(`[live] fetchSongsAcceptedThisRound: round-boundary read failed | message=${boundaryError.message} | code=${boundaryError.code} | details=${boundaryError.details} | hint=${boundaryError.hint}`);
+      return;
+    }
+    const cycleBoundary = concertRow?.preview_started_at ?? concertRow?.started_at;
+    if (!cycleBoundary) return;
+    const { data, error } = await supabase
+      .from('contributions')
+      .select('song_id')
+      .eq('concert_id', concertId)
+      .eq('status', 'accepted')
+      .gte('updated_at', cycleBoundary);
+    if (seq !== acceptedReadSeqRef.current) return;
+    if (error || !data) {
+      console.error(`[live] fetchSongsAcceptedThisRound: contributions query failed | message=${error?.message ?? 'no data'} | code=${error?.code} | details=${error?.details} | hint=${error?.hint}`);
+      return;
+    }
+    setSongsAcceptedThisRound(new Set(data.map((c: any) => c.song_id).filter(Boolean)));
+  }, [concertId]);
+
   const fetchLeaderboard = useCallback(async () => {
+    // Started first and awaited before the catalog is set, so a song that
+    // has just been accepted never shows Played on its way to Accepted.
+    const acceptedRead = fetchSongsAcceptedThisRound();
     const { data: songsData } = await supabase
       .from('songs')
       .select('*')
@@ -179,6 +221,7 @@ export default function LivePage() {
       })
     );
 
+    await acceptedRead;
     setCatalog([...withTotals]);
     const activeSongs = withTotals.filter((s) => s.status === 'active');
     activeSongs.sort((a, b) => {
@@ -188,7 +231,7 @@ export default function LivePage() {
       return aTime - bTime;
     });
     setSongs(activeSongs.filter((s) => s.total > 0));
-  }, [concertId]);
+  }, [concertId, fetchSongsAcceptedThisRound]);
 
   const fetchContributionTracker = useCallback(async () => {
     const cycleBoundary = concert?.preview_started_at ?? concert?.started_at;
@@ -538,6 +581,13 @@ export default function LivePage() {
       await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
       setCatalog((prev) => prev.map((s) => s.id === song.id ? { ...s, status: 'played' } : s));
+      // Accepted at once, not Played until the next read. A read already in
+      // flight started before this accept, so it is ignored. With no fan
+      // charged the song stays Played, as the alert above says.
+      if (result.fansUpdated > 0) {
+        acceptedReadSeqRef.current++;
+        setSongsAcceptedThisRound((prev) => new Set(prev).add(song.id));
+      }
       // The strip is kept on the zero path but drops the checkmark and states
       // the money fact, so it cannot read as an endorsement next to an alert
       // saying nobody was charged.
@@ -1345,7 +1395,12 @@ export default function LivePage() {
                                 Manage
                               </button>
                             )}
-                            {song.status === 'played' && (
+                            {song.status === 'played' && songsAcceptedThisRound.has(song.id) && (
+                              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#86efac', background: '#14532d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                                Accepted
+                              </span>
+                            )}
+                            {song.status === 'played' && !songsAcceptedThisRound.has(song.id) && (
                               <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--status-closed-text)', background: 'var(--status-closed-bg)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius-pill)' }}>
                                 Played
                               </span>

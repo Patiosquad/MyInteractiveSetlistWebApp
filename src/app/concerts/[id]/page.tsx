@@ -165,6 +165,13 @@ export default function ConcertPage() {
   const [groupMode, setGroupMode] = useState<'none' | 'contributed' | 'active'>('none');
   const [contributedSongIds, setContributedSongIds] = useState<Set<string>>(new Set());
   const [contributedSongAmounts, setContributedSongAmounts] = useState<Record<string, number>>({});
+  // Songs with accepted requests in this round of the show, so a song
+  // accepted this round says Accepted and one closed with Mark as Played
+  // says Played. The same read as the fan show screen's.
+  const [songsAcceptedThisRound, setSongsAcceptedThisRound] = useState<Set<string>>(new Set());
+  // Each read of the accepted songs takes the next number, so an older read
+  // never lands over a newer one.
+  const acceptedReadSeqRef = useRef(0);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [manageStep, setManageStep] = useState<'none' | 'choice' | 'confirmPlayed'>('none');
@@ -317,12 +324,16 @@ export default function ConcertPage() {
       setConcert(concertData);
       concertStatusRef.current = concertData.status;
 
+      // Started first and awaited before the songs are set, so a song
+      // accepted this round never shows Played on its way to Accepted.
+      const acceptedRead = fetchSongsAcceptedThisRound(concertId);
       const { data: songsData } = await supabase
         .from('songs')
         .select('*')
         .eq('concert_id', concertId)
         .order('created_at', { ascending: true });
 
+      await acceptedRead;
       setSongs(songsData ?? []);
       await fetchContributedSongs(concertId);
       setLoading(false);
@@ -349,6 +360,38 @@ export default function ConcertPage() {
     }
   };
 
+  // The songs with accepted requests in this round of the show, from every
+  // fan. The round start is read fresh; without one there is nothing to
+  // read. A failed read keeps the set as it is, so a song may say Played
+  // until the next load.
+  const fetchSongsAcceptedThisRound = async (cId: string) => {
+    const seq = ++acceptedReadSeqRef.current;
+    const { data: concertRow, error: boundaryError } = await supabase
+      .from('concerts')
+      .select('started_at, preview_started_at')
+      .eq('id', cId)
+      .single();
+    if (seq !== acceptedReadSeqRef.current) return;
+    if (boundaryError) {
+      console.error(`[concert-page] fetchSongsAcceptedThisRound: round-boundary read failed | message=${boundaryError.message} | code=${boundaryError.code} | details=${boundaryError.details} | hint=${boundaryError.hint}`);
+      return;
+    }
+    const cycleBoundary = concertRow?.preview_started_at ?? concertRow?.started_at;
+    if (!cycleBoundary) return;
+    const { data, error } = await supabase
+      .from('contributions')
+      .select('song_id')
+      .eq('concert_id', cId)
+      .eq('status', 'accepted')
+      .gte('updated_at', cycleBoundary);
+    if (seq !== acceptedReadSeqRef.current) return;
+    if (error || !data) {
+      console.error(`[concert-page] fetchSongsAcceptedThisRound: contributions query failed | message=${error?.message ?? 'no data'} | code=${error?.code} | details=${error?.details} | hint=${error?.hint}`);
+      return;
+    }
+    setSongsAcceptedThisRound(new Set(data.map((c: any) => c.song_id).filter(Boolean)));
+  };
+
   // Real-time subscription
   useEffect(() => {
     if (!concertId) return;
@@ -359,11 +402,13 @@ export default function ConcertPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'songs', filter: `concert_id=eq.${concertId}` },
         async () => {
+          const acceptedRead = fetchSongsAcceptedThisRound(concertId);
           const { data } = await supabase
             .from('songs')
             .select('*')
             .eq('concert_id', concertId)
             .order('created_at', { ascending: true });
+          await acceptedRead;
           setSongs(data ?? []);
         }
       )
@@ -1912,8 +1957,12 @@ export default function ConcertPage() {
                       );
                     }
                     if (song.status === 'played') {
-                      return (
+                      return songsAcceptedThisRound.has(song.id) ? (
                         <span style={{ flexShrink: 0, fontSize: '0.6875rem', fontWeight: 600, color: '#86efac', background: '#14532d', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
+                          Accepted
+                        </span>
+                      ) : (
+                        <span style={{ flexShrink: 0, fontSize: '0.6875rem', fontWeight: 600, color: 'var(--status-closed-text)', background: 'var(--status-closed-bg)', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
                           Played
                         </span>
                       );
