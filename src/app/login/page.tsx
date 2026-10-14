@@ -182,7 +182,7 @@ export default function LoginPage() {
         <span style={{fontWeight:900,fontSize:'clamp(52px,7vw,96px)',letterSpacing:'-0.02em',color:'var(--text-primary)',lineHeight:1}}>Set</span>
         <span style={{fontWeight:900,fontSize:'clamp(52px,7vw,96px)',letterSpacing:'-0.02em',color:'var(--accent)',lineHeight:1}}>Tuner</span>
       </div>
-      <div style={{color:'var(--text-secondary)',fontSize:'clamp(11px,1.2vw,14px)',fontWeight:600,letterSpacing:'0.12em',textTransform:'uppercase',textAlign:'center',marginBottom:'4px'}}>Live Music · Fan Powered</div>
+      <div style={{color:'var(--text-secondary)',fontSize:'clamp(11px,1.2vw,14px)',fontWeight:600,letterSpacing:'0.12em',textTransform:'uppercase',textAlign:'center',marginBottom:'4px'}}>Live Music · Fan Tuned</div>
       <div style={{color:'var(--text-faint)',fontSize:'11px',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',textAlign:'center',marginBottom:'32px'}}>Performer Portal</div>
 
       <div style={{background:'var(--bg-tile)',border:'1px solid var(--border)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'420px',position:'relative',zIndex:1}}>

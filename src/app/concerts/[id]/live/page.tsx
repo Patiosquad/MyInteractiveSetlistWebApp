@@ -487,9 +487,9 @@ export default function LivePage() {
         if (unconfirmed) {
           alert(`Could not confirm if "${song.name}" was accepted. Check the catalog. If the song is still active, consider using Mark as Played from the Manage menu.`);
         } else if (songStatusOnly) {
-          alert(`"${song.name}" was accepted and those fans will be charged when the concert ends, but the song's status didn't update. Consider manually updating the song status as Mark as Played from the manage button on "${song.name}" tile.`);
+          alert(`"${song.name}" was accepted, but the song's status didn't update. Consider manually updating the song status as Mark as Played from the manage button on "${song.name}" tile.`);
         } else {
-          alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
+          alert(`Could not accept "${song.name}". No fans were charged and the song is still on the request list. Please try again.`);
         }
         return;
       }
@@ -530,9 +530,9 @@ export default function LivePage() {
       // The wording says on our end deliberately. A performer reading this did
       // nothing wrong and should not go looking for their own mistake.
       if (result.fansUpdated === 0 && result.failed > 0) {
-        alert(`No fans will be charged for "${song.name}" - the contributions didn't go through on our end. You can skip this song safely. It has been marked as played.`);
+        alert(`No fans will be charged for "${song.name}" - the requests didn't go through on our end. You can skip this song safely. It has been marked as played.`);
       } else if (result.failed > 0) {
-        alert(`"${song.name}" was accepted. ${result.fansUpdated} fan(s) will be charged when the concert ends, but ${result.failed} could not be processed and will not be charged for this song.`);
+        alert(`"${song.name}" was accepted. ${result.fansUpdated} fan(s) will be charged, but ${result.failed} could not be processed and will not be charged for this song.`);
       }
 
       await supabase.from('concerts').update({ last_activity_at: new Date().toISOString() }).eq('id', concertId);
@@ -543,10 +543,10 @@ export default function LivePage() {
       // saying nobody was charged.
       setActionMessage(result.fansUpdated === 0 && result.failed > 0
         ? `"${song.name}" accepted - no fans charged`
-        : `✓ "${song.name}" accepted!`);
+        : `✓ "${song.name}" accepted`);
       setTimeout(() => setActionMessage(''), 3000);
     } catch {
-      alert(`Could not accept "${song.name}". No fans were charged and the song is still on the leaderboard. Please try again.`);
+      alert(`Could not accept "${song.name}". No fans were charged and the song is still on the request list. Please try again.`);
     } finally {
       setProcessingId(null);
     }
@@ -594,7 +594,7 @@ export default function LivePage() {
       const result = await res.json().catch(() => ({}));
 
       if (!res.ok || result.error) {
-        alert(`Could not decline "${song.name}". The contributions were not released and the song is still on the leaderboard. Please try again.`);
+        alert(`Could not decline "${song.name}". The requests were not released and the song is still on the request list. Please try again.`);
         return;
       }
 
@@ -615,7 +615,7 @@ export default function LivePage() {
       setActionMessage(`"${song.name}" declined.`);
       setTimeout(() => setActionMessage(''), 3000);
     } catch {
-      alert(`Could not decline "${song.name}". The contributions were not released and the song is still on the leaderboard. Please try again.`);
+      alert(`Could not decline "${song.name}". The requests were not released and the song is still on the request list. Please try again.`);
     } finally {
       setProcessingId(null);
     }
@@ -964,7 +964,7 @@ export default function LivePage() {
             <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', minWidth: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden', overflowWrap: 'break-word' }}>{concert?.name}</h1>
             {isPreview ? (
               <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-preview-bg)', color: 'var(--status-preview-text)' }}>
-                Taking Requests!
+                Taking Requests
               </span>
             ) : isClosing ? (
               <span style={{ padding: '0.2rem 0.625rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: 600, background: 'var(--status-closing-bg)', color: 'var(--status-closing-text)' }}>
@@ -982,7 +982,7 @@ export default function LivePage() {
             )}
             {trackerTotal > 0 && (
               <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', paddingLeft: '1.5rem' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Fan Contributions</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Fan Requests</div>
                 <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'baseline', background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 16px' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Accepted <strong style={{ display: 'block', color: 'var(--gold)', fontSize: '30px', fontWeight: 700 }}>${Math.round(trackerAccepted)}</strong></span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pending <strong style={{ display: 'block', color: 'var(--accent)', fontSize: '30px', fontWeight: 700 }}>${Math.round(trackerPending)}</strong></span>
@@ -1016,9 +1016,9 @@ export default function LivePage() {
               {showLayoutDropdown && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.5rem', minWidth: '220px', zIndex: 100, overflow: 'hidden' }}>
                   {([
-                    { value: 'top10',     label: 'Top 10 Leaderboard' },
+                    { value: 'top10',     label: 'Top 10 Requests' },
                     { value: 'top10grid', label: 'Top 10 Grid' },
-                    { value: 'top5',      label: 'Top 5 Leaderboard' },
+                    { value: 'top5',      label: 'Top 5 Requests' },
                     { value: 'ambient',   label: "Ambient — Tonight's Requests" },
                   ] as const).map(option => (
                     <button
@@ -1094,7 +1094,7 @@ export default function LivePage() {
             {/* LEFT: Leaderboard (55%) */}
             <div style={{ flex: 55, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingRight: '1.5rem' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.01em', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🎵 Song Leaderboard
+                🎵 Requests
               </h2>
               {isPreview && (
                 <p style={{ color: 'var(--gold)', fontSize: '0.8125rem', fontStyle: 'italic', textAlign: 'center', margin: '0 0 0.75rem', padding: '0.5rem', background: 'var(--bg-tile-deep)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
@@ -1104,7 +1104,7 @@ export default function LivePage() {
               <div style={{ flex: 1, overflowY: 'auto', padding: '4px' }}>
                 {songs.length === 0 ? (
                   <p style={{ color: 'var(--text-faint)', textAlign: 'center', padding: '4rem 0', margin: 0, fontStyle: 'italic' }}>
-                    Waiting for fans to contribute...
+                    Waiting for fans to request songs...
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1rem' }}>
@@ -1265,7 +1265,7 @@ export default function LivePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {mode === 'contributed' ? 'Contributed' : 'Active'}
+                    {mode === 'contributed' ? 'Requested' : 'Active'}
                   </button>
                 ))}
               </div>
@@ -1413,7 +1413,7 @@ export default function LivePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
           <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.75rem', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>⚠️ Concert Ending Soon</h2>
-            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>This concert will automatically end in 30 minutes due to inactivity. To reset the timer, accept or decline a song, or a fan needs to make a contribution.</p>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>This concert will automatically end in 30 minutes due to inactivity. To reset the timer, accept or decline a song, or a fan needs to make a request.</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowInactivityWarningModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: '0.5rem', border: 'none', background: '#ffffff', color: '#09090b', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
             </div>
@@ -1529,7 +1529,7 @@ export default function LivePage() {
               Decline Song?
             </h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-              This will decline &ldquo;{pendingDecline.name}&rdquo; by {pendingDecline.artist} and release all contributions back to fans.
+              Decline &ldquo;{pendingDecline.name}&rdquo; by {pendingDecline.artist}? All requests for it will be released.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <button
@@ -1589,7 +1589,7 @@ export default function LivePage() {
               Accept Song?
             </h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-              Accept &ldquo;{pendingAccept.name}&rdquo; by {pendingAccept.artist} and charge all contributors?
+              Accept &ldquo;{pendingAccept.name}&rdquo; by {pendingAccept.artist}? This confirms the charge for every fan who requested it.
             </p>
             {pendingAccept.comments && (
               <div style={{ background: '#27272a', borderRadius: '0.5rem', padding: '0.75rem 1rem', borderLeft: '3px solid #a78bfa' }}>
@@ -1708,7 +1708,7 @@ export default function LivePage() {
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: '0.5rem 0 0 0' }}>
                 Total pending: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>${Math.round(trackerPending)}</span>
               </p>
-              <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>These contributions will be released back to fans, not charged.</p>
+              <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>These requests will be released back to fans, not charged.</p>
             </div>
             <p style={{ color: 'var(--danger)', fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>

@@ -1286,7 +1286,7 @@ export default function ConcertPage() {
               <span style={{ color: 'var(--text-primary)' }}>Set</span><span style={{ color: 'var(--accent)' }}>Tuner</span>
             </span>
             <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: '4px' }}>
-              Live Music &middot; Fan Powered
+              Live Music &middot; Fan Tuned
             </span>
           </div>
 
@@ -1305,7 +1305,7 @@ export default function ConcertPage() {
                 textTransform: 'capitalize',
                 ...badge,
               }}>
-                {c.status === 'preview' ? 'Taking Requests!' : isBlocked ? 'ACTION NEEDED' : c.status === 'closing' ? 'ENDING…' : c.status.toUpperCase()}
+                {c.status === 'preview' ? 'Taking Requests' : isBlocked ? 'ACTION NEEDED' : c.status === 'closing' ? 'ENDING…' : c.status.toUpperCase()}
               </span>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '2px 0 0', textAlign: 'right', overflowWrap: 'break-word', maxWidth: '100%' }}>
@@ -1475,7 +1475,7 @@ export default function ConcertPage() {
               marginBottom: '0.5rem',
             }}
           >
-            <span style={{ color: 'var(--accent)' }}>👁</span> View Leaderboard
+            <span style={{ color: 'var(--accent)' }}>👁</span> View Requests
           </button>
         )}
 
@@ -1745,7 +1745,7 @@ export default function ConcertPage() {
                     { key: 'default', label: 'Default' },
                     { key: 'song', label: sortMode === 'song' ? 'Song A-Z' : sortMode === 'song-desc' ? 'Song Z-A' : 'Song A-Z' },
                     { key: 'artist', label: sortMode === 'artist' ? 'Artist A-Z' : sortMode === 'artist-desc' ? 'Artist Z-A' : 'Artist A-Z' },
-                    { key: 'contributed', label: 'Contributed' },
+                    { key: 'contributed', label: 'Requested' },
                     { key: 'active', label: 'Active' },
                   ].map(({ key, label }) => {
                     const isActive =
@@ -1846,7 +1846,7 @@ export default function ConcertPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)' }} />
                         <span style={{ color: 'var(--accent)', fontSize: '13px', fontWeight: 500 }}>
-                          In queue — ${Math.round(contributedSongAmounts[song.id] ?? 0)} contributed
+                          Requested — ${Math.round(contributedSongAmounts[song.id] ?? 0)} from fans
                         </span>
                       </div>
                     )}

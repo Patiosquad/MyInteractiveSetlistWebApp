@@ -914,7 +914,7 @@ function ProfilePageInner() {
               <span style={{ color: 'var(--text-primary)' }}>Set</span><span style={{ color: 'var(--accent)' }}>Tuner</span>
             </span>
             <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: '4px' }}>
-              Live Music &middot; Fan Powered
+              Live Music &middot; Fan Tuned
             </span>
           </div>
 

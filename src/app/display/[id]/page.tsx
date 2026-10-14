@@ -213,7 +213,7 @@ export default function DisplayPage() {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ fontSize: 'clamp(1rem, 2.5vw, 2rem)', color: 'var(--text-faint)', fontWeight: 600, animation: 'shimmer 3s ease-in-out infinite' }}>
-          Waiting for fans to contribute...
+          Waiting for fans to request songs...
         </p>
       </div>
     );
@@ -274,7 +274,7 @@ export default function DisplayPage() {
                 <p style={{ color: 'var(--text-primary)', fontSize: 'clamp(0.85rem, 1.2vw, 1.4rem)', fontWeight: 700, margin: 0 }}>SetTuner</p>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.7rem, 0.95vw, 1.1rem)', lineHeight: 1.5, margin: 0 }}>
-                Is there a song you want to hear? Browse the full catalog and contribute to move it up the rankings! Scan to join the show.
+                Is there a song you want to hear? Scan to join the show, browse the full catalog and request it.
               </p>
             </div>
           </div>
@@ -439,7 +439,7 @@ export default function DisplayPage() {
               <span style={{ color: 'var(--text-primary)' }}>Set</span><span style={{ color: 'var(--accent)' }}>Tuner</span>
             </span>
             <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: '4px' }}>
-              Live Music &middot; Fan Powered
+              Live Music &middot; Fan Tuned
             </span>
           </div>
 
@@ -745,7 +745,7 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
         textTransform: 'uppercase',
         userSelect: 'none',
       }}>
-        Most Requested
+        Top Requests
       </span>
 
       {/* Album art with gold glow */}
