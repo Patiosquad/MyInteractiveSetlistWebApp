@@ -1363,7 +1363,7 @@ export default function ConcertPage() {
             </p>
             {previewCountdown && (
               <p style={{ color: 'var(--text-faint, #6b5c50)', fontSize: '0.75rem', margin: '4px 0 0', textAlign: 'right' }}>
-                Auto-closes exactly 5 days (120 hrs) after Taking Requests began — not by calendar date. Go live before it reaches zero or all contributions release.
+                Auto-closes exactly 5 days (120 hrs) after Taking Requests began — not by calendar date. Go live before it reaches zero or all requests will be released.
               </p>
             )}
             {bandName && (
@@ -2403,7 +2403,7 @@ export default function ConcertPage() {
               This Concert Is Still Ending
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
-              Payments are still being processed for this concert, so it can&apos;t be edited or sent live until that finishes.
+              This concert can&apos;t be edited or sent live until it finishes ending.
             </p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
               If you need this concert&apos;s songs for a show right away, you can duplicate it — that gives you a new concert with the full catalog already in it, so you don&apos;t have to add everything again.
@@ -2529,7 +2529,7 @@ export default function ConcertPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
           <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>⚠️ Taking Requests Ending Soon</h2>
-            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>Taking Requests will automatically close in 30 minutes. Once closed, all fan contributions will be released. To prevent this, go live before the timer expires.</p>
+            <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>Taking Requests will automatically close in 30 minutes. Once closed, all requests will be released. To prevent this, go live before the timer expires.</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowPreviewWarningModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-tile-deep)', color: 'var(--text-primary)', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }}>OK</button>
             </div>
@@ -2553,7 +2553,7 @@ export default function ConcertPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>End Taking Requests?</h2>
-            <p style={{ color: 'var(--danger)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>⚠️ All fan contributions will be released and the concert will be closed. This cannot be undone.</p>
+            <p style={{ color: 'var(--danger)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>⚠️ All requests will be released and the concert will be closed. This cannot be undone.</p>
             <p style={{ color: '#a1a1aa', fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>Only do this if the show has been canceled or you no longer want to accept early requests.</p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowEndPreviewModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
@@ -2571,8 +2571,8 @@ export default function ConcertPage() {
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Go Live?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
               {concert?.status === 'preview'
-                ? 'The concert will go live and all existing fan contributions will carry over to the leaderboard.'
-                : 'The concert will go live and fans will be able to contribute to songs on the leaderboard.'}
+                ? 'The concert will go live, and the requests fans have already made carry over to the request list.'
+                : 'The concert will go live and fans will be able to see your catalog and request songs.'}
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowPreviewToLiveModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
@@ -2587,7 +2587,7 @@ export default function ConcertPage() {
           <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', maxWidth: '420px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Take Requests?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
-              This opens Taking Requests for this concert. You'll set your Taking Requests code next, and fans will be able to find this concert and start contributing once it's saved.
+              This opens Taking Requests for this concert. You'll set your Taking Requests code next, and fans will be able to find this concert and start requesting songs once it's saved.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowTakeRequestsConfirmModal(false)} style={{ padding: '0.625rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>

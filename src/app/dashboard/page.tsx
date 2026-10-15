@@ -836,7 +836,7 @@ export default function DashboardPage() {
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e4e4e7', margin: 0 }}>&quot;{pendingAutoCloseNotification.name}&quot; Auto-Closed</h2>
             <p style={{ color: '#a1a1aa', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
               {pendingAutoCloseNotification.reason === 'taking_requests_expired'
-                ? 'Taking Requests was automatically ended after 5 days with no activity.'
+                ? 'Taking Requests was automatically ended 5 days after it began.'
                 : pendingAutoCloseNotification.reason === 'live_max_duration'
                 ? 'This concert was automatically ended after reaching the 12-hour live limit.'
                 : pendingAutoCloseNotification.reason === 'live_inactivity'

@@ -888,8 +888,8 @@ export default function LivePage() {
         } else {
           setEndConcertOutcome({
             kind: 'pending',
-            message: 'Your concert is being closed out, but a few payments are still settling. This will finish automatically - no action needed. Your earnings will update once it completes.'
-              + ((result.failedCaptures ?? 0) > 0 ? ` ${result.failedCaptures} fan payment(s) could not be processed and will need manual follow-up.` : ''),
+            message: 'Your concert is still being closed out. This will finish automatically - no action needed. Your earnings will update once it completes.'
+              + ((result.failedCaptures ?? 0) > 0 ? ` ${result.failedCaptures} fan payment(s) did not go through.` : ''),
           });
         }
         setEndConcertStep('outcome');
@@ -900,12 +900,12 @@ export default function LivePage() {
       if (failedCaptures > 0) {
         setEndConcertOutcome({
           kind: 'partial',
-          message: `${failedCaptures} fan payment(s) could not be processed and will need manual follow-up. View the full breakdown anytime in your Concert Earnings & History.`,
+          message: `${failedCaptures} fan payment(s) did not go through. View the full breakdown anytime in your Concert Earnings & History.`,
         });
       } else {
         setEndConcertOutcome({
           kind: 'success',
-          message: 'Payments have been processed. View the full breakdown anytime in your Concert Earnings & History.',
+          message: 'View the full breakdown anytime in your Concert Earnings & History.',
         });
       }
       setEndConcertStep('outcome');
@@ -944,7 +944,7 @@ export default function LivePage() {
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
         <p style={{ color: '#a1a1aa' }}>
           {concert?.status === 'closing'
-            ? 'This concert is closing out. Payments are being processed and no further changes can be made.'
+            ? 'This concert is closing out. No further changes can be made.'
             : 'This concert is not live.'}
         </p>
         <button onClick={() => router.push(`/concerts/${concertId}`)} style={backBtnStyle}>
@@ -1799,7 +1799,7 @@ export default function LivePage() {
       {endConcertStep === 'processing' && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-            <p style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Processing payments…</p>
+            <p style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Ending your concert…</p>
             <p style={{ color: '#71717a', fontSize: '0.8125rem', margin: 0 }}>Please don&apos;t close this tab.</p>
           </div>
         </div>
