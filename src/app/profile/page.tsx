@@ -744,7 +744,7 @@ function ProfilePageInner() {
       <div class="doc-label">Earnings Statement</div>
     </div>
     <div class="concert-name">${concert.concertName}</div>
-    <div class="venue-date">${venueLine ? `${venueLine} · ` : ''}${dateLabel}<span class="contrib-count"> · ${concert.capturedCount + (concert.owedCount ?? 0) + concert.releasedCount} contributions</span></div>
+    <div class="venue-date">${venueLine ? `${venueLine} · ` : ''}${dateLabel}<span class="contrib-count"> · ${concert.capturedCount + (concert.owedCount ?? 0) + concert.releasedCount} requests</span></div>
 
     <div class="summary-bar">
       <div class="tile tile-earned">
@@ -778,13 +778,13 @@ function ProfilePageInner() {
         <div class="panel-count">${owed.length} song${owed.length !== 1 ? 's' : ''}</div>
       </div>
       ${renderSongRows(owed, false)}
-      <div class="owed-note">The fan&rsquo;s card declined at close. We retry the charge automatically; until it succeeds this amount has not been collected and is not included in the net above.</div>
+      <div class="owed-note">The fan&rsquo;s card declined. We retry the charge automatically; until it succeeds this amount has not been collected and is not included in the net above.</div>
     </div>` : ''}
 
     ${declined.length > 0 ? `
     <div class="panel panel-declined">
       <div class="panel-header">
-        <div class="panel-title-declined">Declined / Not Played</div>
+        <div class="panel-title-declined">Not Accepted &mdash; Released</div>
         <div class="panel-count-declined">${declined.length} song${declined.length !== 1 ? 's' : ''}</div>
       </div>
       ${renderSongRows(declined, false)}
@@ -1464,7 +1464,7 @@ function ProfilePageInner() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 20px' }}>
               {new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-              <span style={{ color: 'var(--gold)', fontWeight: 700 }}> · {selectedEarningsConcert.capturedCount + (selectedEarningsConcert.owedCount ?? 0) + selectedEarningsConcert.releasedCount} contributions</span>
+              <span style={{ color: 'var(--gold)', fontWeight: 700 }}> · {selectedEarningsConcert.capturedCount + (selectedEarningsConcert.owedCount ?? 0) + selectedEarningsConcert.releasedCount} requests</span>
             </p>
             <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
               <div style={{ flex: '1.4', background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.28)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
@@ -1522,13 +1522,13 @@ function ProfilePageInner() {
                     </div>
                   ))}
                 </div>
-                <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'var(--text-faint)', marginTop: '10px' }}>The fan&rsquo;s card declined at close. We retry the charge automatically; until it succeeds this amount has not been collected.</p>
+                <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'var(--text-faint)', marginTop: '10px' }}>The fan&rsquo;s card declined. We retry the charge automatically; until it succeeds this amount has not been collected.</p>
               </div>
             )}
             {selectedEarningsConcert.declinedSongs.length > 0 && (
               <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderLeft: '3px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <p style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-faint)', margin: 0 }}>Declined / Not Played</p>
+                  <p style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-faint)', margin: 0 }}>Not Accepted — Released</p>
                   <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0 }}>{selectedEarningsConcert.declinedSongs.length} {selectedEarningsConcert.declinedSongs.length === 1 ? 'song' : 'songs'}</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

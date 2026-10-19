@@ -13,15 +13,15 @@ export type PayoutReadiness = {
 
 const NO_ACCOUNT_TITLE = 'Bank Account Required';
 const NO_ACCOUNT_MESSAGE =
-  'Connect a bank account before going live. Fans can contribute during your show, but without a connected account there is no way to send you the money. Set this up under Payouts on your Profile.';
+  'Connect a bank account before going live. Fans can request songs during your show, but without a connected account there is no way to send you the money. Set this up under Payouts on your Profile.';
 
 const NEVER_VERIFIED_TITLE = 'Finish Setting Up Payouts';
 const NEVER_VERIFIED_MESSAGE =
-  'Your payout account is not finished. Stripe has never confirmed it can accept charges, so fans cannot be charged for their contributions. Open Payouts on your Profile to complete setup, then try again.';
+  'Your payout account is not finished. Stripe has never confirmed it can accept charges, so fans cannot be charged for their requests. Open Payouts on your Profile to complete setup, then try again.';
 
 const PREVIOUSLY_VERIFIED_TITLE = 'Payouts Not Working';
 const PREVIOUSLY_VERIFIED_MESSAGE =
-  'Stripe cannot currently accept charges for your account. Fans can still contribute during your show, but if this is not resolved you may not be paid for this performance. You can continue, or set this up under Payouts on your Profile first.';
+  'Stripe cannot currently accept charges for your account. Fans can still request songs during your show, but if this is not resolved you may not be paid for this performance. You can continue, or set this up under Payouts on your Profile first.';
 
 // Single source of truth for whether a performer can be paid. Mirrors
 // lib/payoutReadiness.ts in the iOS repo; keep the two in step.

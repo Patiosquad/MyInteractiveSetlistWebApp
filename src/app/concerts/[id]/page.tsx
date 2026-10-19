@@ -2082,7 +2082,7 @@ export default function ConcertPage() {
                 Add to Catalog
               </h2>
               <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', fontStyle: 'italic', maxWidth: '200px', lineHeight: 1.4, margin: 0, textAlign: 'right', flexShrink: 0 }}>
-                💡 Tip: Feel free to edit the fields above to remove unwanted tags like &lsquo;Live&rsquo;, &lsquo;Anniversary Edition&rsquo;, &lsquo;Collection&rsquo;, etc. before adding to your catalog.
+                💡 Note: Feel free to edit the fields above to remove unwanted tags like &lsquo;Live&rsquo;, &lsquo;Anniversary Edition&rsquo;, &lsquo;Collection&rsquo;, etc. before adding to your catalog.
               </p>
             </div>
 
