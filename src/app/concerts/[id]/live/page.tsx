@@ -900,12 +900,12 @@ export default function LivePage() {
       if (failedCaptures > 0) {
         setEndConcertOutcome({
           kind: 'partial',
-          message: `${failedCaptures} fan payment(s) did not go through. View the full breakdown anytime in your Concert Earnings & History.`,
+          message: `${failedCaptures} fan payment(s) did not go through. View the full breakdown anytime in Concert & Earnings History on your Profile.`,
         });
       } else {
         setEndConcertOutcome({
           kind: 'success',
-          message: 'View the full breakdown anytime in your Concert Earnings & History.',
+          message: 'View the full breakdown anytime in Concert & Earnings History on your Profile.',
         });
       }
       setEndConcertStep('outcome');

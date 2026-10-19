@@ -744,7 +744,7 @@ function ProfilePageInner() {
       <div class="doc-label">Earnings Statement</div>
     </div>
     <div class="concert-name">${concert.concertName}</div>
-    <div class="venue-date">${venueLine ? `${venueLine} · ` : ''}${dateLabel}<span class="contrib-count"> · ${concert.capturedCount + (concert.owedCount ?? 0) + concert.releasedCount} requests</span></div>
+    <div class="venue-date">${venueLine ? `${venueLine} · ` : ''}${dateLabel}<span class="contrib-count"> · ${requestCount(concert.capturedCount + (concert.owedCount ?? 0) + concert.releasedCount)}</span></div>
 
     <div class="summary-bar">
       <div class="tile tile-earned">
@@ -858,6 +858,10 @@ function ProfilePageInner() {
     const whole = Math.trunc(Math.abs(cents) / 100);
     const part = Math.abs(cents) % 100;
     return `${cents < 0 ? '-' : ''}$${whole}.${String(part).padStart(2, '0')}`;
+  }
+
+  function requestCount(n: number) {
+    return `${n} request${n === 1 ? '' : 's'}`;
   }
 
   function formatSongTime(ts: string) {
@@ -1464,7 +1468,7 @@ function ProfilePageInner() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 2px' }}>{[selectedEarningsConcert.venue, selectedEarningsConcert.city].filter(Boolean).join(' — ')}</p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 20px' }}>
               {new Date(selectedEarningsConcert.endedAt ?? selectedEarningsConcert.createdAt ?? 0).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-              <span style={{ color: 'var(--gold)', fontWeight: 700 }}> · {selectedEarningsConcert.capturedCount + (selectedEarningsConcert.owedCount ?? 0) + selectedEarningsConcert.releasedCount} requests</span>
+              <span style={{ color: 'var(--gold)', fontWeight: 700 }}> · {requestCount(selectedEarningsConcert.capturedCount + (selectedEarningsConcert.owedCount ?? 0) + selectedEarningsConcert.releasedCount)}</span>
             </p>
             <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
               <div style={{ flex: '1.4', background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.28)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
