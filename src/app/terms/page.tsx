@@ -23,7 +23,7 @@ export default function TermsPage() {
           TERMS OF SERVICE
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '36px' }}>
-          Last updated: August 6, 2026
+          Last updated: October 19, 2026
         </p>
 
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
@@ -34,10 +34,10 @@ export default function TermsPage() {
           1. WHAT SETTUNER IS
         </h2>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          SetTuner is a platform that connects Fans and Performers at live, in-person musical performances. Fans may contribute toward songs, from a Performer&apos;s chosen repertoire, that they would like the Performer to play during a live concert. Performers review requests and decide, at their sole discretion, which songs to accept and play.
+          SetTuner is a platform that connects Fans and Performers at live, in-person musical performances. Fans may request songs, from a Performer&apos;s chosen repertoire, that they would like the Performer to play during a live concert. Performers review requests and decide, at their sole discretion, which songs to accept and play.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
-          SetTuner is not the Performer, does not control what any Performer chooses to play, and does not guarantee that any specific song will be played. A higher-ranked request may have better odds of being selected, but selection is never guaranteed.
+          SetTuner is not the Performer, does not control what any Performer chooses to play, and does not guarantee that any specific song will be played. A higher-ranked request may be more likely to be selected, but selection is never guaranteed.
         </p>
 
         <h2 style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '19px', marginTop: '32px', marginBottom: '14px' }}>
@@ -51,27 +51,27 @@ export default function TermsPage() {
         </p>
 
         <h2 style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '19px', marginTop: '32px', marginBottom: '14px' }}>
-          3. CONTRIBUTIONS AND PAYMENTS
+          3. REQUESTS AND PAYMENTS
         </h2>
 
-        <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Authorization, Not Immediate Charge</h3>
+        <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>A Hold, Not an Immediate Charge</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          When you contribute toward a song request, your payment method is authorized for the contribution amount. You are not charged at this time.
+          When you request a song, a hold for the amount of your request is placed on your payment method. You are not charged at this time.
         </p>
 
-        <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Capture Only If Played</h3>
+        <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Charged Only If Accepted</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          You are charged the authorized amount only if the Performer accepts and plays your requested song during the live concert. If the song is not played by the end of the concert, the authorization is released and you are never charged.
+          You are charged for your request only if the Performer accepts it. If the Performer does not accept it, the hold is released and you are not charged.
         </p>
 
-        <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Contribution Limits</h3>
+        <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Request Limits</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          Each individual contribution is subject to a minimum of $1 and a maximum of $99. This cap applies per contribution, not per song or per concert: you may make multiple contributions, including multiple contributions toward the same song request, each subject to the $1–$99 range. Total contributions from a single Fan toward a single song at a single concert may not exceed $999.
+          Each request, and each amount you add to a request, is subject to a minimum of $1 and a maximum of $99. This cap applies each time, not per song or per concert: you may make multiple requests, and add to your request for the same song more than once, each within the $1–$99 range. A single Fan&apos;s requests for a single song at a single concert may not total more than $999.
         </p>
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Platform Fee</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          SetTuner retains a 15% platform fee on captured contributions. The remaining amount is paid out to the Performer.
+          SetTuner retains a 15% platform fee on accepted requests. The remaining amount is paid out to the Performer.
         </p>
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Payment Processing</h3>
@@ -83,7 +83,7 @@ export default function TermsPage() {
           4. PERFORMER OBLIGATIONS AND DISCRETION
         </h2>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          Performers determine, in advance, which songs are eligible for requests during a concert. During the concert, Performers may accept or decline any request at their sole discretion, regardless of its position on the leaderboard. SetTuner does not require any Performer to play any specific song.
+          Performers determine, in advance, which songs are eligible for requests during a concert. During the concert, Performers may accept or decline any request at their sole discretion, regardless of its position on the request list. SetTuner does not require any Performer to play any specific song.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
           Performers are responsible for receiving payouts through their connected Stripe account and for complying with applicable tax obligations related to payouts they receive.
@@ -97,7 +97,7 @@ export default function TermsPage() {
         </p>
         <ul style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px', paddingLeft: '22px' }}>
           <li>Use SetTuner for any unlawful purpose</li>
-          <li>Attempt to manipulate the leaderboard or contribution system outside of its intended use</li>
+          <li>Attempt to manipulate the request list or request system outside of its intended use</li>
           <li>Interfere with or disrupt the operation of the platform or its underlying infrastructure</li>
           <li>Impersonate any person or misrepresent your affiliation with any person or entity</li>
           <li>Attempt to circumvent SetTuner&apos;s payment or fee structure</li>
@@ -110,7 +110,7 @@ export default function TermsPage() {
           6. DISPUTES AND REFUND REQUESTS
         </h2>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          Because you are only charged when a song is accepted and played, most disputes should not involve a captured charge for an unplayed song. If you believe a charge is incorrect, contact us at business@settuner.com within 30 days of the charge and we will investigate.
+          You are charged only for requests the Performer accepts; anything not accepted is released and not charged. If you believe a charge is incorrect, contact us at business@settuner.com within 30 days of the charge and we will investigate.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
           If SetTuner determines that a technical or processing error on our part resulted in an incorrect charge, we will refund the affected amount in full. This refund commitment applies to errors in SetTuner&apos;s own systems or processing; it does not extend to disputes about a Performer&apos;s decision to accept or decline a request, which is at the Performer&apos;s sole discretion under Section 4. Requests made more than 30 days after the charge date may not be eligible for a refund under this section.

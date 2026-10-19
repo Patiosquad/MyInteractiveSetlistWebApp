@@ -23,7 +23,7 @@ export default function PrivacyPage() {
           PRIVACY POLICY
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '36px' }}>
-          Last updated: September 5, 2026
+          Last updated: October 19, 2026
         </p>
 
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Payment Information</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          When you make a contribution or receive a payout, payment processing is handled entirely by Stripe, our payment processor. SetTuner does not collect or store your full card number, and does not have access to it. Stripe&apos;s own privacy policy governs the information it collects directly from you.
+          When you request a song or receive a payout, payment processing is handled entirely by Stripe, our payment processor. SetTuner does not collect or store your full card number, and does not have access to it. Stripe&apos;s own privacy policy governs the information it collects directly from you.
         </p>
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Device Identifiers</h3>
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
 
         <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Concert and Venue Information</h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
-          When a Performer creates a concert, they may search for and select the concert venue using Google Maps. If selected, the venue&apos;s address is attached to the concert record. Fan participants are associated with the concert they join, along with their song requests and contribution activity for that concert.
+          When a Performer creates a concert, they may search for and select the concert venue using Google Maps. If selected, the venue&apos;s address is attached to the concert record. Fan participants are associated with the concert they join, along with their song requests and the amount of each request for that concert.
         </p>
 
         <h2 style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '19px', marginTop: '32px', marginBottom: '14px' }}>
@@ -66,8 +66,8 @@ export default function PrivacyPage() {
         <ul style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px', paddingLeft: '22px' }}>
           <li>Create and maintain your SetTuner account</li>
           <li>Match Fans to the correct concert and performer</li>
-          <li>Process contributions, including authorizing and, where a song is accepted and played, capturing payment</li>
-          <li>Display the real-time leaderboard during a concert</li>
+          <li>Process song requests, including placing a hold on your payment method and charging it only for requests the Performer accepts</li>
+          <li>Display the real-time request list during a concert</li>
           <li>Process payouts to Performers</li>
           <li>Identify and attach venue location information when a Performer creates a concert</li>
           <li>Maintain the security and integrity of the SetTuner platform</li>
@@ -81,10 +81,10 @@ export default function PrivacyPage() {
           We share information with the following third-party service providers, solely to operate SetTuner:
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          Stripe — payment processing, including authorization holds and capture of contributions, and payouts to Performers. Stripe maintains its own privacy policy governing payment data.
+          Stripe — payment processing, including holds on your payment method, charges for accepted requests, and payouts to Performers. Stripe maintains its own privacy policy governing payment data.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          Supabase — our backend infrastructure provider, hosting our database, authentication system, and real-time leaderboard functionality.
+          Supabase — our backend infrastructure provider, hosting our database, authentication system, and real-time request list functionality.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
           Spotify API — used to retrieve song and artist metadata (such as song titles and album art) displayed within the app. We do not share your account information with Spotify through this integration.
@@ -103,17 +103,17 @@ export default function PrivacyPage() {
           4. DATA RETENTION
         </h2>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
-          We retain account information for as long as your account remains active. When you delete your account, your profile information and sign-in credentials are permanently removed. Concert and contribution records are retained in anonymized form, no longer linked to your name or contact information, because these records are also part of the financial history of the performers and fans you interacted with, and are needed for accurate financial, tax, and payment dispute purposes.
+          We retain account information for as long as your account remains active. When you delete your account, your profile information and sign-in credentials are permanently removed. Concert and request records are retained in anonymized form, no longer linked to your name or contact information, because these records are also part of the financial history of the performers and fans you interacted with, and are needed for accurate financial, tax, and payment dispute purposes.
         </p>
 
         <h2 style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '19px', marginTop: '32px', marginBottom: '14px' }}>
           5. YOUR RIGHTS AND CHOICES
         </h2>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          You can delete your account at any time from the Profile screen in the SetTuner mobile app, or from your Profile page at settuner.com. Deleting your account permanently removes your profile and sign-in credentials, and you will no longer be able to sign in. Concert and contribution records are retained in anonymized form as described in Section 4.
+          You can delete your account at any time from the Profile screen in the SetTuner mobile app, or from your Profile page at settuner.com. Deleting your account permanently removes your profile and sign-in credentials, and you will no longer be able to sign in. Concert and request records are retained in anonymized form as described in Section 4.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '20px' }}>
-          If you have contributions or payments that are still settling, account deletion is temporarily unavailable until they finish processing, and the app will tell you what needs to resolve first. Performers who have connected a Stripe account should note that deleting a SetTuner account does not close or delete that Stripe account, which remains subject to Stripe&apos;s own terms and processes. You may also request access to or correction of your personal information by contacting us at business@settuner.com.
+          If any of your requests or payments are still being processed, account deletion is temporarily unavailable until they finish, and the app will tell you what needs to resolve first. Performers who have connected a Stripe account should note that deleting a SetTuner account does not close or delete that Stripe account, which remains subject to Stripe&apos;s own terms and processes. You may also request access to or correction of your personal information by contacting us at business@settuner.com.
         </p>
         <p style={{ color: 'var(--text-primary)', fontSize: '15px', lineHeight: 1.8, marginBottom: '36px' }}>
           If you are a resident of a jurisdiction that grants additional data rights (such as the right to data portability or to opt out of certain processing), contact us and we will respond consistent with applicable law.

@@ -15,14 +15,14 @@ export default function Home() {
             You help tune the set.
           </h1>
           <p style={{ color: 'var(--text-primary)', opacity: 0.75, fontSize: 'clamp(15px,2vw,18px)', lineHeight: 1.6, marginBottom: '28px' }}>
-            SetTuner is a live-music request platform. At an in-person show, fans contribute toward the songs they most want to hear from the performer&apos;s repertoire for the night. Requests climb a real-time leaderboard the whole room can see, and the performer decides what to play.
+            SetTuner is a live-music request platform. At an in-person show, fans request the songs they most want to hear from the performer&apos;s repertoire for the night. Songs rank on a real-time request list the whole room can see, and the performer decides what to play.
           </p>
           <div style={{ background: 'var(--bg-tile)', border: '1px solid var(--border)', borderRadius: '16px', padding: '32px', textAlign: 'left', marginBottom: '36px' }}>
             <h2 style={{ color: 'var(--gold)', fontWeight: 800, fontSize: 'clamp(20px,2.6vw,26px)', marginBottom: '16px' }}>
-              Only pay for what you actually hear.
+              Pay only for the requests the performer accepts.
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-              Your contribution is authorized, not charged. You&apos;re billed only if the performer accepts and plays your song live — if it isn&apos;t played, the authorization is released and no money ever leaves your account.
+              Requesting a song places a hold on your card, not a charge. You&apos;re charged only if the performer accepts your request — if they don&apos;t, the hold is released and no money leaves your account.
             </p>
           </div>
           <Link
@@ -42,7 +42,7 @@ export default function Home() {
           What is SetTuner?
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-          SetTuner turns song requests into a live, transparent experience. Instead of pushing your way to the front to shout a request or hand the performer cash, you back the songs you want to hear right from your seat during a live, in-person performance. The performer watches the leaderboard update in real time and chooses which requests to accept and play.
+          SetTuner turns song requests into a live, transparent experience. Instead of pushing your way to the front to shout a request, you request the songs you want to hear right from your seat, or from wherever you&apos;re standing, during a live, in-person performance. The performer watches the request list update in real time and chooses which requests to accept and play.
         </p>
       </section>
 
@@ -56,7 +56,7 @@ export default function Home() {
           <div>
             <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '17px', marginBottom: '6px' }}>See tonight&apos;s repertoire.</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-              At a live performance, fans open SetTuner and see the catalog of songs the performer has personally chosen to make available for requests that night. Back the ones you most want to hear.
+              At a live performance, fans open SetTuner and see the catalog of songs the performer has personally chosen to make available for requests that night. Request the ones you most want to hear.
             </p>
           </div>
         </div>
@@ -64,9 +64,9 @@ export default function Home() {
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
           <div style={{ flexShrink: 0, width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>2</div>
           <div>
-            <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '17px', marginBottom: '6px' }}>Contributions combine to power the leaderboard.</h3>
+            <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '17px', marginBottom: '6px' }}>Requests add up on the request list.</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-              Back a song once, or contribute again and again — contributions to the same song can add up to $999 per show. Every contribution combines with other fans backing the same song, raising it on the real-time leaderboard. Every fan sees the leaderboard in the app, and performers can broadcast it on the venue&apos;s screens for the whole audience.
+              Request a song once, or add to your request again and again — your requests for the same song can add up to $999 per show. Every request adds to that song&apos;s total from fans, raising it on the real-time request list. Every fan sees the request list in the app, and performers can broadcast it on the venue&apos;s screens for the whole audience.
             </p>
           </div>
         </div>
@@ -74,9 +74,9 @@ export default function Home() {
         <div style={{ display: 'flex', gap: '16px' }}>
           <div style={{ flexShrink: 0, width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>3</div>
           <div>
-            <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '17px', marginBottom: '6px' }}>The performer decides — and that&apos;s when you&apos;re charged.</h3>
+            <h3 style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '17px', marginBottom: '6px' }}>The performer decides — and you&apos;re charged only if they accept.</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-              The performer chooses which songs to accept and play. A higher-ranked song has better odds of being chosen, but nothing is guaranteed. You&apos;re charged only when your requested song is accepted and performed live. If it isn&apos;t played, you&apos;re never charged.
+              The performer chooses which songs to accept and play. A higher-ranked song is more likely to be chosen, but nothing is guaranteed. You&apos;re charged only for requests the performer accepts. If your request isn&apos;t accepted, the hold is released and you&apos;re not charged.
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function Home() {
           For performers
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-          Performers curate the night&apos;s repertoire, review incoming requests during the concert, and get paid for the songs they play. Sign in to the Performer Portal to set up a concert.
+          Performers curate the night&apos;s repertoire, review incoming requests during the concert, and get paid for the requests they accept. Sign in to the Performer Portal to set up a concert.
         </p>
       </section>
 
