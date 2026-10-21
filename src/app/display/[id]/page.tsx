@@ -209,9 +209,64 @@ export default function DisplayPage() {
 
   // ── Shared render helpers ──────────────────────────────────────────────────
 
+  // QR panel: the one place the venue screen draws its scan-to-join panel, so
+  // every state shows the same code and words. 'column' is the panel at the top
+  // of Zone 1 (two or more requested songs). 'large' is the front-and-centre
+  // panel: alone with no requests, and on the left half beside the one song.
+  function renderQrPanel(variant: 'column' | 'large') {
+    if (!qrDataUrl) return null;
+    const large = variant === 'large';
+    const codeSize = large ? 'min(46vh, 36vw)' : 'clamp(110px, 12vw, 170px)';
+    return (
+      <div style={{
+        background: 'var(--bg-tile)',
+        border: '1px solid color-mix(in srgb, var(--accent) 27%, transparent)',
+        boxShadow: '0 0 20px color-mix(in srgb, var(--accent) 15%, transparent)',
+        borderRadius: '14px',
+        padding: large ? 'clamp(16px, 2.5vh, 32px)' : '14px 16px',
+        display: 'flex',
+        flexDirection: large ? 'column' : 'row',
+        alignItems: 'center',
+        gap: large ? 'clamp(12px, 2vh, 24px)' : '14px',
+        width: large ? undefined : '100%',
+        boxSizing: 'border-box',
+        flexShrink: 0,
+        // Clear space between the Zone 1 panel and the Top Requests label under it;
+        // HeroSong's Zone 1 album art is sized at 24vh to leave room for it.
+        marginBottom: large ? undefined : 'clamp(20px, 4vh, 48px)',
+      }}>
+        <img
+          src={qrDataUrl}
+          alt="QR Code"
+          style={{
+            width: codeSize,
+            height: codeSize,
+            background: 'white',
+            borderRadius: '8px',
+            padding: '4px',
+            display: 'block',
+            flexShrink: 0,
+          }}
+        />
+        {/* The large panel's words keep the code's widest size (36vw), so a short screen can't wrap them onto extra lines. */}
+        <div style={large ? { width: '36vw', textAlign: 'center' } : { flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: large ? 'center' : undefined, gap: '6px', marginBottom: '6px' }}>
+            <span style={{ fontSize: large ? 'clamp(1rem, 1.6vw, 1.8rem)' : 'clamp(0.8rem, 1.1vw, 1.2rem)' }}>🎵</span>
+            <p style={{ color: 'var(--text-primary)', fontSize: large ? 'clamp(1.1rem, 1.8vw, 2.1rem)' : 'clamp(0.85rem, 1.2vw, 1.4rem)', fontWeight: 700, margin: 0 }}>SetTuner</p>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: large ? 'clamp(0.95rem, 1.4vw, 1.6rem)' : 'clamp(0.7rem, 0.95vw, 1.1rem)', lineHeight: 1.5, margin: 0 }}>
+            Is there a song you want to hear? Scan to join the show, browse the full catalog and request it.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // No requested songs: the large QR panel front and centre, the waiting line under it.
   function renderEmptyState() {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'clamp(16px, 3vh, 40px)', padding: '2vh 3vw' }}>
+        {renderQrPanel('large')}
         <p style={{ fontSize: 'clamp(1rem, 2.5vw, 2rem)', color: 'var(--text-faint)', fontWeight: 600, animation: 'shimmer 3s ease-in-out infinite' }}>
           Waiting for fans to request songs...
         </p>
@@ -219,11 +274,20 @@ export default function DisplayPage() {
     );
   }
 
+  // One requested song: the QR panel and the song share the screen evenly, the
+  // panel on the left, where Zone 1 puts it once a second song is requested.
   function renderSingleSongState() {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2vh 6vw', gap: '2vh' }}>
-        <HeroSong song={top!} centered />
-      </div>
+      <>
+        {qrDataUrl && (
+          <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2vh 3vw', borderRight: '1px solid var(--border)' }}>
+            {renderQrPanel('large')}
+          </div>
+        )}
+        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2vh 4vw', gap: '2vh' }}>
+          <HeroSong song={top!} centered />
+        </div>
+      </>
     );
   }
 
@@ -240,45 +304,7 @@ export default function DisplayPage() {
         borderRight: '1px solid var(--border)',
         position: 'relative',
       }}>
-        {qrDataUrl && (
-          <div style={{
-            background: 'var(--bg-tile)',
-            border: '1px solid color-mix(in srgb, var(--accent) 27%, transparent)',
-            boxShadow: '0 0 20px color-mix(in srgb, var(--accent) 15%, transparent)',
-            borderRadius: '14px',
-            padding: '14px 16px',
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: '14px',
-            width: '100%',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-          }}>
-            <img
-              src={qrDataUrl}
-              alt="QR Code"
-              style={{
-                width: 'clamp(110px, 12vw, 170px)',
-                height: 'clamp(110px, 12vw, 170px)',
-                background: 'white',
-                borderRadius: '8px',
-                padding: '4px',
-                display: 'block',
-                flexShrink: 0,
-              }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                <span style={{ fontSize: 'clamp(0.8rem, 1.1vw, 1.2rem)' }}>🎵</span>
-                <p style={{ color: 'var(--text-primary)', fontSize: 'clamp(0.85rem, 1.2vw, 1.4rem)', fontWeight: 700, margin: 0 }}>SetTuner</p>
-              </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.7rem, 0.95vw, 1.1rem)', lineHeight: 1.5, margin: 0 }}>
-                Is there a song you want to hear? Scan to join the show, browse the full catalog and request it.
-              </p>
-            </div>
-          </div>
-        )}
+        {renderQrPanel('column')}
 
         <HeroSong song={topSong} centered={false} />
       </div>
@@ -758,14 +784,14 @@ function HeroSong({ song, centered }: { song: SongWithTotal; centered: boolean }
         }} />
         {song.album_art_url
           ? <img src={song.album_art_url} alt="" style={{
-              width: centered ? artSize : 'min(100%, 28vh)',
-              height: centered ? artSize : 'min(100%, 28vh)',
+              width: centered ? artSize : 'min(100%, 24vh)',
+              height: centered ? artSize : 'min(100%, 24vh)',
               borderRadius: 14,
               objectFit: 'cover',
               position: 'relative',
               boxShadow: '0 8px 40px color-mix(in srgb, var(--gold) 30%, transparent)',
             }} />
-          : <div style={{ width: centered ? artSize : 'min(100%, 28vh)', height: centered ? artSize : 'min(100%, 28vh)', borderRadius: 14, background: ART_FALLBACK_GRADIENT, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          : <div style={{ width: centered ? artSize : 'min(100%, 24vh)', height: centered ? artSize : 'min(100%, 24vh)', borderRadius: 14, background: ART_FALLBACK_GRADIENT, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: '2rem', color: 'var(--text-muted)' }}>♫</span>
             </div>
         }
