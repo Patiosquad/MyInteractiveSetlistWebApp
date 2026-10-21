@@ -131,7 +131,6 @@ export default function LivePage() {
   const [editingNote, setEditingNote] = useState<{ id: string, name: string, comments: string } | null>(null);
   const [savingNote, setSavingNote] = useState(false);
   const [bandName, setBandName] = useState('');
-  const [selectedLayout, setSelectedLayout] = useState<'top10' | 'top10grid' | 'top5' | 'ambient'>('top10');
   const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
   const [showConcertOptionsDropdown, setShowConcertOptionsDropdown] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -1043,25 +1042,16 @@ export default function LivePage() {
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
             <div ref={layoutDropdownRef} style={{ position: 'relative' }}>
+              {/* Open Display is a menu: picking a style opens that venue screen in a new tab. */}
               {!isPreview && (
-                <div style={{ display: 'flex', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                  <button
-                    onClick={() => window.open(`/display/${concertId}?layout=${selectedLayout}`, '_blank')}
-                    onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
-                    style={{ padding: '0.5rem 1rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', borderRight: '1px solid var(--border-subtle)' }}
-                  >
-                    Open Display
-                  </button>
-                  <button
-                    onClick={() => setShowLayoutDropdown(prev => !prev)}
-                    onMouseEnter={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget.parentElement as HTMLDivElement).style.borderColor = 'var(--border)'; }}
-                    style={{ padding: '0.5rem 0.625rem', background: 'var(--bg-tile)', color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer', border: 'none', lineHeight: 1 }}
-                  >
-                    ▾
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowLayoutDropdown(prev => !prev)}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  style={navBtnStyle}
+                >
+                  Open Display ▾
+                </button>
               )}
               {showLayoutDropdown && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, background: '#18181b', border: '1px solid #3f3f46', borderRadius: '0.5rem', minWidth: '220px', zIndex: 100, overflow: 'hidden' }}>
@@ -1073,10 +1063,9 @@ export default function LivePage() {
                   ] as const).map(option => (
                     <button
                       key={option.value}
-                      onClick={() => { setSelectedLayout(option.value); setShowLayoutDropdown(false); }}
+                      onClick={() => { window.open(`/display/${concertId}?layout=${option.value}`, '_blank'); setShowLayoutDropdown(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.625rem 1rem', background: 'transparent', border: 'none', color: '#e4e4e7', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left' }}
                     >
-                      <span style={{ width: '1rem', color: '#86efac' }}>{selectedLayout === option.value ? '✓' : ''}</span>
                       {option.label}
                     </button>
                   ))}
